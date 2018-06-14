@@ -1,0 +1,15 @@
+Package: rIP
+Type: Package
+Title: Interpersonal physiology analysis
+Version: 1.0.0.9001
+Date: 2018-06-14
+Author: Johann R. Kleinbub
+Maintainer: Johann R. Kleinbub <johann.kleinbub@gmail.com>
+Description: A suite of tools useful to import, visualize and analyze dyadic physiological data of various form. The current version contains tools for electrodermal activity. 
+URL: https://github.com/kleinbub/rIP http://www.kleinbub.it 
+BugReports:https://github.com/kleinbub/rIP/issues
+Imports: grDevices, graphics, methods, stats, utils, signal
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1

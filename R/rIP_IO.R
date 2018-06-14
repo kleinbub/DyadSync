@@ -1,0 +1,651 @@
+##     ___                 _   ___ _
+##    /   \_   _  __ _  __| | / __\ | __ _ ___ ___
+##   / /\ / | | |/ _` |/ _` |/ /  | |/ _` / __/ __|
+##  / /_//| |_| | (_| | (_| / /___| | (_| \__ \__ \
+## /___,'  \__, |\__,_|\__,_\____/|_|\__,_|___/___/
+##         |___/
+############################################################################################################                                   
+## DyadIO.R
+# mega set of import/export functions
+# 
+# -readDyadExperiment() reads almost any kind of signal
+# -readCategories() reads categorial data with time markers in start and end columns
+#
+############################################################################################################
+## Changelog
+# v1.53 - videoSec e maxSeconds became start and end, and ARE used in the ts information
+# v1.52 - fixed pairBind
+# v1.51 - new naming system was bugged, recycled that from rMEA
+# v1.5  - fixed single file trycatch. NEW: idOrder & idSep parameters to correctly identify elements in
+#         filenames. 
+#         WARNING: the new naming system is pretty much untested. EXPECT issues.
+#         WARNING: pairBind must be tested
+#       - readCategories now trims whitespaces at beginning and end of character data
+# v1.4  - start=0 in all ts() calls. This IS important. Also, added videoSec to DyadSession() calls.
+#         Added a warning message if sessions are not sequential.
+# v1.3  - major edits to a lot of stuff, such as parameters. This version is NOT backward compatible.
+# v1.2  - readCategories substituted readTurns. Now should be the proper csv importer juggernaut we always
+#         dreamt of.
+# v1.1  - maxSeconds instead of maxMinutes, with individual durations
+# v1.0  - partially 'stream 1.2' compliant (turns missing)
+#
+############################################################################################################
+## ToDo
+# URGENT
+# -update readCategories() alla versione 1.5 [forse fatto, test!]
+# -usa videoSec come start value delle serie temporali!
+#
+# Low priority
+# -aggiusta il caso del file singolo/directory [fose fatto?]
+# -uniform videoSec and removeSec [sicuro? videoSec imposta lo start, mentre removeSec imposta il trim]
+# - 
+############################################################################################################ 
+## Credits
+# Author: Johann R. Kleinbub
+# Contact: johann.kleinbub@gmail.com
+############################################################################################################ 
+
+
+
+
+
+
+
+############################################################################################################
+############################################################################################################
+############################################################################################################
+##Data importer juggernaut
+
+#' Title
+#'
+#' @param path 
+#' @param start a vector of integers, or strings in mm:ss format which specify the time (in seconds) of the first observation of each file.
+#' Note that the default value (0) is different from the default value of \code{\link[stats]{ts}}.
+#' @param end a vector of integers, or strings in mm:ss format which specify the time (in seconds) of the last observation of each file.
+#' If the data is longer or shorter, remove tail
+#'  or pads with zeroes. Useful to cut signals when a session is over or to equalize lengths. The default value,
+#'  FALSE, keeps the original length of the signal
+#' @param paCol 
+#' @param teCol 
+#' @param signalNames 
+#' @param sampRate 
+#' @param pairBind 
+#' @param winTerpolate 
+#' @param namefilt 
+#' @param sumCols 
+#' @param idOrder 
+#' @param idSep 
+#' @param ... 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+readDyadExperiment = function(
+                      path,  #location and format of experiment files
+                      start = 0, #
+                      end = FALSE ,  #remove tail or pads with zeroes. Useful to cut signals when a session is over or to equalize lengths
+                      paCol,teCol, #one or multiple columns identifiyng the patient and clinician for each signal
+                      signalNames, #how to rename each signal (same order as paCol, teCol)
+                      sampRate,    #sampling rate at which the data is acquired
+                      pairBind = F, #if true, each two files in the path get matched to a single DyadSession, useful if the data of patient
+                                    #and clinician are saved on separate files
+                      winTerpolate = list(winSec=NULL,incSec=NULL), #if data comes from a moving windows analysis it should be
+                                                                    #restored to the original data sampling rate
+                      namefilt = NA,
+                      sumCols=FALSE, #should all pacol columns be summed? (and teCol as well)
+                      idOrder= c(), # c("id","session","group","role"), #the order of identifiers in the filenames. role is for pairbind = T
+                      idSep = "_", #the separator of identifiers in the filename
+                      ... #additional options to be passed to read.table (es: skip, header, etc)
+                      ){
+####debug
+  # path = data_d
+  # maxSeconds=F
+  # paCol=c(2)
+  # teCol=c(2)
+  # signalNames = c("SC")
+  # ###signalNames = c("start", "stop", "LFHF", "PNN50", "HF", "RRMean",  "RRsd")
+  # sampRate=20
+  # ###winTerpolate = list(winSec = 30, incSec = 5)
+  # winTerpolate = list(winSec = NULL, incSec = NULL)
+  # 
+  # pairBind=T
+  # namefilt = NA
+  # sumCols=FALSE
+  # idOrder= c("id","session","x","r")
+  # idSep = "_"
+  # options=list("skip"=0, "sep"=";", "header"=T)
+######
+  if(length(paCol)!=length(teCol) || length(paCol)!=length(signalNames)) stop ("paCol, teCol, signalNames must have same length")
+  
+  iStep=0
+  if(!file.exists(path)){stop("Selected file or directory does not exists")}
+  patt = "\\.(txt|csv)$"
+  if (!is.na(namefilt)){
+    patt = paste0(namefilt,".*\\.(txt|csv)$")
+  }
+  nFiles=length(list.files(path, pattern=patt))
+  if(nFiles==0){ #no files in the directory. Maybe a single file was provided?
+    if(utils::file_test("-f",path)){ #check if file exists and not a directory
+      filenames = path
+      shortNames = basename(path)
+      path=dirname(path)
+    } else{
+      stop("No [",patt,"] files were found in ",path,"\r\n\r\nFiles in path:\r\n",paste(list.files(path),"\r\n" ), call.=F)
+      #stop("The input must be a file or a directory!\r\nTry to use choose.dir() as the first parameter, e.g.: meaMaster(choose.dir(), ....")
+    }
+  } else {
+    filenames = list.files(path, pattern=patt, full.names=T)
+    shortNames = list.files(path, pattern=patt, full.names=F)
+  }
+  nFiles = length(filenames)
+  
+  sapply(shortNames, cat, "\r\n")
+  ####now tries to identify cases!
+  
+  #first check if separator exists
+  if(any(!is.na(idOrder)))
+    lapply(shortNames, function(name) {
+      if(!grepl(idSep,tools::file_path_sans_ext(name))) stop("idSep: '",idSep, "' could not be found in file: ",name, call.=F)
+    })
+  
+  #then build lists of groups, sessions, and id for each file
+  #session
+  idOrder = tolower(idOrder) #lowercase
+  if(any(substr(idOrder,1,1)=="i",na.rm=T)){
+    dyadIds = lapply(seq_along(shortNames), function(i) {
+      unlist(strsplit(tools::file_path_sans_ext(shortNames[i]), idSep))[which(substr(idOrder,1,1)=="i")]
+    })
+  } else dyadIds = as.list(lead0(seq_len(nFiles),width=ifelse(nchar(nFiles)<2 ,2,nchar(nFiles)) ))
+  #group
+  if(any(substr(idOrder,1,1)=="g",na.rm=T)){
+    group = lapply(seq_along(shortNames), function(i) {
+      unlist(strsplit(tools::file_path_sans_ext(shortNames[i]), idSep))[which(substr(idOrder,1,1)=="g")]
+    })
+  } else group = as.list(rep("all",nFiles))
+  #role
+  if(any(substr(idOrder,1,1)=="r",na.rm=T)){
+    if(!pairBind) stop("Role identifier was specified, but pairBind is false.")
+    role = lapply(seq_along(shortNames), function(i) {
+      unlist(strsplit(tools::file_path_sans_ext(shortNames[i]), idSep))[which(substr(idOrder,1,1)=="r")]
+    })
+    if(length(unique(role)) > 2 ) stop(paste(""))
+  } else if(pairBind) {
+    stop("pairBind = TRUE but no role identifier selected")
+  } else role = as.list(rep("dyad",nFiles))
+  #session
+  if(any(substr(idOrder,1,1)=="s",na.rm=T)){
+    sess = lapply(seq_along(shortNames), function(i) {
+      ax = unlist(strsplit(tools::file_path_sans_ext(shortNames[i]), idSep))[which(substr(idOrder,1,1)=="s")]
+      x = as.numeric(gsub("[[:alpha:]]","", ax))
+      if(is.na(x)){
+        warning("No numeric information was found for session identifier '", ax, "' in signal ",shortNames[i],". Please check filenames and idOrder and idSep arguments:\r\n", call.=F)
+        ax
+      } else x
+    })
+  } else sess = as.list(rep("01",nFiles))
+  
+  
+  #if sessions are specified, check their order
+  if(any(substr(idOrder,1,1)=="s",na.rm=T) ){
+    #now to check if the filenames have repetitions
+    
+    nCheck = do.call(paste0, list(group,dyadIds, sess,role) ) #paste together group,id and session to obtain unique session identifier
+    
+    if(length(unique(nCheck)) != length(nCheck))
+      warning("Two equal session identifier were found, please check that the session order/names are correct:\r\n",paste0("\r\n",shortNames,"\t",nCheck),call. = F)
+    # print(sess);print(dyadIds)
+    #now check if the session are in progressive order
+    deltaSess = mapply(function(x,i){
+      if(pairBind){
+        if(sum(duplicated(x)) != length(unique(x))) stop ("Uncomplete dyad ", i,":\r\n", paste(x," ") )
+        x = x[seq(1,length(x)-1,by=2)]
+      }
+      ifelse(length(x)>1,diff(x),1) #if there are multiple sessions with the same id, check that they are in progressive order
+    }, split(unlist(sess),unlist(dyadIds)), unique(unlist(dyadIds) ) )
+    if(any(deltaSess<=0))
+      warning("The sessions may not be in sequential order, please check file names:\r\n",paste0("\r\n",shortNames,"\t",nCheck),call. = F)
+  }
+  
+ 
+  iStep = iStep +1
+  ndyads = ifelse(pairBind, length(filenames)/2,length(filenames))
+  nFiles = length(filenames)
+  cat("\r\nSTEP",iStep,"| Reading",ndyads,"dyads\r\n")
+  options = list(...)
+  #ugly stuff to set read.csv options
+  if("skip" %in% names(options)){
+    if(length(options$skip) ==1) options$skip=rep(options[["skip"]],nFiles)
+    if(length(options$skip) !=nFiles) stop("skip must be provided for each file")
+    skipRow = options$skip
+    options$skip = NULL
+  } else skipRow =rep(0,nFiles)
+  lf <- mapply(function(x,iFile) {  prog(iFile,nFiles); do.call(read.table,c(list(x, skip=skipRow[iFile]), options)) },filenames,seq_along(filenames),SIMPLIFY = F )
+  if(ncol(lf[[1]])==1) {print(str(lf[[1]]));stop("Import failed. Check sep?")}
+  if(!is.numeric(unlist(lf[[1]][paCol]))) stop("paCol column is not numeric. Maybe there is a header? Set skiprow to 1 or more?")
+  if(!is.numeric(unlist(lf[[1]][teCol]))) stop("teCol column is not numeric. Maybe there is a header? Set skiprow to 1 or more?")
+
+
+  len <- lapply(lf, function(x) length(x[[1]]))
+  #check if some file are shorter than 50% of the mean length and remove them 
+  removeFile = unlist(lapply(seq_along(len), function(i){if(len[[i]] / mean(unlist(len)) <0.5) {
+      warning("File ",i,': ',shortNames[i]," is shorter (",timeMaster(round(len[[i]]/sampRate),out="m"),"s) than the 50% of the mean length and was removed", call. = F);return(i)}
+    } ))
+  if(length(removeFile)>0){
+    lf[removeFile] = len[removeFile] = dyadIds[removeFile] = group[removeFile] = sess[removeFile] = NULL
+    filenames =filenames[-removeFile]; shortNames = shortNames[-removeFile]
+    
+  }
+
+
+
+  if(pairBind){
+    if(!isTRUE(all.equal(paCol,teCol))) {warning("If pairBind is true, you most probably want to have paCol and teCol to be equal! Watch what your're doing!", call. = F)
+    }  else {
+      teCol = teCol + ncol(lf[[1]])
+    }
+    
+    iStep = iStep +1
+    cat0("\r\nSTEP ",iStep," | Combining '",levels(factor(unlist(role)))[1],"' and '", levels(factor(unlist(role)))[2],"' files\r\n")
+    #add 'role' labels to each column. 'lr' = list renamed
+    lf =  Map(function (x,i) {names(x)=paste(names(x),role[[i]],sep="_"); x}, lf, seq_along(lf) )
+    
+    #combine dyad's members in a single dataframe. 'lrb' = list renamed bound
+    lfu = lf[seq(1,length(lf)-1, by=2)]
+    lfu = Map(function(i,j){
+      if(dyadIds[[i]] != dyadIds[[i+1]]) stop ("file ",i,":",dyadIds[[i]], "is different from file",i+1,": ", dyadIds[[i+1]])
+      if(role[[i]] == role[[i+1]]) stop ("role of file ",i,": ",role[[i]]," is equal to file ",i,": ",role[[i+1]])
+      cat0("merging ",dyadIds[[i]],"_",sess[[i]]," ", role[[i]]," (as patient) with ",dyadIds[[i+1]],"_",sess[[i]]," ", role[[i+1]]," (as clinician)\r\n" )
+      lfu[[j]] = cbind(lf[[i]],lf[[i+1]])
+    },seq(1,length(lf)-1, by=2), 1:(length(lf)/2) )
+    lf = lfu
+    rm(lfu)
+    names(lf) = unlist(dyadIds[c(TRUE,FALSE)])
+    dyadIds = dyadIds[c(TRUE,FALSE)]
+    group = group[c(TRUE,FALSE)]
+    sess = sess[c(TRUE,FALSE)]
+  }
+  
+  #check if any file has only NA's
+  removeFile = unlist(lapply(seq_along(lf), function(i){
+    if(any(apply(lf[[i]][c(paCol, teCol)], 2, function(k) all(is.na(k)) ))) {
+      warning("In dyad ",dyadIds[[i]],' - session ',sess[[i]],", at least one column was all NA's. The whole session was removed", call. = F)
+      return(i)
+    }
+
+  } ))
+  if(length(removeFile)>0){
+    lf[removeFile] = len[removeFile] = dyadIds[removeFile] = group[removeFile] = sess[removeFile] = NULL
+    filenames =filenames[-removeFile]; shortNames = shortNames[-removeFile]
+    
+  }
+  
+  
+  if(!is.null(winTerpolate$winSec) & !is.null(winTerpolate$incSec)){
+    iStep = iStep +1
+    cat("\r\nSTEP",iStep,"| Interpolating files\r\n")
+    prog(1,2)
+    lf=winInter(lf,winTerpolate$winSec,winTerpolate$incSec,sampRate)
+    prog(2,2)
+  }  
+  
+  #start checks
+  start = timeMaster(start,out="sec")
+  if(length(start) == 1 && ndyads>1){
+    warning("start = ",start," was used for all ",ndyads," dyads")
+    start=rep(start,ndyads)
+  } else if(length(start) != ndyads){
+    stop("start must be a single value or be provided for each ",ndyads ,"file. Only ",length(start)," values provided:\r\n",start)
+  }
+  
+  #end checks
+  if(!is.logical(end)){ #if end is NOT false
+    end = timeMaster(end,out="sec")
+    iStep = iStep +1
+    cat("\r\nSTEP",iStep,"| Trimming files (samples)\r\n")
+    
+    if(length(end) == 1 && ndyads>1) {
+      end=rep(end,ndyads)
+      warning("end was used for all ",ndyads," dyads")
+    } else if(length(end) !=ndyads) stop("end must be provided for each file",length(end) ,"!=",ndyads)
+    
+    print(data.frame("file"=shortNames, "original"=sapply(lf,nrow),"destination"=end*sampRate,"NAs added"=sapply(seq_along(lf), function(i){
+      if(nrow(lf[[i]])<end[i]*sampRate) "*" else "-"
+    })),row.names = F)
+    
+    #check if some file are  shorter than end and add NAs
+    lf <- lapply(seq_along(lf), function(i){
+      if(nrow(lf[[i]])<end[i]*sampRate){
+        lf[[i]][(nrow(lf[[i]])+1):(end[i]*sampRate),] = NA
+      }
+      return(lf[[i]]) })
+    #resize file according to settings
+    lf <- lapply(seq_along(lf),function(i){lf[[i]][1:(end[i]*sampRate) ,]})
+  }
+  ndyads = length(lf)
+  
+  ###############################
+  ## reading report
+  len <- lapply(lf, function(x) length(x[[1]]))
+  outtable =data.frame(
+    "dyad" = unlist(dyadIds),
+    "session" = unlist(sess),
+    "group" = unlist(group),
+    "start" = timeMaster(start,out="min"),
+    "duration" = timeMaster(floor(unlist(len)/sampRate), out="min"),
+    #"max length" = timeMaster(end, out="min"),
+    # "Filename" = unlist(shortNames),
+    
+    row.names = shortNames
+  )
+  # if(!pairBind) outtable$role = NULL
+  # if(length(end)==1 && !end) outtable$max.length = NULL
+  print(outtable)
+  cat("\r\n",ndyads, "dyads successfully imported from",nFiles,"files.")
+  ################################
+  
+  
+  #Populates the objects
+
+  experiment = DyadExperiment(path,
+                              Map(function(session,nSession){
+    #for each type of signal, add a new DyadSignal to the present DyadSession
+    #These are defined as paCol paTer pairs.
+    signalList = lapply(seq_along(paCol), function(i) {
+      DyadSignal(name=signalNames[i], patient=ts(session[,paCol[i]],frequency=sampRate,start=start[i]),
+                 clinician=ts(session[,teCol[i]],frequency=sampRate,start=start[i]),sampRate = sampRate )
+    })
+    #generates sessions
+    ses = DyadSession(sessionId= sess[[nSession]], dyadId = dyadIds[[nSession]], signalList=signalList, start = start[nSession])
+    return(ses)
+    
+  },lf,seq_along(lf))
+  )
+#   if(pairBind){
+#     names(experiment$sessions) = names(lf)
+#   } else {
+    names(experiment) = paste(dyadIds,sess,sep="_")
+#   }
+  
+  #lr=lapply(lr, na.omit)
+  # cat("\r\n\r\nReport:\r\n")
+  # print( data.frame("names"=names(lf),
+  #                   "orig_duration_min"=timeMaster(as.numeric(unlist(len))/sampRate, out="min"),
+  #                   "final_duration_min"= timeMaster(as.numeric(unlist(lapply(lf, function(x) length(x[,teCol[1]]))))/sampRate, out="min"),
+  #                   "orig_samp_size"=as.numeric(unlist(len)),
+  #                   "final_samp_size"= as.numeric(unlist(lapply(lf, function(x) length((x[,teCol[1]])))))
+  # )
+  # )
+  # cat("\r\n\r\nInitial skipped rows are not considered in this report.\r\n")
+  return(experiment)
+  
+}
+
+############################################################################################################
+############################################################################################################
+############################################################################################################
+
+
+##readCategories v1.0
+#this *UNTESTED* function should read any kind of savage csv format, and build
+#a DyadCategories experiment.
+#removeSec is a vector that specifies how many seconds to subtract from
+#start and end columns of each file, useful to align categories to other signals.
+#' Title
+#'
+#' @param dirPath 
+#' @param startCol 
+#' @param endCol 
+#' @param catName 
+#' @param namefilt 
+#' @param removeSec 
+#' @param idOrder 
+#' @param idSep 
+#' @param ... 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+readCategories = function(dirPath, startCol, endCol, catName, namefilt = NA,  removeSec = NULL, 
+                          idOrder= c("dyadId","session","group"), #the order of identifiers in the filenames
+                          idSep = "_", #the separator of identifiers in the filename
+                          ... #additional options to be passed to read.table
+){
+  ###debug#####
+  # dirPath = "A:\\OneDrive - Università degli Studi di Padova\\__Synchro Analysis\\__RLab\\longit_final\\PACS Talia\\C.C._seduta3_categorie-minutaggi_.csv"
+  # dirPath = paste0(data_d,"\\giugno_2018")
+  # options = list(sep=";")
+  # startCol=1
+  # endCol=2
+  # removeSec = 277
+  # sep=";"
+  ##############
+  
+  
+  iStep=0
+  if(!file.exists(dirPath)){stop("Selected file or directory does not exists")}
+  patt = "\\.(txt|csv)$"
+  if (!is.na(namefilt)){
+    patt = paste0(namefilt,".*\\.(txt|csv)$")
+  }
+  nFiles=length(list.files(dirPath, pattern=patt))
+  if(nFiles==0){ #no files in the directory. Maybe a single file was provided?
+    if(utils::file_test("-f",dirPath)){ #check if file exists and not a directory
+      filenames = dirPath
+      shortNames = basename(dirPath)
+      dirPath=dirname(dirPath)
+    } else{
+      stop("No [",patt,"] files were found in ",dirPath,"\r\n\r\nFiles in path:\r\n",paste(list.files(dirPath),"\r\n" ), call.=F)
+      #stop("The input must be a file or a directory!\r\nTry to use choose.dir() as the first parameter, e.g.: meaMaster(choose.dir(), ....")
+    }
+  } else {
+    filenames = list.files(dirPath, pattern=patt, full.names=T)
+    shortNames = list.files(dirPath, pattern=patt, full.names=F)
+  }
+  nFiles = length(filenames)
+  
+  
+  ####now tries to identify cases!
+  
+  #first check if separator exists
+  if(any(!is.na(idOrder)))
+    lapply(shortNames, function(name) {
+      if(!grepl(idSep,tools::file_path_sans_ext(name))) stop("idSep: '",idSep, "' could not be found in file: ",name, call.=F)
+    })
+  
+  #then build lists of groups, sessions, and id for each file
+  idOrder = tolower(idOrder) #lowercase
+  if(any(substr(idOrder,1,1)=="i",na.rm=T)){
+    dyadIds = lapply(seq_along(shortNames), function(i) {
+      unlist(strsplit(tools::file_path_sans_ext(shortNames[i]), idSep))[which(substr(idOrder,1,1)=="i")]
+    })
+  } else dyadIds = as.list(lead0(seq_len(nFiles),width=ifelse(nchar(nFiles)<2 ,2,nchar(nFiles)) ))
+  if(any(substr(idOrder,1,1)=="g",na.rm=T)){
+    group = lapply(seq_along(shortNames), function(i) {
+      unlist(strsplit(tools::file_path_sans_ext(shortNames[i]), idSep))[which(substr(idOrder,1,1)=="g")]
+    })
+  } else group = as.list(rep("all",nFiles))
+  if(any(substr(idOrder,1,1)=="s",na.rm=T)){
+    sess = lapply(seq_along(shortNames), function(i) {
+      ax = unlist(strsplit(tools::file_path_sans_ext(shortNames[i]), idSep))[which(substr(idOrder,1,1)=="s")]
+      x = as.numeric(gsub("[[:alpha:]]","", ax))
+      if(is.na(x)){
+        warning("No numeric information was found for session identifier '", ax, "' in signal ",shortNames[i],". Please check filenames and idOrder and idSep arguments:\r\n", call.=F)
+        ax
+      } else x
+    })
+  } else sess = as.list(rep("01",nFiles))
+  
+  
+  #if sessions are specified, check their order
+  if(any(substr(idOrder,1,1)=="s",na.rm=T) ){
+    #now to check if the filenames have repetitions
+    
+    nCheck = do.call(paste0, list(group,dyadIds, sess) ) #paste together group,id and session to obtain unique session identifier
+    if(length(unique(nCheck)) != length(nCheck))
+      warning("Two equal session identifier were found, please check that the session order/names are correct:\r\n",paste0("\r\n",shortNames,"\t",nCheck),call. = F)
+    
+    #now check if the session are in progressive order
+    deltaSess = sapply(split(unlist(sess),unlist(dyadIds)), function(x) ifelse(length(x)>1,diff(x),1)) #if there are multiple sessions with the same id, check that they are in progressive order
+    if(any(deltaSess<=0))
+      warning("The sessions may not be in sequential order, please check file names:\r\n",paste0("\r\n",shortNames,"\t",nCheck),call. = F)
+  }
+  
+  
+  iStep = iStep +1
+  nFiles = length(filenames)
+  cat("\r\nSTEP",iStep,"| Reading",nFiles,"dyads\r\n")
+  options = list(...)
+  if("skip" %in% names(options)){
+    if(length(options$skip) ==1) options$skip=rep(options[["skip"]],nFiles)
+    if(length(options$skip) !=nFiles) stop("skip must be provided for each file")
+    skipRow = options$skip
+    options$skip = NULL
+  } else skipRow =rep(0,nFiles)
+  lf <- mapply(function(x,iFile) {  prog(iFile,nFiles); do.call(read.csv,c(list(x, skip=skipRow[iFile]), stringsAsFactors = F, colClasses = "character",options)) },filenames,seq_along(filenames),SIMPLIFY = F )
+  if(ncol(lf[[1]])==1) {print(str(lf[[1]]));stop("Import failed. Check sep?")}
+  
+
+  
+  if(!is.null(removeSec) && length(removeSec)!=length(lf)) stop("removeSec must be defined for every file (n=",length(removeSec),")")
+  
+  cat("File name","\t","seconds removed\r\n")
+  listCat = Map(function(file,iFile){
+    cat(shortNames[iFile],"\t",removeSec[iFile],"\r\n")
+    
+    #remove na shit
+    file[file==""] = NA
+    file = file[rowSums(is.na(file)) != ncol(file),]
+    file = file[,colSums(is.na(file)) != nrow(file)]
+    file[is.na(file)] = "NA" #use character NA to keep smooth subsequent analyses
+    #convert shitty time formats to seconds
+    file[[startCol]] = timeMaster(file[[startCol]],-removeSec[iFile],out = "sec")
+    file[[endCol]]   = timeMaster(file[[endCol]],-removeSec[iFile],out="sec")
+    if(any(is.na(file[[startCol]]))) stop("NA was found in startCol on line ", which(is.na(file[[startCol]])))
+    if(any(is.na(file[[endCol]])))   stop("NA was found in startCol on line ", which(is.na(file[[endCol]])))
+    
+    deltaSec = file[[endCol]] - file[[startCol]]
+    deltaSec[deltaSec==0] =1
+    if(any(file[[endCol]]<0))   stop("After removeSec negative times were found in 'end' column in file "  ,shortNames[iFile])
+    if(any(file[[startCol]]<0)) stop("After removeSec negative times were found in 'start' column in file ",shortNames[iFile])
+    
+    if(length(deltaSec[deltaSec<0])>0) warning("negative durations spotted in file ",shortNames[iFile])
+    
+    
+
+    #trim leading and ending whitespaces
+    for(i in 1:ncol(file)){
+      if(is.character(file[[i]])){
+        file[[i]] = gsub("^\\s+|\\s+$", "",  file[[i]])
+      }
+    }
+    
+    #convert remaining to factors
+    data.frame("start"=file[[startCol]], "end" =file[[endCol]], "delta"=deltaSec, as.list(file[-c(startCol,endCol)]))
+  },lf,seq_along(lf))
+  
+  
+  experiment = DyadExperiment(dirPath,Map(function(session,nSession){
+    #for each type of signal, add a new DyadSignal to the present DyadSession
+    catList = list(
+      DyadCategory(name=catName, data=session )
+    )
+    ses = DyadSession(sessionId= sess[[nSession]], dyadId = dyadIds[[nSession]],catList=catList)
+    names(ses$categ) = catName
+    return(ses)
+    
+  },listCat,seq_along(listCat)))
+  
+  names(experiment) = paste(dyadIds,sess,sep="_")
+  return(experiment)
+}
+
+
+############################################################################################################
+############################################################################################################
+############################################################################################################
+## The final exporter
+# Note: use selectSignals() to reduce the number of columns
+
+
+
+#' Title
+#'
+#' @param dirPath 
+#' @param experiment 
+#' @param signals 
+#' @param CCF 
+#' @param onlyBest 
+#' @param original 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+
+
+megaExpExport = function(dirPath, experiment, signals="all", CCF=T, onlyBest=F, original=T){
+  ###DEBUG
+  #   dirPath = "__RLab\\demo_data\\expExp"
+  #   experiment = qwe2
+  #   signals = "all"
+  #   CCF =T
+  #   onlyBest = F
+  #   original = T
+  ####
+  # rm(signal,session,iSession,original,onlyBest,CCF,signals,experiment,dirPath)
+  ####
+
+  if(!is(experiment,"DyadExperiment")) stop("Only objects of class DyadExperiment can be processed by this function")
+  if(!file.exists(dirPath)){stop("Selected directory does not exists")}
+  if(sum(CCF, onlyBest,original) == 0) stop("at least one export parameter must be set TRUE")
+  nSessions  = length(experiment)
+  Map(function(session,iSession){
+    ##debug
+    # session = experiment$sessions[[1]]
+    # iSession = 1
+    ##
+    prog(iSession,nSessions)
+    if(signals =="all") signals = names(session$signals)
+    signalListSR = as.vector(unlist(sapply(session$signals[signals],function(x){c(x$sampRate,x$ccf$sampRate)})))
+    #print(str(signalListSR))
+    if(!all(signalListSR == signalListSR[1])){
+      stop("Not all the output signals have the same sampling rate, please use interpolation!")
+    }
+    sampRate = signalListSR[1]
+    signalList = lapply(session$signals[signals], function(signal){
+      ##debug
+      # signal = session$signals[[8]]
+      ##
+      #print(signal$name)
+      #rm(signal,my.ccf,my.orig,uberDS)
+      if(is(signal,"DyadSignal")){
+        if(CCF && !is.null(signal$ccf)){
+          if(onlyBest){
+            my.ccf = signal$ccf$ccfmat[,c("lag0","bestCCF","bestLag")]
+            colnames(my.ccf) = paste(signal$name,c("lag0","bestCCF","bestLag"),sep="_")
+          } else {
+            my.ccf = signal$ccf$ccfmat
+            colnames(my.ccf) = paste(signal$name,colnames(signal$ccf$ccfmat),sep="_")
+          }
+        } else {
+          my.ccf= NULL
+        }
+        if(original){
+          my.orig = data.frame(cbind( signal$patient, signal$clinician ))
+          colnames(my.orig) = c(paste(signal$name,attr(signal$patient,"name"),sep="_"), paste(signal$name,attr(signal$clinician,"name"),sep="_"))
+        }
+        unequalCbind(my.orig,my.ccf)
+
+      } else if(is(signal,"DyadCategory")){
+        my.cat = data.frame(signal$value)
+        colnames(my.cat) = signal$name
+        my.cat
+      }
+    })
+    uberDS = do.call("unequalCbind",signalList)
+    write.table(uberDS,paste0(dirPath,"\\",session$sessionId,"_",session$dyadId,"_",sampRate,"Hz.csv"),sep=";",fileEncoding = "UTF-8",row.names = F)
+  },experiment, seq_along(experiment))
+  return(NULL)
+}

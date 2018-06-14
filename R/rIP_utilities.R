@@ -1,0 +1,330 @@
+##     ___                 _   ___ _
+##    /   \_   _  __ _  __| | / __\ | __ _ ___ ___
+##   / /\ / | | |/ _` |/ _` |/ /  | |/ _` / __/ __|
+##  / /_//| |_| | (_| | (_| / /___| | (_| \__ \__ \
+## /___,'  \__, |\__,_|\__,_\____/|_|\__,_|___/___/
+##         |___/
+############################################################################################################                                   
+## DyadUtils.R
+# good functions for good work
+#
+############################################################################################################
+## Changelog
+# v1.2 - small (but significant) edits to timeMaster()
+# v1.1 - partially compatible wiht dyadClass v1.3 (no more sessions)
+# v1.0 - fully 'stream 1.1' compliant
+#
+############################################################################################################
+## ToDo
+#
+#
+############################################################################################################ 
+## Credits
+# Author: Johann R. Kleinbub
+# Contact: johann.kleinbub@gmail.com
+############################################################################################################ 
+
+
+
+############################################################################################################
+############################################################################################################
+############################################################################################################
+## FUNCTIONS FOR EXPERIMENTS
+
+
+##
+#' Title
+#' applies a function on each signal of an experiment.
+#' @param experiment 
+#' @param signals 
+#' @param FUN 
+#' @param ... 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+expApply= function(experiment, signals="all", FUN, ...){
+  #signals can either be "all" or a vector of signal names. es: c("PPG","SC").
+  if(!is(experiment,"DyadExperiment")) stop("Only objects of class DyadExperiment can be processed by this function")
+  fun = match.fun(FUN)
+  experiment2 = Map(function (session,nSession){
+    ##debug
+    #     session = lr$sessions[[1]]
+    #     signals= c("SC","ASD","PPG")
+    
+    if(length(signals)==1 && signals=="all") sigs = names(session$signals) else sigs = signals
+    session$signals[names(session$signals) %in% sigs] = lapply(session$signals[names(session$signals) %in% sigs],  fun, ...)
+    prog(nSession,length(experiment))
+    return(session)
+  },experiment,seq_along(experiment))
+  attributes(experiment2)=attributes(experiment)
+  return(experiment2)
+}
+
+#
+#' Title
+#' this function adds the signals from two experiments
+#' @param exp1 
+#' @param exp2 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+signalMerge = experimentMerge = function(exp1,exp2){
+  if (length(exp1)!= length(exp2)) stop ("The two experiments must have the same number of sessions")
+  
+  exp3 = Map(function(ses1,ses2){
+    ses1$signals = c(ses1$signals,ses2$signals)
+    ses1$categ =  c(ses1$categ,ses2$categ)
+    return(ses1)
+  },exp1,exp2)
+  attributes(exp3)=attributes(exp1)
+  cat("\r\nSignals from exp2 have been added to exp1.")
+  return(exp3)
+}
+
+#' Title
+#'
+#' @param exp1 
+#' @param exp2 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+sessionMerge = function(exp1,exp2){
+  exp3 = c(exp1,exp2)
+  attributes(exp3)=attributes(exp1)
+  names(exp3) = c(names(exp1),names(exp2))
+  cat("\r\nSessions from exp2 have been added to exp1.")
+  return(exp3)
+}
+
+##
+#' Title
+#' This function allows to subset only specific signals from an experiment
+#' @param experiment 
+#' @param signals 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+selectSignals = function(experiment, signals=c("test1","test2")){
+  if(!is(experiment,"DyadExperiment")) stop("Only objects of class DyadExperiment can be processed by this function")
+  if(sum(signals %in% names(experiment[[1]]$signals)) != length(signals)){
+    stop(paste("All signals must be present in the original experiment:", signals[which(!(signals %in% names(experiment[[1]]$signals)))], "not found."))
+  }
+  experiment2 = Map(function(session,iSession){
+    #cat("\r\n",session$sessionId)
+    session$signals = session$signals[signals]
+    return(session)
+  },experiment,seq_along(experiment))
+  cat("\r\nDone ;)")
+  attributes(experiment2)=attributes(experiment)
+  return(experiment2)
+}
+
+
+#' Title
+#'
+#' @param EXP 
+#' @param signal 
+#' @param lag 
+#' @param bySession 
+#' @param sessionFUN 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ccfQuantile = function (EXP, signal="SC",lag="bestCCF",bySession=T,sessionFUN = "mean"){
+  FUN = match.fun(sessionFUN)
+  resList = lapply(EXP, function(ses){ses$signals[[signal]]$ccf$ccfmat[[lag]]})
+  res = do.call("rbind",resList)
+  if(bySession) res =apply(res,1,FUN)
+  quantile(res)
+}
+
+
+
+
+cohend = function(a,b){
+  pool = sqrt( (  (length(a)-1)*sd(a)^2 +  (length(b)-1)*sd(b)^2 )/(length(a)+ length(b)-2 ) )
+  (mean(a)-mean(b))/pool
+}
+
+#' pvalFormat
+#'
+#' @param x 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pvalFormat= function(x){
+  if(x>= 0.0001) {
+    if(x<0.001){
+      x = "< 0.001 ***"
+    } else if(x<0.01){
+      x = paste(round(x,3),"**")
+    } else if(x<0.05){
+      x = paste(round(x,3),"*")
+    } 
+  } else x = "< 0.0001 ****"
+  x
+}
+
+
+
+############################################################################################################
+############################################################################################################
+############################################################################################################
+## FUNCTIONS FOR SIGNALS
+
+
+
+############################################################################################################
+############################################################################################################
+############################################################################################################
+## GLOBAL TOOLS
+
+cat0 = function(...) {cat(..., sep="")}
+
+lead0 = function(x, width = 2){
+  formatC(x,width = width, format = "d", flag = "0")
+}
+
+
+prog = function(i,n,step=50){
+  progStep = c(1,round((n/step)*2:(step-1)),n)
+  progStep[progStep==0] = 1
+  s = sum(i == progStep)
+  if(s) {
+    if(i==1) cat0(rep('.',50),"|100%\r\n")
+    cat0(rep('.',s))}
+  if(i==n) cat0("|Done ;)\r\n")
+  
+}
+
+#This function checks if a package is present in R library
+pkgTest <- function(x)
+{
+  if (!require(x,character.only = TRUE))
+  {
+    install.packages(x,dep=TRUE)
+    if(!require(x,character.only = TRUE)) stop("Package not found")
+  }
+}
+
+## binds unequal columns to a same data.frame padding NAs to the end of the shorter
+unequalCbind = function(...) {
+  dots <- list(...)
+  #debug
+  #dots = list(my.orig,my.ccf)
+  #
+  dots = dots[!sapply(dots,is.null)]
+  #print(str(dots,max.level=2))
+  
+  #print(str(dots))
+  if(length(dots)>1){
+    dotsNames = unlist(sapply(dots,colnames))
+    #print(dotsNames)
+    maxlen = max(sapply(dots, nrow))
+    fdots = lapply(dots, function(x){
+      #deb
+      #x= dots[[2]]
+      #rm(x,y,fdots,dots,pad,maxlen)
+      if(nrow(x)<maxlen){
+        pad = maxlen - nrow(x) 
+        y = data.frame(matrix(rep(NA,ncol(x)*pad),ncol = ncol(x))) 
+        colnames(y) = colnames(x)
+        rownames(y) = paste0("NA",1:pad)
+        rbind(x,y)
+      } else x
+    })
+    res = data.frame(do.call("cbind",fdots))
+    colnames(res) = dotsNames
+    #print(colnames(res))
+    return(res)
+  } else return(dots[[1]])
+}
+
+
+#' timeMaster
+#' timeMaster allows to:
+#' transform time from different formats to different formats.
+#' add amounts of time to baseTime expressed in different formats.
+#' This is verified. And useful. For reasons. :-D
+#'
+#' @param baseTime 
+#' @param add 
+#' @param out 
+#' @param baseSep 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+timeMaster = function(baseTime, add=0, out=c("auto", "hour", "min","sec"), baseSep = "[\\.,:,\\,',-,\"]"){
+  #baseTime and add can either be  integers of seconds or a time string in the format h:m:s, m:s, or s, with or without leading zeroes
+  #output forces the sum to be reported either as string h:m:s or m:s or as a integer of seconds. auto keeps the 'baseTime' format.
+  out = match.arg(out)
+  if(is.numeric(baseTime) && sum(baseTime%%1)>0 ) {
+    baseTime=as.character(baseTime)
+    warning("The . was considered as a ':' in the format mm:ss. timeMaster does not support fractional times yet")
+  }
+  if(length(baseTime)>1)
+  {
+    sapply(baseTime,timeMaster,add,out,baseSep,USE.NAMES = F)
+  } else {
+    #da qui baseTime è contenente un tempo singolo, non un vettore
+    if(is.character(baseTime)){
+      #è negativo?
+      if(substr(baseTime,1,1)=="-"){
+        negative = T
+        baseTime = substring(baseTime,2)
+      } else negative = F
+      baseTime = strsplit(baseTime, split=baseSep)
+      if      (length(baseTime[[1]])==1) auto = "sec"
+      else if (length(baseTime[[1]])==2) auto = "min"
+      else if (length(baseTime[[1]])==3) auto = "hour"
+      else stop ("baseTime format not recognized. It should either be \"min:sec\" or \"hour:min:sec\" or an integer of seconds")
+      sapply(unlist(baseTime), function(k){if(k=='') stop("baseTime contains an empty cell. Please check your separators")})
+      #transform to seconds
+      baseTime = unlist(lapply(baseTime, function(x){
+        if(length(x)==1)
+          as.numeric(x[1])
+        else if(length(x)==2)
+          as.numeric(x[1])*60 + as.numeric(x[2])
+        else if(length(x==3))
+          as.numeric(x[1])*3600 + as.numeric(x[2])*60 + as.numeric(x[3])
+        else stop("Time format must either be \"min:sec\" or \"hour:min:sec\"")
+      } ))
+      if(negative) baseTime = -baseTime
+    } else {
+      auto = "sec"
+    }
+    if(is.character(add)) add = timeMaster(add,0,"sec")
+    x = baseTime + add #that's the final amount in seconds
+    
+    if(out=="auto") out=auto
+    if(out == "sec") {
+      return(x)
+    } else if(out %in% c("min", "hour")){
+      if (x<0) { x = abs(x); negative = T} else negative =F
+      mins = floor(x/60)
+      secs = (x-mins*60)
+      hours = trunc(mins/60)
+      mins_h = mins - hours*60
+      if(out == "min")
+        return(paste0(ifelse(negative,"-",""), lead0(mins),":", lead0(secs)))
+      else if (out =="hour"){
+        return(paste0(ifelse(negative,"-",""),lead0(hours),":",lead0(mins_h),":", lead0(secs)))
+      }
+    } else stop("timeMaster failed in a weird way!")
+  }
+}
+

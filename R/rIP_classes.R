@@ -22,7 +22,7 @@
 #
 # -everything should become streams. and one should add as many streams as needed, es: many ccf with various settings.
 # -every class should use attributes instead of lists, where appropriate
-## Categorial Love ♥
+## Categorial Love
 # -DyadCategory makes sense as a dataframe. but it needs adequate methods, for instance:
 # -DyadCategory to stream (category, column) : crea versione interpolata. utile principalmente solo per plottare
 # -byCat(signal, category, stream=c(patient, therapist, bestCCF, bestLag,lag0), FUN) : applica una funzione es la media ai diversi livelli
@@ -37,9 +37,16 @@
 #
 # REMEMBER:
 # -"end" and "start" are complex. And strictly interrelated with frequency.
-# -Eg. if freq(a) == 10, end(a) == c(30, 2) means "30.2" seconds == tsp(a)[2L] (remember!)
-# -But if freq(a) ==  5, end(a) == c(30, 2) means "29 times full 5 items, and only the first 2 elements of the 30th cycle" (=147 datapoints)
+# -Very important! Use start = 0, otherwise things get exotheric.
+# -Eg: a <- ts(runif(147), start=0, frequency = f)
+# -if f = 10: end(a) == c(14, 7) means "14.7" seconds [ != tsp(a)[2L] remember!]
+# -if f =  5: end(a) == c(29, 2) means "29 times full 5 items, and only the first 2 elements of the 30th cycle" (29x5 + 2 = 147)
+#   since each element is 1/5 of a cycle (0.2s) the total time is 29.4 seconds
 # -The code forces start = c(0,1)
+# start ed end ragionano come se fossero mesi. quindi start(a) == 0 1, significa il "primo mese dell'anno zero". L'idea è che la
+# frequenza abbia un significato, es 1 mese, 1 osservazione, quindi end 29 2 significa la seconda osservazione del 29 ciclo.
+# siccome il mio ciclo sono i secondi, usare come frequenza 10 o 100 rappresenta decimi e centesimi di secondo, che è sensato.
+# usare frequenza 5 significa 
 # 
 ############################################################################################################ 
 ## Credits
@@ -50,6 +57,49 @@
 # L'idea di base è che ogni segnale è uno stream. Questo già avviene per i dati grezzi, ma non ancora per i ccf
 # o per i dati categoriali. la matrice con tutti i lag, andrebbe abbandonata, o quanto meno salvata a parte e 
 # bestCCF e bestLAG salvati come stream.
+
+DyadExperiment = function(name, sessionList){
+  exp =  sessionList
+  attributes(exp) = c(attributes(exp), list(name   = name))
+  class(exp) = append(class(exp),"DyadExperiment")
+  return(exp)
+}
+is.DyadExperiment = function(x) inherits(x,"DyadExperiment") && length(x)
+
+
+###
+## Nota su dyadsession:
+# ci sono 2 possibili disegni:
+# a) tante sedute longitudinali di una o più diadi
+# b) una seduta di più diadi in varie condizioni/gruppo
+
+DyadSession = function(sessionId,dyadId, signalList=NULL,catList=NULL,start=0){
+  ses = list(
+    signals = signalList,
+    categ = catList
+  )
+  if(!is.null(signalList)) names(ses$signals) = lapply(ses$signals, function(x) x$name)
+  attributes(ses) = c(attributes(ses),list(
+    sessionId = sessionId,
+    dyadId = dyadId,
+    name = paste(sessionId,dyadId,sep="_"),
+    start = start
+  ))
+  class(ses) = append(class(ses),"DyadSession")
+  return(ses)
+}
+is.DyadSession = function(x) inherits(x,"DyadSession") && length(x)
+
+
+getSession = function(dyadSession){
+  attr(dyadSession,"sessionId")
+}
+getDyad = function(dyadSession){
+  attr(dyadSession,"dyadId")
+} 
+getName = function(dyadSession){
+  attr(dyadSession,"name")
+} 
 
 
 
@@ -100,46 +150,13 @@ DyadSignal = function(name="some signal",patient=NULL,clinician=NULL,sampRate=NU
 
 is.DyadSignal = function(x) inherits(x,"DyadSignal") && length(x)
 
-DyadSession = function(sessionId,dyadId, signalList=NULL,catList=NULL,videoSec=0){
-  ses = list(
-    signals = signalList,
-    categ = catList
-  )
-  if(!is.null(signalList)) names(ses$signals) = lapply(ses$signals, function(x) x$name)
-  attributes(ses) = c(attributes(ses),list(
-    sessionId = sessionId,
-    dyadId = dyadId,
-    name = paste(sessionId,dyadId,sep="_"),
-    videoSec = videoSec
-    ))
-  class(ses) = append(class(ses),"DyadSession")
-  return(ses)
-}
-is.DyadSession = function(x) inherits(x,"DyadSession") && length(x)
 
 
-getSession = function(dyadSession){
-  attr(dyadSession,"sessionId")
-}
-getDyad = function(dyadSession){
-  attr(dyadSession,"dyadId")
-} 
-getName = function(dyadSession){
-  attr(dyadSession,"name")
-} 
 
-DyadExperiment = function(name, sessionList){
-  exp =  sessionList
-  attributes(exp) = c(attributes(exp), list(name   = name))
-  class(exp) = append(class(exp),"DyadExperiment")
-  return(exp)
-}
-is.DyadExperiment = function(x) inherits(x,"DyadExperiment") && length(x)
-
-
-DyadStream = function(stream, name, sampRate=frequency(stream), col=1, lty=1, lwd=1){
+### Dyadstream extends ts() including a name and some graphical parameters.
+DyadStream = function(stream, name, sampRate=frequency(stream), start=0, col=1, lty=1, lwd=1){
   if(!is(stream,"ts")){
-    stream = ts(stream, start = 0, frequency = sampRate)
+    stream = ts(stream, start = start, frequency = sampRate)
     warning(paste0("Stream '",name,"' was coerced to ts starting at 0, with sampRate of: ",sampRate,"Hz, and duration of: ",end(stream)[1]," seconds."), call.=F)
   }
   attributes(stream) = c(attributes(stream),
@@ -225,67 +242,14 @@ cloneDyadStream = function(x, stream){
 }
 
 window.DyadStream = function(x, ...){
-  cloneDyadStream(stats:::window.ts(x,...),x)
+  cloneDyadStream(stats::window(x,...),x)
 }
-
-
-
 
 #generic functions
 
 name <- function(x) {
   attr(x,"name")
 }
-
-# #eda = DyadSignal()
-# 
-# #test raw data
-# setwd("A:\\OneDrive - Università degli Studi di Padova\\__Synchro Analysis")
-# setwd("D:\\OneDrive - Università degli Studi di Padova\\__Synchro Analysis")
-# setwd("C:\\Users\\Kleinbub\\OneDrive - Università degli Studi di Padova\\__Synchro Analysis")
-# 
-# 
-# data_d = "__RLab\\demo_data\\raw"
-# csvSeparator = "\t"
-# lr = readDyadExperiment(data_d, csvSeparator, maxMinutes=F,skipRow=0, paCol=c(1,3), teCol=c(2,4), signalNames = c("PPG","SC"),sampRate=100)
-# #str(lr)
-# 
-# lr = expApply(experiment = lr, signals = "all",FUN = signalDecimate,10)
-# 
-# 
-# #test HRV data
-# 
-# #setwd("A:\\OneDrive - Università degli Studi di Padova\\__Synchro Analysis")
-# data_f = "__RLab\\demo_data\\frompy"
-# csvSeparator = ","
-# lr2 = readDyadExperiment(data_f, csvSeparator, maxMinutes=F,skipRow=1, paCol=c(5,7,11,18,23), teCol=c(5,7,11,18,23),
-#                         signalNames = c("LFHF", "PNN50", "HF", "RRMean",  "RRsd"),sampRate=10,
-#                         winTerpolate = list(winSec = 30, incSec = 5),
-#                         pairBind=T)
-# #str(lr2)
-# ##plot(lr2$sessions[[1]]$signals$start$patient,lr2$sessions[[1]]$signals$RRMean$patient,type="l")
-# 
-# 
-# ##MERGE
-# qwe = experimentMerge(lr,lr2)
-# 
-# # qwe$sessions$seduta01_2015$signals$SC = dyadCCF(qwe$sessions$seduta01_2015$signals$SC,5,30,1)
-# # str(qwe$sessions$seduta01_2015$signals$SC)
-# 
-# 
-# qwe = expCCF(qwe, "all", 5,30,10, 1, T,T)
-# 
-# 
-# #Questi sono i secondi ai quali iniziano le registrazioni fisio nel video
-# videoSeconds = c(219,178,277,154,155,195,165,114,215,182,185,182,194,199,214,191) #corretto da johann -_-"
-# 
-# asd = readTurns("__RLab\\demo_data\\turniCC",10,startPadSec = videoSeconds)
-# 
-# qwe2 = experimentMerge(qwe,asd)
-# 
-# megaExpExport("__RLab\\demo_data\\expExp", qwe2, "all", CCF =T, onlyBest = F, original = T)
-# 
-# str(qwe)
 
 
  
