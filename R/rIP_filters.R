@@ -40,6 +40,7 @@ NAartifacts <- function(x, startEnd, signal="SC"){
   UseMethod("NAartifacts",x)
 }
 
+#' @export
 NAartifacts.DyadExperiment <- function(x, startEnd, signal="SC") {
   if(is.data.frame(startEnd)){
     if(ncol(startEnd)!=3 || !all.equal(names(startEnd), c('session', 'start', 'end') ))
@@ -52,13 +53,14 @@ NAartifacts.DyadExperiment <- function(x, startEnd, signal="SC") {
   } else stop("startEnd must be a list or dataframe")
   
   for(i in unique(sel$session) ){
-    cat("\r\ncleaning session:",i)
+    cat("\r\ncleaning session:",i,"\r\n")
     miniSel = sel[sel$session == i,2:3]
     x[[i]]$signals[[signal]] = NAartifacts(x[[i]]$signals[[signal]],miniSel,signal)
   }
   x
 }
 
+#' @export
 NAartifacts.DyadSignal <- function(x, startEnd, signal="SC") {
   if(signal != x$name) stop("the provided signal did not include ",signal)
   signal = x
@@ -71,19 +73,19 @@ NAartifacts.DyadSignal <- function(x, startEnd, signal="SC") {
   if(!all.equal(names(sel),c('start', 'end')) ) stop("startEnd names must be 'start','end'")
   
   ref = 0
-  duration = trunc(length(signal$patient)/signal$sampRate)
+  duration = duration(signal)
   print(sel)
   
   for(i in 1:nrow(sel)){
-    if( grepl("end|fine",sel[i,2],ignore.case = T)  ) sel[i,2] = duration
-    a = timeMaster(sel[i,1],out="sec")
-    b = timeMaster(sel[i,2],out="sec")
+    a = timeMaster(sel[i,1],out="sec") -  start(signal)[1]
+    if( grepl("end|fine",sel[i,2],ignore.case = T)  ) b = duration
+    else b = timeMaster(sel[i,2],out="sec") -  start(signal)[1]
     if(a>duration || b > duration) stop ("one start or end were bigger than the signal length")
     if(b<a) stop ("'start' cannot be greater than 'end' ")
-    if(a < ref || b < ref) stop("all start and end definition must be progressively increasing")
+    if(a < ref || b < ref) stop("all start and end definition must be progressively increasing and greater than signal start value")
     ref = b
     sel[i,1] = a * signal$sampRate
-    if(b == duration) sel[i,2] =  length(signal$patient) #elminina tutto fino alla fine
+    if(b == duration) sel[i,2] =  length(signal$s1) #elminina tutto fino alla fine
     else  sel[i,2] = b * signal$sampRate
   }
   #2 controlla validità di signal
@@ -91,8 +93,8 @@ NAartifacts.DyadSignal <- function(x, startEnd, signal="SC") {
   
   #3 sostituisci con NA i segmenti
   for(i in 1:nrow(sel)){
-    signal$patient[sel[i,1]:sel[i,2]] = NA
-    signal$clinician[sel[i,1]:sel[i,2]] = NA
+    signal$s1[sel[i,1]:sel[i,2]] = NA
+    signal$s2[sel[i,1]:sel[i,2]] = NA
   }
   
   #4 aggiorna i metadati
@@ -124,10 +126,10 @@ signalDecimate = function (signal, newSampRate) {
   if (signal$sampRate %% newSampRate != 0) 
     stop("newSampRate must be an integer divisor of old sampRate ! newSampRate:",newSampRate," old:",sampRate,call. = F)
   q = floor(signal$sampRate / newSampRate)  
-  resPat = ts(signal$patient[seq(1,   length(signal$patient)  , by = q)], start=start(signal$patient),   frequency=newSampRate)
-  resCli = ts(signal$clinician[seq(1, length(signal$clinician), by = q)], start=start(signal$clinician), frequency=newSampRate)
-  signal$patient   = cloneDyadStream(resPat, signal$patient)
-  signal$clinician = cloneDyadStream(resCli, signal$clinician)
+  resPat = ts(signal$s1[seq(1,   length(signal$s1)  , by = q)], start=start(signal$s1),   frequency=newSampRate)
+  resCli = ts(signal$s2[seq(1, length(signal$s2), by = q)], start=start(signal$s2), frequency=newSampRate)
+  signal$s1   = cloneDyadStream(resPat, signal$s1)
+  signal$s2 = cloneDyadStream(resCli, signal$s2)
   signal$sampRate = newSampRate
   return(signal)
 }
@@ -175,7 +177,7 @@ signalflexMA = function(signal,winSec,remove=F){
   if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
   win = winSec*signal$sampRate
   win2 = floor(win/2)
-  res = lapply(list(signal$patient,signal$clinician), function(a){
+  res = lapply(list(signal$s1,signal$s2), function(a){
     len = length(a)
     f = unlist(lapply(seq_along(a),function(t){
       i1 = ifelse(t <= win2, 1, (t-win2) )
@@ -186,8 +188,8 @@ signalflexMA = function(signal,winSec,remove=F){
       cloneDyadStream(ts(a-f,frequency=signal$sampRate,start=start(a)),a)
     }else  cloneDyadStream(ts(f, frequency=signal$sampRate,start=start(a)),a)
   })
-  signal$patient   = res[[1]]
-  signal$clinician = res[[2]]
+  signal$s1   = res[[1]]
+  signal$s2 = res[[2]]
   return(signal)
 }
 
@@ -196,7 +198,7 @@ signalflexMA = function(signal,winSec,remove=F){
 flexMA = function(x,winSec,sampRate,remove=F){
   win = winSec*sampRate
   win2 = floor(win/2)
-  # res = lapply(list(signal$patient,signal$clinician), function(a){
+  # res = lapply(list(signal$s1,signal$s2), function(a){
     len = length(x)
     f = unlist(lapply(seq_along(x),function(t){
       i1 = ifelse(t <= win2, 1, (t-win2) )
@@ -211,6 +213,14 @@ flexMA = function(x,winSec,sampRate,remove=F){
 
 
 ## znorm normalizes a time series. Good to compare with other TS
+#' Title
+#'
+#' @param a a DyadStream object or a numeric vector to be passed to ts()
+#'
+#' @return a DyadStream or a ts object
+#' @export
+#'
+#' @examples
 znorm = function(a){
   if(is.DyadStream(a))
     cloneDyadStream(ts(scale(a)[,1],frequency=frequency(a),start=start(a),end=end(a)),a)

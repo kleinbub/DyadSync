@@ -106,17 +106,17 @@ dyadComb.DyadExperiment = function(exper, n, signals="all", verbose=F){
       baseSignal = exper[[ comboList[[j]][i,"ranx_session"] ]]$signals[signals[j]]
       if(comboList[[j]][i,"ranx_role"] == "clinician"){
         #cat("e sostituisco il segnale del paziente con quello del clinico")
-        baseSignal[[1]]$patient = baseSignal[[1]]$clinician
+        baseSignal[[1]]$s1 = baseSignal[[1]]$s2
       }
       #cat("\r\n      poi prendo il segnale della seduta", comboList[[j]][i,"rany_session"], "e tengo il segnale del",comboList[[j]][i,"rany_role"])
       secondSignal = exper[[ comboList[[j]][i,"rany_session"] ]]$signals[signals[j]]
-      baseSignal[[1]]$clinician = secondSignal[[1]][[ comboList[[j]][i,"rany_role"] ]]
+      baseSignal[[1]]$s2 = secondSignal[[1]][[ comboList[[j]][i,"rany_role"] ]]
       baseSignal[[1]]$ccf=NULL
       #make the signals of the same length
-      if(length(baseSignal[[1]]$patient) > length(baseSignal[[1]]$clinician) ){
-        baseSignal[[1]]$patient = window(baseSignal[[1]]$patient, start= start(baseSignal[[1]]$clinician),end=end(baseSignal[[1]]$clinician))
+      if(length(baseSignal[[1]]$s1) > length(baseSignal[[1]]$s2) ){
+        baseSignal[[1]]$s1 = window(baseSignal[[1]]$s1, start= start(baseSignal[[1]]$s2),end=end(baseSignal[[1]]$s2))
       } else {
-        baseSignal[[1]]$clinician = window(baseSignal[[1]]$clinician, start= start(baseSignal[[1]]$patient),end=end(baseSignal[[1]]$patient))
+        baseSignal[[1]]$s2 = window(baseSignal[[1]]$s2, start= start(baseSignal[[1]]$s1),end=end(baseSignal[[1]]$s1))
         
       }
       signalList[j] = baseSignal
@@ -125,7 +125,7 @@ dyadComb.DyadExperiment = function(exper, n, signals="all", verbose=F){
     
     sessionList[[i]] = DyadSession(sessionId = paste0("shuffle_",i),
                                  dyadId = "random dyads",
-                                 signalList = signalList)
+                                 signalList = signalList,s1Name ="random", s2Name = "random")
   }
   names(sessionList) = paste0("shuffle_",1:ncom)
   nexp = DyadExperiment(paste0(n,"_combinations"),sessionList)

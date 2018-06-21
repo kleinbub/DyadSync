@@ -245,8 +245,8 @@ plotSignal = function (lineList, path="test.svg", boxList=NULL, connect=T, stack
     if(is.na(patient) || is.na(clinician)) stop("patient or clinician data could not be identified, please rename signals or set 'connect' to FALSE")
     ccfval = which(grepl("bestCCF|lag-*\\d|ppCor", sapply(ll,attr,"name"), ignore.case = T))[1]
     if(is.na(ccfval)) stop("no signal with name attribute == 'bestCCF' or lagXX.")
-    if(grepl("lag(-*\\d+)", getName(ll[[ccfval]]))) {
-      blag = as.numeric(gsub("(.*lag)(-*\\d+)(.*)","\\2", getName(ll[[ccfval]])))
+    if(grepl("lag(-*\\d+)", uid(ll[[ccfval]]))) {
+      blag = as.numeric(gsub("(.*lag)(-*\\d+)(.*)","\\2", uid(ll[[ccfval]])))
       ll2[[length(ll2)+1]] = rep(blag, length(ll2[[ccfval]]))
       blag = length(ll2)
     } else {
@@ -362,19 +362,19 @@ plotSignal = function (lineList, path="test.svg", boxList=NULL, connect=T, stack
 ppBestPlot = function (signal,videoSec){
   #sta roba dovrai integrarla in plotSignal con tutti i crismi
   if (TRUE){
-    w = end(signal$patient)[1]* 0.15
+    w = end(signal$s1)[1]* 0.15
     #if(is.null(lineCol)) colz = mycolz(10,F) else colz = lineColz
     svg("test2.svg", width = w, height= 15)
     sampRate = signal$sampRate
     xbest = signal$ccf$ppBest
-    # startx = round(runif(1,1,trunc(length(signal$patient)/signal$sampRate )-preview_sec))
+    # startx = round(runif(1,1,trunc(length(signal$s1)/signal$sampRate )-preview_sec))
     # xbest = xbest[xbest$s1>startx*signal$sampRate & xbest$s1<(startx+preview_sec)*signal$sampRate,]
     
-    # d = window(signal$clinician,start=startx, end=(startx+preview_sec)) #[primi 2 min di segnale]
-    # d2 = window(signal$patient,start=startx,  end=(startx+preview_sec)) #[primi 2 min di segnale]
+    # d = window(signal$s2,start=startx, end=(startx+preview_sec)) #[primi 2 min di segnale]
+    # d2 = window(signal$s1,start=startx,  end=(startx+preview_sec)) #[primi 2 min di segnale]
     
-    d =signal$clinician
-    d2 =signal$patient
+    d =signal$s2
+    d2 =signal$s1
      
 
     
@@ -388,12 +388,12 @@ ppBestPlot = function (signal,videoSec){
     kd = rangeRescale(fd5,0,1)
     kd2 = rangeRescale(fd52,0,1)
     plot(kd, ylim=c(0,2),type="n", xaxt='n', bty="n",xaxs = "i",
-         main=paste("[PPA v1.93] lag:",signal$ccf$settings$lagSec),lwd=2,col=attr(signal$clinician,"col"))
+         main=paste("[PPA v1.93] lag:",signal$ccf$settings$lagSec),lwd=2,col=attr(signal$s2,"col"))
     # title(sub = "z-normalized signal",line=-27.5)
     
     
-    begin = min(start(signal$patient)[1]) #earliest observation, in seconds
-    duration = max(end(signal$patient)[1]) #max duration, in seconds
+    begin = min(start(signal$s1)[1]) #earliest observation, in seconds
+    duration = max(end(signal$s1)[1]) #max duration, in seconds
 
 
     ##crea l'asse x coi minuti
@@ -444,8 +444,8 @@ ppBestPlot = function (signal,videoSec){
                time(d)[xbest$s2[i]],kd2[xbest$s2[i]]+1
       )
     }
-    lines(kd2+1, col=attr(signal$patient,  "col"),lwd=2)
-    lines(kd   , col=attr(signal$clinician,"col"),lwd=2)
+    lines(kd2+1, col=attr(signal$s1,  "col"),lwd=2)
+    lines(kd   , col=attr(signal$s2,"col"),lwd=2)
     
     
 

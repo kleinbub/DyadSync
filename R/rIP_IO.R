@@ -32,8 +32,6 @@
 ############################################################################################################
 ## ToDo
 # URGENT
-# -update readCategories() alla versione 1.5 [forse fatto, test!]
-# -usa videoSec come start value delle serie temporali!
 #
 # Low priority
 # -aggiusta il caso del file singolo/directory [fose fatto?]
@@ -59,22 +57,31 @@
 #' Title
 #'
 #' @param path 
-#' @param start a vector of integers, or strings in mm:ss format which specify the time (in seconds) of the first observation of each file.
-#' Note that the default value (0) is different from the default value of \code{\link[stats]{ts}}.
-#' @param end a vector of integers, or strings in mm:ss format which specify the time (in seconds) of the last observation of each file.
+#' @param s1Col,s2Col the index of one or multiple columns in the data,
+#'   identifying the two dyad's members (e.g. patient and therapist) motion energy data. If multiple columns
+#'   are selected for a subject (e.g. because of multiple regions of interest per subject), their MEA values will be summed.
+#' @param s1Name,s2Name the label describing each participant. (e.g. Right/Left, or Patient/Therapist, etc).
+#' @param signalNames a vector of string defining the name of the signals (same order as s1Col, s2Col)
+#' @param sampRate 
+#' @param start an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the first observation of each file.
+#' Note that by default time series will be set with start = 0, which is different from the default value of \code{\link[stats]{ts}}.
+#' @param end an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the last observation of each file.
 #' If the data is longer or shorter, remove tail
 #'  or pads with zeroes. Useful to cut signals when a session is over or to equalize lengths. The default value,
 #'  FALSE, keeps the original length of the signal
-#' @param paCol 
-#' @param teCol 
-#' @param signalNames 
-#' @param sampRate 
+#' @param duration an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the duration of each file.
+#' If the data is longer or shorter, remove tail or pads with zeroes. Only one between end or duration should be specified.
 #' @param pairBind 
 #' @param winTerpolate 
 #' @param namefilt 
-#' @param sumCols 
-#' @param idOrder 
-#' @param idSep 
+#' @param idOrder either NA or a character vector that contains one or more of the three strings: "id",
+#'   "session","group" in a given order. These are used to interpret the
+#'   filenames and correctly label the cases. The strings can be abbreviated.
+#'   If the filenames contains other data the character "x" can be used to skip a position.
+#'   If NA, no attempt to identify cases will be done.
+#' @param idSep character vector (or object which can be coerced to such) containing regular expression(s).
+#'   If idOrder is not NA, this will be used as separator to split the filenameas and identify "id", "session", and "group"
+#'   informations.
 #' @param ... 
 #'
 #' @return
@@ -83,17 +90,18 @@
 #' @examples
 readDyadExperiment = function(
                       path,  #location and format of experiment files
-                      start = 0, #
-                      end = FALSE ,  #remove tail or pads with zeroes. Useful to cut signals when a session is over or to equalize lengths
-                      paCol,teCol, #one or multiple columns identifiyng the patient and clinician for each signal
-                      signalNames, #how to rename each signal (same order as paCol, teCol)
+                      s1Col,s2Col, #one or multiple columns identifiyng the patient and clinician for each signal
+                      s1Name, s2Name,
+                      signalNames, #how to rename each signal (same order as s1Col, s2Col)
                       sampRate,    #sampling rate at which the data is acquired
+                      start, #
+                      end,  #remove tail or pads with zeroes. Useful to cut signals when a session is over or to equalize lengths
+                      duration,
                       pairBind = F, #if true, each two files in the path get matched to a single DyadSession, useful if the data of patient
                                     #and clinician are saved on separate files
                       winTerpolate = list(winSec=NULL,incSec=NULL), #if data comes from a moving windows analysis it should be
                                                                     #restored to the original data sampling rate
                       namefilt = NA,
-                      sumCols=FALSE, #should all pacol columns be summed? (and teCol as well)
                       idOrder= c(), # c("id","session","group","role"), #the order of identifiers in the filenames. role is for pairbind = T
                       idSep = "_", #the separator of identifiers in the filename
                       ... #additional options to be passed to read.table (es: skip, header, etc)
@@ -101,8 +109,8 @@ readDyadExperiment = function(
 ####debug
   # path = data_d
   # maxSeconds=F
-  # paCol=c(2)
-  # teCol=c(2)
+  # s1Col=c(2)
+  # s2Col=c(2)
   # signalNames = c("SC")
   # ###signalNames = c("start", "stop", "LFHF", "PNN50", "HF", "RRMean",  "RRsd")
   # sampRate=20
@@ -111,12 +119,15 @@ readDyadExperiment = function(
   # 
   # pairBind=T
   # namefilt = NA
-  # sumCols=FALSE
   # idOrder= c("id","session","x","r")
   # idSep = "_"
   # options=list("skip"=0, "sep"=";", "header"=T)
 ######
-  if(length(paCol)!=length(teCol) || length(paCol)!=length(signalNames)) stop ("paCol, teCol, signalNames must have same length")
+  if(!missing(end) && !missing(duration)) stop("only one between end and duration must be specified")
+  if(missing(start)) start = 0
+  if(missing(end)) end = NULL
+  if(missing(duration)) duration = NULL
+  if(length(s1Col)!=length(s2Col) || length(s1Col)!=length(signalNames)) stop ("s1Col, s2Col, signalNames must have same length")
   
   iStep=0
   if(!file.exists(path)){stop("Selected file or directory does not exists")}
@@ -222,8 +233,8 @@ readDyadExperiment = function(
   } else skipRow =rep(0,nFiles)
   lf <- mapply(function(x,iFile) {  prog(iFile,nFiles); do.call(read.table,c(list(x, skip=skipRow[iFile]), options)) },filenames,seq_along(filenames),SIMPLIFY = F )
   if(ncol(lf[[1]])==1) {print(str(lf[[1]]));stop("Import failed. Check sep?")}
-  if(!is.numeric(unlist(lf[[1]][paCol]))) stop("paCol column is not numeric. Maybe there is a header? Set skiprow to 1 or more?")
-  if(!is.numeric(unlist(lf[[1]][teCol]))) stop("teCol column is not numeric. Maybe there is a header? Set skiprow to 1 or more?")
+  if(!is.numeric(unlist(lf[[1]][s1Col]))) stop("s1Col column is not numeric. Maybe there is a header? Set skiprow to 1 or more?")
+  if(!is.numeric(unlist(lf[[1]][s2Col]))) stop("s2Col column is not numeric. Maybe there is a header? Set skiprow to 1 or more?")
 
 
   len <- lapply(lf, function(x) length(x[[1]]))
@@ -240,9 +251,9 @@ readDyadExperiment = function(
 
 
   if(pairBind){
-    if(!isTRUE(all.equal(paCol,teCol))) {warning("If pairBind is true, you most probably want to have paCol and teCol to be equal! Watch what your're doing!", call. = F)
+    if(!isTRUE(all.equal(s1Col,s2Col))) {warning("If pairBind is true, you most probably want to have s1Col and s2Col to be equal! Watch what your're doing!", call. = F)
     }  else {
-      teCol = teCol + ncol(lf[[1]])
+      s2Col = s2Col + ncol(lf[[1]])
     }
     
     iStep = iStep +1
@@ -268,7 +279,7 @@ readDyadExperiment = function(
   
   #check if any file has only NA's
   removeFile = unlist(lapply(seq_along(lf), function(i){
-    if(any(apply(lf[[i]][c(paCol, teCol)], 2, function(k) all(is.na(k)) ))) {
+    if(any(apply(lf[[i]][c(s1Col, s2Col)], 2, function(k) all(is.na(k)) ))) {
       warning("In dyad ",dyadIds[[i]],' - session ',sess[[i]],", at least one column was all NA's. The whole session was removed", call. = F)
       return(i)
     }
@@ -291,6 +302,7 @@ readDyadExperiment = function(
   
   #start checks
   start = timeMaster(start,out="sec")
+  if(any(start==1)) warning("start = 1 is usually wrong. Use default value of zero to read a series from the beginning.")
   if(length(start) == 1 && ndyads>1){
     warning("start = ",start," was used for all ",ndyads," dyads")
     start=rep(start,ndyads)
@@ -299,28 +311,33 @@ readDyadExperiment = function(
   }
   
   #end checks
-  if(!is.logical(end)){ #if end is NOT false
+  if(!is.null(end)){ #if end is NOT false
     end = timeMaster(end,out="sec")
+    duration = end - start
+  }   
+    
+  if(!is.null(duration)){ #if duration is NOT false
+    duration = timeMaster(duration,out="sec")
     iStep = iStep +1
     cat("\r\nSTEP",iStep,"| Trimming files (samples)\r\n")
     
-    if(length(end) == 1 && ndyads>1) {
-      end=rep(end,ndyads)
-      warning("end was used for all ",ndyads," dyads")
-    } else if(length(end) !=ndyads) stop("end must be provided for each file",length(end) ,"!=",ndyads)
+    if(length(duration) == 1 && ndyads>1) {
+      duration=rep(duration,ndyads)
+      warning("duration was used for all ",ndyads," dyads")
+    } else if(length(duration) !=ndyads) stop("end/duration must be provided for each file",length(duration) ,"!=",ndyads)
     
-    print(data.frame("file"=shortNames, "original"=sapply(lf,nrow),"destination"=end*sampRate,"NAs added"=sapply(seq_along(lf), function(i){
-      if(nrow(lf[[i]])<end[i]*sampRate) "*" else "-"
+    print(data.frame("file"=shortNames, "original"=sapply(lf,nrow),"destination"=duration*sampRate,"NAs added"=sapply(seq_along(lf), function(i){
+      if(nrow(lf[[i]])<duration[i]*sampRate) "*" else "-"
     })),row.names = F)
     
-    #check if some file are  shorter than end and add NAs
+    #check if some file are  shorter than duration and add NAs
     lf <- lapply(seq_along(lf), function(i){
-      if(nrow(lf[[i]])<end[i]*sampRate){
-        lf[[i]][(nrow(lf[[i]])+1):(end[i]*sampRate),] = NA
+      if(nrow(lf[[i]])<duration[i]*sampRate){
+        lf[[i]][(nrow(lf[[i]])+1):(duration[i]*sampRate),] = NA
       }
       return(lf[[i]]) })
     #resize file according to settings
-    lf <- lapply(seq_along(lf),function(i){lf[[i]][1:(end[i]*sampRate) ,]})
+    lf <- lapply(seq_along(lf),function(i){lf[[i]][1:(duration[i]*sampRate) ,]})
   }
   ndyads = length(lf)
   
@@ -350,13 +367,13 @@ readDyadExperiment = function(
   experiment = DyadExperiment(path,
                               Map(function(session,nSession){
     #for each type of signal, add a new DyadSignal to the present DyadSession
-    #These are defined as paCol paTer pairs.
-    signalList = lapply(seq_along(paCol), function(i) {
-      DyadSignal(name=signalNames[i], patient=ts(session[,paCol[i]],frequency=sampRate,start=start[i]),
-                 clinician=ts(session[,teCol[i]],frequency=sampRate,start=start[i]),sampRate = sampRate )
+    #These are defined as s1Col paTer pairs.
+    signalList = lapply(seq_along(s1Col), function(i) {
+      DyadSignal(name=signalNames[i], s1=ts(session[,s1Col[i]],frequency=sampRate,start=start[nSession]),
+                 s2=ts(session[,s2Col[i]],frequency=sampRate,start=start[nSession]),sampRate = sampRate, s1Name = s1Name, s2Name = s2Name )
     })
     #generates sessions
-    ses = DyadSession(sessionId= sess[[nSession]], dyadId = dyadIds[[nSession]], signalList=signalList, start = start[nSession])
+    ses = DyadSession(sessionId= sess[[nSession]], dyadId = dyadIds[[nSession]], signalList=signalList, s1Name = s1Name, s2Name = s2Name)
     return(ses)
     
   },lf,seq_along(lf))
@@ -371,9 +388,9 @@ readDyadExperiment = function(
   # cat("\r\n\r\nReport:\r\n")
   # print( data.frame("names"=names(lf),
   #                   "orig_duration_min"=timeMaster(as.numeric(unlist(len))/sampRate, out="min"),
-  #                   "final_duration_min"= timeMaster(as.numeric(unlist(lapply(lf, function(x) length(x[,teCol[1]]))))/sampRate, out="min"),
+  #                   "final_duration_min"= timeMaster(as.numeric(unlist(lapply(lf, function(x) length(x[,s2Col[1]]))))/sampRate, out="min"),
   #                   "orig_samp_size"=as.numeric(unlist(len)),
-  #                   "final_samp_size"= as.numeric(unlist(lapply(lf, function(x) length((x[,teCol[1]])))))
+  #                   "final_samp_size"= as.numeric(unlist(lapply(lf, function(x) length((x[,s2Col[1]])))))
   # )
   # )
   # cat("\r\n\r\nInitial skipped rows are not considered in this report.\r\n")
@@ -633,8 +650,8 @@ megaExpExport = function(dirPath, experiment, signals="all", CCF=T, onlyBest=F, 
           my.ccf= NULL
         }
         if(original){
-          my.orig = data.frame(cbind( signal$patient, signal$clinician ))
-          colnames(my.orig) = c(paste(signal$name,attr(signal$patient,"name"),sep="_"), paste(signal$name,attr(signal$clinician,"name"),sep="_"))
+          my.orig = data.frame(cbind( signal$s1, signal$s2 ))
+          colnames(my.orig) = c(paste(signal$name,attr(signal$s1,"name"),sep="_"), paste(signal$name,attr(signal$s2,"name"),sep="_"))
         }
         unequalCbind(my.orig,my.ccf)
 

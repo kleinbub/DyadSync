@@ -4,28 +4,33 @@
 \alias{readDyadExperiment}
 \title{Title}
 \usage{
-readDyadExperiment(path, start = 0, end = FALSE, paCol, teCol, signalNames,
-  sampRate, pairBind = F, winTerpolate = list(winSec = NULL, incSec = NULL),
-  namefilt = NA, sumCols = FALSE, idOrder = c(), idSep = "_", ...)
+readDyadExperiment(path, s1Col, s2Col, s1Name, s2Name, signalNames, sampRate,
+  start, end, duration, pairBind = F, winTerpolate = list(winSec = NULL,
+  incSec = NULL), namefilt = NA, idOrder = c(), idSep = "_", ...)
 }
 \arguments{
 \item{path}{}
 
-\item{start}{a vector of integers which specify the time (in seconds) of the first observation of each file.
-Note that the default value (0) is different from the default value of \code{\link[stats]{ts}}.}
+\item{s1Col, s2Col}{the index of one or multiple columns in the data,
+identifying the two dyad's members (e.g. patient and therapist) motion energy data. If multiple columns
+are selected for a subject (e.g. because of multiple regions of interest per subject), their MEA values will be summed.}
 
-\item{end}{a vector of integers which specify the time (in seconds) of the last observation of each file.
+\item{s1Name, s2Name}{the label describing each participant. (e.g. Right/Left, or Patient/Therapist, etc).}
+
+\item{signalNames}{a vector of string defining the name of the signals (same order as s1Col, s2Col)}
+
+\item{sampRate}{}
+
+\item{start}{an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the first observation of each file.
+Note that by default time series will be set with start = 0, which is different from the default value of \code{\link[stats]{ts}}.}
+
+\item{end}{an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the last observation of each file.
 If the data is longer or shorter, remove tail
  or pads with zeroes. Useful to cut signals when a session is over or to equalize lengths. The default value,
  FALSE, keeps the original length of the signal}
 
-\item{paCol}{}
-
-\item{teCol}{}
-
-\item{signalNames}{}
-
-\item{sampRate}{}
+\item{duration}{an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the duration of each file.
+If the data is longer or shorter, remove tail or pads with zeroes. Only one between end or duration should be specified.}
 
 \item{pairBind}{}
 
@@ -33,11 +38,15 @@ If the data is longer or shorter, remove tail
 
 \item{namefilt}{}
 
-\item{sumCols}{}
+\item{idOrder}{either NA or a character vector that contains one or more of the three strings: "id",
+"session","group" in a given order. These are used to interpret the
+filenames and correctly label the cases. The strings can be abbreviated.
+If the filenames contains other data the character "x" can be used to skip a position.
+If NA, no attempt to identify cases will be done.}
 
-\item{idOrder}{}
-
-\item{idSep}{}
+\item{idSep}{character vector (or object which can be coerced to such) containing regular expression(s).
+If idOrder is not NA, this will be used as separator to split the filenameas and identify "id", "session", and "group"
+informations.}
 
 \item{...}{}
 }

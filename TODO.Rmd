@@ -1,0 +1,35 @@
+---
+title: "TODO"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## TODO
+
+0) FAI FUNZIONARE expPPSync (non esiste più signal\$ccf\$settings$lagSec)
+1) controlla l'efficacia di artifact remove e se tutte le altre funzioni reggono con gli NA
+1) signalDecimate non aggiorna il sampRate attribute del signal
+1) expPPSync si basa ancora sulla vecchia creazione di signal$ccf, mentre invece adesso dovrà creare streams
+1) Creare un mapply generico function(…, signals="", FUN, … ) che funzioni sia su experiments, sessions, signals o streams
+3) Crea delle funzioni di analisi come dyadcategory ma con zSync, medie e ds longitudinali e confronto fra gruppi
+
+<!-- This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>. -->
+
+<!-- When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this: -->
+
+<!-- ```{r cars} -->
+<!-- summary(cars) -->
+<!-- ``` -->
+
+<!-- ## Including Plots -->
+
+<!-- You can also embed plots, for example: -->
+
+<!-- ```{r pressure, echo=FALSE} -->
+<!-- plot(pressure) -->
+<!-- ``` -->
+
+<!-- Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot. -->

@@ -30,12 +30,8 @@
 # ----> queste cose sono parzialmente applicate in DyadCategory_BETA
 #
 ## ToDo *later*
-# -patient/therapist are weird for non-clinical dyads
-# -generic functions (such as filters, CCFs, etc), should automatically understand the kind of object(= exp, dyad, stream), and behave accordingly
-# -experiments shoud be a collection of therapies -> sessions -> signals -> streams (so "therapies" must be added)
-# o in alternativa usare dyadId e sessionId per fare sorting e inferire la longitudinalità
 #
-# REMEMBER:
+# REMEMBER: ####
 # -"end" and "start" are complex. And strictly interrelated with frequency.
 # -Very important! Use start = 0, otherwise things get exotheric.
 # -Eg: a <- ts(runif(147), start=0, frequency = f)
@@ -56,8 +52,33 @@
 ##Development notes regarding streams
 # L'idea di base è che ogni segnale è uno stream. Questo già avviene per i dati grezzi, ma non ancora per i ccf
 # o per i dati categoriali. la matrice con tutti i lag, andrebbe abbandonata, o quanto meno salvata a parte e 
-# bestCCF e bestLAG salvati come stream.
+# bestCCF e bestLAG salvati come stream. Gli stream infatti sono time-series con un sacco di metadati utili
+# che rendono molto più semplice avere sempre tutte le info a portata di mano
 
+## STRUTTURA:
+## DyadExperiment               | <- Experiment è semplicemente il contenitore di tutti i dati
+##    $DyadSession              | <- la session è l'unità logica, contiene nomi partecipanti e id
+##        $DyadSignal "SC"      | <- signal è il contenitore di tutti i dati e analisi di un tipo di segnale fisio
+##            $DyadStream s1    | <- i diversi dati sono in forma di stream, ossia serie temporali con 
+##            $DyadStream s2    |    più metadati, tra cui elementi grafici che forse sono da eliminare
+##            $DyadStream ccf1  |
+##            $DyadStream ccf2  |
+##            $DyadStream ...   |
+##            $CcfMatrix          | <- un vecchio contenitore della matrice di correlazione e i metadati con i setting della ccf
+##                              |    devo trovare il modo di renderlo più generale per accomodare diverse forme di ccf
+##        $DyadSignal "PPG"     |
+##            $DyadStream s1    |
+##            $DyadStream s2    |
+##            $DyadStream ...   |
+##        $DyadCategory "PACS"  | <- oltre ai segnali, una sessione contiene le categorie, che sono dataframe contenenti
+##                              |    finestre temporali di interesse
+
+
+
+### DYADEXPERIMENT ###########################################
+## list of DyadSessions with attributes:
+##   -name
+##   -class: list DyadExperiment
 DyadExperiment = function(name, sessionList){
   exp =  sessionList
   attributes(exp) = c(attributes(exp), list(name   = name))
@@ -67,66 +88,41 @@ DyadExperiment = function(name, sessionList){
 is.DyadExperiment = function(x) inherits(x,"DyadExperiment") && length(x)
 
 
-###
-## Nota su dyadsession:
-# ci sono 2 possibili disegni:
-# a) tante sedute longitudinali di una o più diadi
-# b) una seduta di più diadi in varie condizioni/gruppo
-
-DyadSession = function(sessionId,dyadId, signalList=NULL,catList=NULL,start=0){
-  ses = list(
+### DYADSESSION ##############################################
+## list of signals and categ with attributes:
+##   -sessionId
+##   -dyadId
+##   -uid
+##   -s1Name
+##   -s2Name
+##   -class: list DyadSession
+DyadSession = function(sessionId,dyadId, signalList=NULL,catList=NULL, s1Name,s2Name){
+  if(length(unique(sapply(signalList, "s1Name")))>1)stop("multiple s1Names are not supported")
+  if(length(unique(sapply(signalList, "s2Name")))>1)stop("multiple s2Names are not supported")
+  
+  x = list(
     signals = signalList,
     categ = catList
   )
-  if(!is.null(signalList)) names(ses$signals) = lapply(ses$signals, function(x) x$name)
-  attributes(ses) = c(attributes(ses),list(
+  if(!is.null(signalList)) names(x$signals) = lapply(x$signals, function(x) x$name)
+  attributes(x) = c(attributes(x),list(
     sessionId = sessionId,
     dyadId = dyadId,
-    name = paste(sessionId,dyadId,sep="_"),
-    start = start
+    uid = paste(sessionId,dyadId,sep="_"),
+    s1Name = s1Name,
+    s2Name = s2Name
   ))
-  class(ses) = append(class(ses),"DyadSession")
-  return(ses)
+  class(x) = append(class(x),"DyadSession")
+  return(x)
 }
 is.DyadSession = function(x) inherits(x,"DyadSession") && length(x)
 
 
-getSession = function(dyadSession){
-  attr(dyadSession,"sessionId")
-}
-getDyad = function(dyadSession){
-  attr(dyadSession,"dyadId")
-} 
-getName = function(dyadSession){
-  attr(dyadSession,"name")
-} 
-
-
-
-DyadCCF = function(#bestCCF, bestLag, 
-                   ccfmat, sampRate,
-                   settings = list("lagSec"=NULL,"incSec"=NULL,"winSec"=NULL,"accelSec"=NULL,"weight"=NULL,"interpolated"=NULL)){
-  CCF =  list(
-    
-              # bestCCF=bestCCF,
-              # bestLag = bestLag,
-              ccfmat   = ccfmat,
-              sampRate = sampRate,
-              settings = list(
-                lagSec   = settings$lagSec,
-                incSec   = settings$incSec,
-                winSec   = settings$winSec,
-                accelSec = settings$accelSec,
-                weight = settings$weight,
-                interpolated = settings$interpolated
-              )
-  )
-  class(CCF) = append(class(CCF),"DyadCCF")
-  return(CCF)
-  
-}
-
-DyadCategory = function(name, data, sampRate){
+### DYADCATEGORY ###########################################
+## data.frame with attributes:
+##   -name
+##   -class: list DyadCategory
+DyadCategory = function(name, data){
   categ = data
   attributes(categ) = c(attributes(categ),list(name = name))
   class(categ) = append(class(categ),"DyadCategory")
@@ -134,27 +130,75 @@ DyadCategory = function(name, data, sampRate){
 }
 is.DyadCategory = function(x) inherits(x,"DyadCategory") && length(x)
 
-
-DyadSignal = function(name="some signal",patient=NULL,clinician=NULL,sampRate=NULL,dyadNames = c("patient","clinician")){
-  sig = list(
+### DYADSIGNAL ###########################################
+## list of DyadStreams, CcfMatrix, and sampRate with attributes:
+##   -sampRate
+##   -filter 
+##   -ccf 
+##   -s1Name
+##   -s2Name
+##   -start
+##   -end
+##   -duration
+##   -class: list DyadSession
+DyadSignal = function(name="some signal",s1=NULL,s2=NULL,sampRate=NULL, s1Name, s2Name){
+  x = list(
     name = name,
-    patient =   DyadStream(stream=patient,   name=dyadNames[1], sampRate = sampRate, col = "deeppink3",  lty=1, lwd=2),
-    clinician = DyadStream(stream=clinician, name=dyadNames[2], sampRate = sampRate, col = "dodgerblue3", lty=1, lwd=2),
+    s1 = DyadStream(stream = s1, name=s1Name, sampRate = sampRate, col = "deeppink3",  lty=1, lwd=2),
+    s2 = DyadStream(stream = s2, name=s2Name, sampRate = sampRate, col = "dodgerblue3", lty=1, lwd=2),
     sampRate = sampRate,
-    dyadNames = dyadNames,
     ccf = NULL
   )
-  class(sig) = append(class(sig),"DyadSignal")
-  return(sig)
+  attributes(x) = c(attributes(x),list(
+    sampRate = sampRate,
+    filter = "raw",
+    ccf = FALSE,
+    s1Name = s1Name,
+    s2Name = s2Name,
+    start = start(s1), #start-end-duration of s1 and s2 are the same
+    end = end(s1),
+    duration = trunc(length(s1)/sampRate)
+  ))
+  class(x) = append(class(x),"DyadSignal")
+  return(x)
 } 
 
 is.DyadSignal = function(x) inherits(x,"DyadSignal") && length(x)
 
+### CcfMatrix ###########################################
+## list of of ccfmat, sampRate, and settings with attributes:
+##   -class: list CcfMatrix
 
+CcfMatrix = function(ccfmat, sampRate,
+                     settings = list("lagSec"=NULL,"incSec"=NULL,"winSec"=NULL,"accelSec"=NULL,"weight"=NULL,"interpolated"=NULL)){
+  CCF =  list(
+    ccfmat   = ccfmat,
+    sampRate = sampRate,
+    settings = list(
+      lagSec   = settings$lagSec,
+      incSec   = settings$incSec,
+      winSec   = settings$winSec,
+      accelSec = settings$accelSec,
+      weight = settings$weight,
+      interpolated = settings$interpolated
+    )
+  )
+  class(CCF) = append(class(CCF),"CcfMatrix")
+  return(CCF)
+  
 
+  }
 
-### Dyadstream extends ts() including a name and some graphical parameters.
-DyadStream = function(stream, name, sampRate=frequency(stream), start=0, col=1, lty=1, lwd=1){
+### DYADSTREAM ###########################################
+## time-serie ts() with additional attributes:
+##   -name
+##   -settings 
+##   -col 
+##   -lty
+##   -lwd
+##   -tsp (inherited by ts)
+##   -class: list DyadSession
+DyadStream = function(stream, name, sampRate=frequency(stream), start=0, settings = list(), col=1, lty=1, lwd=1){
   if(!is(stream,"ts")){
     stream = ts(stream, start = start, frequency = sampRate)
     warning(paste0("Stream '",name,"' was coerced to ts starting at 0, with sampRate of: ",sampRate,"Hz, and duration of: ",end(stream)[1]," seconds."), call.=F)
@@ -162,6 +206,8 @@ DyadStream = function(stream, name, sampRate=frequency(stream), start=0, col=1, 
   attributes(stream) = c(attributes(stream),
                          list(
                             name = name,
+                            duration = trunc(length(stream)/frequency(stream)),
+                            settings = settings,
                             col=col,
                             lty=lty,
                             lwd = lwd
@@ -170,27 +216,9 @@ DyadStream = function(stream, name, sampRate=frequency(stream), start=0, col=1, 
   return(stream)
 }
 
-CCFStream = function(stream, lagSec, incSec, winSec, accelSec, weight, interpolated ){
-  if(!is.DyadStream(stream))stop("only dyadstream get butter")
-  
-  attributes(stream) = c(attributes(stream),
-                         list(
-                            lagSec   = lagSec,
-                            incSec   = incSec,
-                            winSec   = winSec,
-                            accelSec = accelSec,
-                            weight   = weight,
-                            interpolated = interpolated
-                          ))
-  class(stream) = append("CCFStream",class(stream))
-  return(stream)
-}
-
 is.DyadStream = function(x) inherits(x,"DyadStream") && length(x)
-is.CCFStream = function(x) inherits(x,"CCFStream") && length(x)
 
-print.DyadStream = function (x, ...) 
-{
+print.DyadStream = function (x, ...) {
   #x <- as.ts(x)
   Tsp <- tsp(x)
   if (is.null(Tsp)) {
@@ -225,19 +253,9 @@ print.DyadStream = function (x, ...)
   invisible(x)
 }
 
-getDyadStreamAttr = function(x){
-  a = list(name=attr(x,"name"),col=attr(x,"col"),lty=attr(x,"lty"),lwd=attr(x,"lwd"))
-  if(is.CCFStream(x)){a = c(a,list(
-    lagSec =attr(x, "lagSec"), incSec =attr(x, "incSec"), winSec =attr(x, "winSec"), accelSec =attr(x, "accelSec"), weight =attr(x, "weight"), interpolated =attr(x, "interpolated")
-  ))}
-  a
-  
-}
 cloneDyadStream = function(x, stream){
   if(!"ts"%in%class(x) & !"DyadStream" %in% class(stream)) stop ("a ts object must be cloned with a DyadStream object")
-  attributes(x) = c(attributes(x),getDyadStreamAttr(stream))
-  class(x) = append("DyadStream",class(x))
-  if(is.CCFStream(stream)) class(x) = append("CCFStream",class(x))
+  attributes(x) = c(attributes(x)["tsp"],attributes(stream)[!names(attributes(stream))%in% "tsp"])
   x
 }
 
@@ -245,11 +263,7 @@ window.DyadStream = function(x, ...){
   cloneDyadStream(stats::window(x,...),x)
 }
 
-#generic functions
 
-name <- function(x) {
-  attr(x,"name")
-}
 
 
  

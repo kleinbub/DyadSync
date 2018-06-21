@@ -111,10 +111,10 @@ catSummary.DyadSession=function(session, signal="SC", streamKey="bestCCF", categ
     #this attempt to identify the stream by strings instead of by precise column name... WHY?!
     capture.output({
       if(grepl("pat",streamKey,ignore.case = T) || grepl("paz",streamKey,ignore.case = T)){
-        stream = session$signals[[signal]]$patient
+        stream = session$signals[[signal]]$s1
         #print("grepl PATIENT")
       } else if (grepl("ter",streamKey,ignore.case = T)|| grepl("ther",streamKey,ignore.case = T) || grepl("cli",streamKey,ignore.case = T)){
-        stream = session$signals[[signal]]$clinician
+        stream = session$signals[[signal]]$s2
         #print("grepl CLINICIAN")
       } else {stream = getCCF(session$signals[[signal]], streamKey)
       #print(paste("grepl",streamKey))
@@ -818,71 +818,3 @@ plotCatStreamEngine = function(res, random_quantiles, toPlot, count_vec, main, y
   axis(side = 1,at = x_at_lab-0.3,tick = F,labels = paste0("\n\n\nn=",count_vec),las=2,cex.axis=1)
   
 }  
-
-
-
-
-
-### da qua sotto roba vecchia  
-#   
-#   i=0
-#   for(a in res[toPlot]){
-#     i=i+1
-#     
-#     #png(paste0(plotPath,"\\",paste(signal,streamKey,category,toPlot[i],collapse="_",sep="_"),".png"), width = 800, height = 800, units = "px" )
-#     par(mfrow=c(2,2),oma=c(0,0,2,0))
-#     
-#     myYlim = c(-1,1)
-#     cols = c("dodgerblue4", "deeppink3")
-#     if("ylim"%in%names(dots)) {
-#       print("TRUE")
-#       meanylim = dots$ylim
-#       #dots$ylim = NULL
-#     } else  meanylim = myYlim
-#     print(meanylim)
-#     barplot(a[,2], main="mean sync", ylim = meanylim,names.arg = a[,1],col = cols)
-#     barplot(a[,3],main="sd sync", ylim = myYlim,names.arg = a[,1],col = cols)
-#     barplot(a[,4],main="marci index", ylim = myYlim*3,names.arg = a[,1],col = cols)
-#     barplot(a[,5],main="duration (s)",names.arg = a[,1],col = cols,ylim =c(0,60))
-#     title(main=paste0(toPlot[i]," (",paste(paste(a[,1],a[,6],sep=": "),collapse="; "),")"),outer=T)
-#     title(main=paste0("signal: ", signal,"; stream: ",streamKey),outer=T,cex.main=0.8, line=-1)
-#     
-#     #dev.off()
-#   }
-#   return(res)
-# }
-# 
-# 
-# #catSummary(full, signal="SC", stream="bestCCF", category="PACS", column="CATEGORIA")
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# #this function extracts a column from ccfmat of a given signal
-# #the data is extracted as a DyadStream object with appropriate frequency
-# getCCF = function(signal, lag, col="red", lty=2,lwd=2){
-#   if(!is.DyadSignal(signal)) stop("Only objects of class DyadSignal can be processed by this function")
-#   if(!grepl("lag",lag, ignore.case = T) & grepl("best",lag, ignore.case = T)) {
-#     lag = "bestCCF"
-#   }  else if (grepl("lag",lag, ignore.case = T) & grepl("best",lag, ignore.case = T)) {
-#     lag = "bestLag"
-#   } else if(suppressWarnings(!is.na(as.numeric(lag)))){
-#     lag = paste0("lag",as.character(lag))
-#   }
-#   if (! lag %in% colnames(signal$ccf$ccfmat)) stop("Specified lag value '",lag,"' was not found. Available lags: ", paste(colnames(signal$ccf$ccfmat), collapse=" | "))
-#   cat0("\r\n CCF column '",lag,"' was selected")
-#   if(!signal$ccf$settings$interpolated) warning("CCF is not interpolated. Sample rate setting might be wrong, or manifest other unexpected result",call.=F)
-#   
-#   stream = DyadStream(ts(signal$ccf$ccfmat[as.character(lag)], frequency = signal$ccf$sampRate),name = paste0("CCF - ",lag), col = col, lty = lty, lwd = lwd)
-#   CCFStream(stream, 
-#             lagSec       = signal$ccf$settings$lagSec,
-#             incSec       = signal$ccf$settings$incSec,
-#             winSec       = signal$ccf$settings$winSec,
-#             accelSec     = signal$ccf$settings$accelSec,
-#             weight       = signal$ccf$settings$weight,
-#             interpolated = signal$ccf$settings$interpolated)
-# }
