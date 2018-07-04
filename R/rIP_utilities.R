@@ -197,6 +197,15 @@ lead0 = function(x, width = 2){
   formatC(x,width = width, format = "d", flag = "0")
 }
 
+rangeRescale <- function(x, rangeMin, rangeMax, xmin =min(x, na.rm=T), xmax = max(x, na.rm=T)){
+  #rangeMin e rangeMax indicano il minimo e il massimo della nuova scala
+  #xmin e xmax indicano il minimo e il massimo della scala originale
+  #se xmin e xmax mancano, vengono usati il minimo e il massimo del campione
+  (rangeMax-rangeMin) * (
+    (x - xmin)  / (xmax - xmin )
+  ) + rangeMin
+}
+
 
 prog = function(i,n,step=50){
   progStep = c(1,round((n/step)*2:(step-1)),n)

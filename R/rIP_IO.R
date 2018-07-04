@@ -568,7 +568,7 @@ readCategories = function(dirPath, startCol, endCol, catName, namefilt = NA,  re
     catList = list(
       DyadCategory(name=catName, data=session )
     )
-    ses = DyadSession(sessionId= sess[[nSession]], dyadId = dyadIds[[nSession]],catList=catList)
+    ses = DyadSession(sessionId= sess[[nSession]], dyadId = dyadIds[[nSession]],catList=catList,s1Name=NA,s2Name = NA)
     names(ses$categ) = catName
     return(ses)
     

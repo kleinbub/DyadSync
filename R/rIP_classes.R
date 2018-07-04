@@ -146,6 +146,7 @@ DyadSignal = function(name="some signal",s1=NULL,s2=NULL,sampRate=NULL, s1Name, 
     name = name,
     s1 = DyadStream(stream = s1, name=s1Name, sampRate = sampRate, col = "deeppink3",  lty=1, lwd=2),
     s2 = DyadStream(stream = s2, name=s2Name, sampRate = sampRate, col = "dodgerblue3", lty=1, lwd=2),
+    valid = DyadStream(stream = ts(rep(TRUE, length(s1)),start=start(s1),end= end(s1), frequency = frequency(s1) ), name="valid", sampRate = sampRate, col = "dodgerblue3", lty=1, lwd=2),
     sampRate = sampRate,
     ccf = NULL
   )

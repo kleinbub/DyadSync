@@ -85,7 +85,7 @@ NAartifacts.DyadSignal <- function(x, startEnd, signal="SC") {
     if(a < ref || b < ref) stop("all start and end definition must be progressively increasing and greater than signal start value")
     ref = b
     sel[i,1] = a * signal$sampRate
-    if(b == duration) sel[i,2] =  length(signal$s1) #elminina tutto fino alla fine
+    if(b == duration) sel[i,2] =  length(signal$valid) #elminina tutto fino alla fine
     else  sel[i,2] = b * signal$sampRate
   }
   #2 controlla validità di signal
@@ -93,8 +93,7 @@ NAartifacts.DyadSignal <- function(x, startEnd, signal="SC") {
   
   #3 sostituisci con NA i segmenti
   for(i in 1:nrow(sel)){
-    signal$s1[sel[i,1]:sel[i,2]] = NA
-    signal$s2[sel[i,1]:sel[i,2]] = NA
+    signal$valid[sel[i,1]:sel[i,2]] = FALSE
   }
   
   #4 aggiorna i metadati
@@ -128,8 +127,11 @@ signalDecimate = function (signal, newSampRate) {
   q = floor(signal$sampRate / newSampRate)  
   resPat = ts(signal$s1[seq(1,   length(signal$s1)  , by = q)], start=start(signal$s1),   frequency=newSampRate)
   resCli = ts(signal$s2[seq(1, length(signal$s2), by = q)], start=start(signal$s2), frequency=newSampRate)
+  resVal = ts(signal$valid[seq(1, length(signal$valid), by = q)], start=start(signal$valid), frequency=newSampRate)
+  
   signal$s1   = cloneDyadStream(resPat, signal$s1)
   signal$s2 = cloneDyadStream(resCli, signal$s2)
+  signal$valid = resVal
   signal$sampRate = newSampRate
   return(signal)
 }

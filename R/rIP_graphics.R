@@ -130,14 +130,6 @@ catBoxes = function(categ, column, cols=mycolz(length(levels(categ[[column]])),a
   return(df)
 }
 
-rangeRescale <- function(x, rangeMin, rangeMax, xmin =min(x, na.rm=T), xmax = max(x, na.rm=T)){
-  #rangeMin e rangeMax indicano il minimo e il massimo della nuova scala
-  #xmin e xmax indicano il minimo e il massimo della scala originale
-  #se xmin e xmax mancano, vengono usati il minimo e il massimo del campione
-  (rangeMax-rangeMin) * (
-    (x - xmin)  / (xmax - xmin )
-  ) + rangeMin
-}
 
 
 plotSignal = function (lineList, path="test.svg", boxList=NULL, connect=T, stacked=F, videoSec=0,
@@ -359,12 +351,12 @@ plotSignal = function (lineList, path="test.svg", boxList=NULL, connect=T, stack
   
 }
 
-ppBestPlot = function (signal,videoSec){
+ppBestPlot = function (signal,savePath){
   #sta roba dovrai integrarla in plotSignal con tutti i crismi
   if (TRUE){
     w = end(signal$s1)[1]* 0.15
     #if(is.null(lineCol)) colz = mycolz(10,F) else colz = lineColz
-    svg("test2.svg", width = w, height= 15)
+    svg(savePath, width = w, height= 15)
     sampRate = signal$sampRate
     xbest = signal$ccf$ppBest
     # startx = round(runif(1,1,trunc(length(signal$s1)/signal$sampRate )-preview_sec))
@@ -375,7 +367,7 @@ ppBestPlot = function (signal,videoSec){
     
     d =signal$s2
     d2 =signal$s1
-     
+    videoSec = start(d)[1]
 
     
     sgol_p=2  #l'ordine dei polinomi del filtro

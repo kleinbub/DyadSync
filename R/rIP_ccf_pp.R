@@ -35,13 +35,14 @@
 #' @examples
 expPPsync = function(experiment, signals="all", lagSec){
   if(!is(experiment,"DyadExperiment")) stop("Only objects of class DyadExperiment can be processed by this function")
-  xname = experiment[[1]]$signals[[1]]$dyadNames[1];yname = experiment[[1]]$signals[[1]]$dyadNames[2];
+  xname = s1Name(experiment[[1]]$signals[[1]])
+  yname = s2Name(experiment[[1]]$signals[[1]])
   cat(paste0("\r\nHigh Sync at positive lags implies that the ",yname, " follows the ",xname,"\r\n"))
   nSessions = length(experiment)
   experiment2 = Map(function(session,iSession){
     if(signals=="all") signals = names(session$signals)
     cat("\r\n",paste(id(session),session(session)))
-    session$signals[signals] = Map(function(signal,iSignal){
+    session$signals[signals] = Map(function(signal){
       cat(" |",signal$name)
       signal = ppBest(signal,lagSec = lagSec)
       signal = ppSync(signal)
@@ -86,7 +87,7 @@ ppBest = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30) {
   fullMat = matrix(NA ,nrow=length(allpik1),ncol=length(allpik2))
   
   for(i in 1:length(allpik1)){
-    ipik = allpik1[i] #demo
+    ipik = allpik1[i] 
     #trova il range attorno al picco i in cui cercare la lag
     ###NB nella v1.1 questo avviene da valle a valle, per la versione fissa guarda v1.0c
     search_range = (ipik-ransamp):(ipik+ransamp)
@@ -298,7 +299,8 @@ ppSync = function(signal, type=c("block","continuous")) {
 }
 
 ##peakfinder è una funzione ausiliaria di ppBestLag, è sviluppata in "peak-centered-flex-CCF_v1.93"
-peakFinder = function(x, sgol_p = 6, sgol_n = 45, mode=c("peaks","valleys"), correctionRangeSeconds = 0.5){ 
+peakFinder = function(x, sgol_p = 6, sgol_n = 45, mode=c("peaks","valleys"), correctionRangeSeconds = 0.5, valid){
+  if(missing(valid)) valid = rep(T,length(x))
   sampRate = signal$sampRate
   fdderiv1  = ts(sgolayfilt(x,  p =sgol_p, n = sgol_n, m=1),frequency = 10,start=start(x))
   mode = match.arg(mode)
@@ -307,6 +309,8 @@ peakFinder = function(x, sgol_p = 6, sgol_n = 45, mode=c("peaks","valleys"), cor
     pikboo = c(pik[,2] - pik[,1] ==  2, FALSE) #embed perde 1 sample, quindi aggiungi un FALSE alla fine
   else
     pikboo = c(pik[,2] - pik[,1] == -2, FALSE) #embed perde 1 sample, quindi aggiungi un FALSE alla fine
+  
+  pikboo[valid==F] = FALSE #cancella i picchi nelle aree con artefatti
   
   piksam = which(pikboo) #in quali sample c'è un'inversione di segno della derivata?
   #correzione manuale: cerca il valore più alto nei dintorni del cambio di derivata
