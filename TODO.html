@@ -125,16 +125,64 @@ $(document).ready(function () {
 </div>
 
 
-<div id="todo" class="section level2">
-<h2>TODO</h2>
+<div id="where-i-left" class="section level2">
+<h2>Where I left</h2>
+<p>CAZZO sto cambiando radicalmente le classi di sincro!!! * <strong>STO TOGLIENDO signals e categ da DyadSession!!!!</strong> non ha particolarmente senso tenere session<span class="math inline">\(signals e session\)</span>category allo stesso livello, visto che non ci sono analisi solo categoriali (per definizione di IP), avrebbe più senso considerare categ come un tipo speciale di signal, e risparmiare un livello. <em>Es: invece di session<span class="math inline">\(signals\)</span>SC –&gt; session$SC</em> * cerca $signals e $categ in tutto il pacchetto e sostituisci (cioè rimuovi) * ho eliminato CCFmatrix, quindi devi controllare a cascata tutto quello che usava signal$ccf$ccfmat, signal$ccf$sampRate, signal$ccf$settings * ora ho creato una classe CCFBest e PMBest per tenere i risultati delle analisi. Ciascuno contiene un vettore sync, uno lag, una tabella table con vari calcoli, e attributi con i settings. <strong>NB tutti i dati qua sono ancora in formato grezzo, per trasformarli in stream serve getStream (ex getCCF), che interpoli alla giusta frequenza, oppure ha più senso tenere sync e lag già in formato stream?</strong> * CCFBest e PMBest sono ancora NON aggiornati rispetto a niente, quindi vanno updated entrambi</p>
+<p>Sto massaggiando expPPsync. per il momento ho appena iniziato con ppBest.</p>
+</div>
+<div id="obiettivi" class="section level2">
+<h2>OBIETTIVI;</h2>
+<ul>
+<li>capisci come vuoi progettare DyadSignal$ccf (ci sono delle note in “classes”)</li>
+<li>cerca di rispettare il “tutto è stream” philosophy, ma sensatamente.</li>
+<li>rinomina pp in pm</li>
+<li>riparti da dIP_ccf_pp linea 66</li>
+<li>implementare bene NAartifact, in modo da renderlo universale</li>
+<li>controllare la direzione della sync</li>
+<li>trova un modo agile di visualizzazione</li>
+<li>fixa il motore di plot</li>
+<li>implementa una preview con scroll</li>
+</ul>
+</div>
+<div id="high-priority" class="section level2">
+<h2>high priority</h2>
 <ol start="0" style="list-style-type: decimal">
 <li>FAI FUNZIONARE expPPSync (non esiste più signal$ccf$settings$lagSec)</li>
 <li>controlla l’efficacia di artifact remove e se tutte le altre funzioni reggono con gli NA</li>
+<li>testa DyadCategory con NAartifact</li>
+<li>tutta DyadCategory è da controllare</li>
+<li>il read è aggiornato con le ultime furbate di experiment?</li>
+<li>perché uno è read Experiment e l’altro read Category? Dovrebbe essere signal e category o un lettore unico</li>
+<li>DyadSummary ha grande potenzialità ma al momento non so in che stato di reliability è
+<ul>
+<li>implementa le parti mancanti (disegno longit, etc)</li>
+</ul></li>
 <li>signalDecimate non aggiorna il sampRate attribute del signal</li>
-<li>expPPSync si basa ancora sulla vecchia creazione di signal$ccf, mentre invece adesso dovrà creare streams</li>
 <li>Creare un mapply generico function(…, signals=“”, FUN, … ) che funzioni sia su experiments, sessions, signals o streams</li>
 <li>Crea delle funzioni di analisi come dyadcategory ma con zSync, medie e ds longitudinali e confronto fra gruppi</li>
+<li><strong>TESTA I METODI E COMPARALI CAZZO!)</strong></li>
 </ol>
+</div>
+<div id="low-priority" class="section level2">
+<h2>low priority</h2>
+<div id="dyadexperiment" class="section level3">
+<h3>DyadExperiment</h3>
+<ul>
+<li>quando crei experiment fai tutti i check di coerenza interna e magari salva esplicitamente il tipo di disegno, longitudinale, gruppi, misto</li>
+<li>soprattutto gli stessi s1 e s2 names, altrimenti rischi di fare grossa confusione</li>
+</ul>
+</div>
+<div id="dyadsession" class="section level3">
+<h3>DyadSession</h3>
+<ul>
+<li>controlla che tutti i segnali abbiano lo stesso dyadID e s1 s2 names</li>
+</ul>
+</div>
+<div id="class-structure" class="section level3">
+<h3>Class structure</h3>
+<ul>
+<li>non ha particolarmente senso tenere session<span class="math inline">\(signals e session\)</span>category allo stesso livello, visto che non ci sono analisi solo categoriali (per definizione di IP), avrebbe più senso considerare categ come un tipo speciale di signal, e risparmiare un livello. <em>Es: invece di session<span class="math inline">\(signals\)</span>SC –&gt; session$SC</em></li>
+</ul>
 <!-- This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>. -->
 <!-- When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this: -->
 <!-- ```{r cars} -->
@@ -146,6 +194,7 @@ $(document).ready(function () {
 <!-- plot(pressure) -->
 <!-- ``` -->
 <!-- Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot. -->
+</div>
 </div>
 
 

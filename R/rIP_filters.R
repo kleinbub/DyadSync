@@ -62,7 +62,7 @@ NAartifacts.DyadExperiment <- function(x, startEnd, signal="SC") {
 
 #' @export
 NAartifacts.DyadSignal <- function(x, startEnd, signal="SC") {
-  if(signal != x$name) stop("the provided signal did not include ",signal)
+  if(signal != name(signal)) stop("the provided signal did not include ",signal)
   signal = x
   #1 controlla validità di startEnd
   if(!is.data.frame(startEnd)){

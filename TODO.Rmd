@@ -6,15 +6,58 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+## Where I left
+CAZZO sto cambiando radicalmente le classi di sincro!!!
+  * **STO TOGLIENDO signals e categ da DyadSession!!!!** non ha particolarmente senso tenere session$signals e session$category allo stesso livello, visto che non ci sono analisi solo categoriali (per definizione di IP), avrebbe più senso considerare categ come un tipo speciale di signal, e risparmiare un livello. _Es: invece di session$signals$SC --> session$SC_ 
+    * cerca $signals e $categ in tutto il pacchetto e sostituisci (cioè rimuovi)
+  * ho eliminato CCFmatrix, quindi devi controllare a cascata tutto quello che usava signal\$ccf\$ccfmat, signal\$ccf\$sampRate, signal\$ccf\$settings
+  * ora ho creato una classe CCFBest e PMBest per tenere i risultati delle analisi. Ciascuno contiene un vettore sync, uno lag, una tabella table con vari calcoli, e attributi con i settings. **NB tutti i dati qua sono ancora in formato grezzo, per trasformarli in stream serve getStream (ex getCCF), che interpoli alla giusta frequenza, oppure ha più senso tenere sync e lag già in formato stream?**
+  *  CCFBest e PMBest sono ancora NON aggiornati rispetto a niente, quindi vanno updated entrambi
+  * ho tolto tutti i metadata dalle liste e le ho messe negli attributes, quindi un sacco di roba sarà sputtanata
+    *tutti i $sampRate diventano sampRate()
+    *tutti i $name diventano name()
 
-## TODO
 
+Sto massaggiando expPPsync. per il momento ho appena iniziato con ppBest.
+
+##OBIETTIVI;
+
+* capisci come vuoi progettare DyadSignal$ccf (ci sono delle note in "classes")
+  * cerca di rispettare il "tutto è stream" philosophy, ma sensatamente.
+* rinomina pp in pm
+* riparti da dIP_ccf_pp linea 66
+* implementare bene NAartifact, in modo da renderlo universale
+* controllare la direzione della sync
+* trova un modo agile di visualizzazione
+  * fixa il motore di plot
+  * implementa una preview con scroll
+  
+##high priority
 0) FAI FUNZIONARE expPPSync (non esiste più signal\$ccf\$settings$lagSec)
 1) controlla l'efficacia di artifact remove e se tutte le altre funzioni reggono con gli NA
+1) testa DyadCategory con NAartifact
+1) tutta DyadCategory è da controllare
+  1) il read è aggiornato con le ultime furbate di experiment?
+  1) perché uno è read Experiment e l'altro read Category? Dovrebbe essere signal e category o un lettore unico
+  1) DyadSummary ha grande potenzialità ma al momento non so in che stato di reliability è
+    * implementa le parti mancanti (disegno longit, etc)
 1) signalDecimate non aggiorna il sampRate attribute del signal
-1) expPPSync si basa ancora sulla vecchia creazione di signal$ccf, mentre invece adesso dovrà creare streams
 1) Creare un mapply generico function(…, signals="", FUN, … ) che funzioni sia su experiments, sessions, signals o streams
 3) Crea delle funzioni di analisi come dyadcategory ma con zSync, medie e ds longitudinali e confronto fra gruppi
+1) **TESTA I METODI E COMPARALI CAZZO!)**
+
+
+## low priority
+### DyadExperiment
+* quando crei experiment fai tutti i check di coerenza interna e magari salva esplicitamente il tipo di disegno, longitudinale, gruppi, misto
+  * soprattutto gli stessi s1 e s2 names, altrimenti rischi di fare grossa confusione
+
+### DyadSession
+* controlla che tutti i segnali abbiano lo stesso dyadID e s1 s2 names
+
+### Class structure
+
+* non ha particolarmente senso tenere session$signals e session$category allo stesso livello, visto che non ci sono analisi solo categoriali (per definizione di IP), avrebbe più senso considerare categ come un tipo speciale di signal, e risparmiare un livello. _Es: invece di session$signals$SC --> session$SC_
 
 <!-- This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>. -->
 

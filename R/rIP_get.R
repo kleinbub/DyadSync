@@ -22,10 +22,7 @@ session = function(dyadSession){
 id = function(dyadSession){
   attr(dyadSession,"dyadId")
 } 
-#' @export
-uid = function(x){
-  attr(x,"uid")
-} 
+
 #' @export
 name <- function(x) {
   attr(x,"name")

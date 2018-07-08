@@ -237,8 +237,8 @@ plotSignal = function (lineList, path="test.svg", boxList=NULL, connect=T, stack
     if(is.na(patient) || is.na(clinician)) stop("patient or clinician data could not be identified, please rename signals or set 'connect' to FALSE")
     ccfval = which(grepl("bestCCF|lag-*\\d|ppCor", sapply(ll,attr,"name"), ignore.case = T))[1]
     if(is.na(ccfval)) stop("no signal with name attribute == 'bestCCF' or lagXX.")
-    if(grepl("lag(-*\\d+)", uid(ll[[ccfval]]))) {
-      blag = as.numeric(gsub("(.*lag)(-*\\d+)(.*)","\\2", uid(ll[[ccfval]])))
+    if(grepl("lag(-*\\d+)", name(ll[[ccfval]]))) {
+      blag = as.numeric(gsub("(.*lag)(-*\\d+)(.*)","\\2", name(ll[[ccfval]])))
       ll2[[length(ll2)+1]] = rep(blag, length(ll2[[ccfval]]))
       blag = length(ll2)
     } else {
