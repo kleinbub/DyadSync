@@ -111,12 +111,12 @@ catSummary.DyadSession=function(session, signal="SC", streamKey="bestCCF", categ
     #this attempt to identify the stream by strings instead of by precise column name... WHY?!
     capture.output({
       if(grepl("pat",streamKey,ignore.case = T) || grepl("paz",streamKey,ignore.case = T)){
-        stream = session$signals[[signal]]$s1
+        stream = session[[signal]]$s1
         #print("grepl PATIENT")
       } else if (grepl("ter",streamKey,ignore.case = T)|| grepl("ther",streamKey,ignore.case = T) || grepl("cli",streamKey,ignore.case = T)){
-        stream = session$signals[[signal]]$s2
+        stream = session[[signal]]$s2
         #print("grepl CLINICIAN")
-      } else {stream = getCCF(session$signals[[signal]], streamKey)
+      } else {stream = getCCF(session[[signal]], streamKey)
       #print(paste("grepl",streamKey))
       }
       
@@ -208,7 +208,7 @@ catRandom.DyadSession =function(session, signal="RRmean", streamKey="bestCCF", c
   nMax = max(sapply(split(myCat,myCat[[column]]),nrow)) #n_cat massime per set 
   
   #toglie i dati reali
-  cleanStream = noCatStream(getCCF(session$signals[[signal]], streamKey), session$categ[[category]])
+  cleanStream = noCatStream(getCCF(session[[signal]], streamKey), session$categ[[category]])
   
   #ora crea i minutaggi random
   myCat$set = NA
@@ -301,8 +301,8 @@ plotCatLag.DyadExperiment = function(EXP, signal, category, column, nRand, min_c
       names(res_lag) = names(res_ccf) = toPlot
       
       #get uncategorized data
-      streamClean_lag = do.call("c",lapply(EXP, function(session) {noCatStream(getCCF(session$signals[[signal]], "ppLag"), session$categ[[category]])}))
-      streamClean_ccf = do.call("c",lapply(EXP, function(session) {noCatStream(getCCF(session$signals[[signal]], "ppCor"), session$categ[[category]])}))
+      streamClean_lag = do.call("c",lapply(EXP, function(session) {noCatStream(getCCF(session[[signal]], "ppLag"), session$categ[[category]])}))
+      streamClean_ccf = do.call("c",lapply(EXP, function(session) {noCatStream(getCCF(session[[signal]], "ppCor"), session$categ[[category]])}))
       random_quantiles_lag =  quantile(streamClean_lag,probs=c(0.25,0.5,0.75))
       random_quantiles_ccf =  quantile(streamClean_ccf,probs=c(0.25,0.5,0.75))
       
@@ -350,8 +350,8 @@ plotCatLag.DyadExperiment = function(EXP, signal, category, column, nRand, min_c
       names(res_lag) = names(res_ccf) = toPlot
       
       #get uncategorized data
-      streamClean_lag = do.call("c",lapply(EXP, function(session) {noCatStream(getCCF(session$signals[[signal]], "ppLag"), session$categ[[category]])}))
-      streamClean_ccf = do.call("c",lapply(EXP, function(session) {noCatStream(getCCF(session$signals[[signal]], "ppCor"), session$categ[[category]])}))
+      streamClean_lag = do.call("c",lapply(EXP, function(session) {noCatStream(getCCF(session[[signal]], "ppLag"), session$categ[[category]])}))
+      streamClean_ccf = do.call("c",lapply(EXP, function(session) {noCatStream(getCCF(session[[signal]], "ppCor"), session$categ[[category]])}))
       random_quantiles_lag =  quantile(streamClean_lag,probs=c(0.25,0.5,0.75))
       random_quantiles_ccf =  quantile(streamClean_ccf,probs=c(0.25,0.5,0.75))
       
@@ -437,9 +437,9 @@ plotCatLag.DyadSession = function(session, signal, category, column, nRand, min_
     if(nRand==0){
       #try to compare the categories with the uncategorized stream, only if there is at least 25% uncategorized stream
       #otherwise compare to the whole stream
-      streamClean = noCatStream(getCCF(session$signals[[signal]], lagStream), session$categ[[category]])
+      streamClean = noCatStream(getCCF(session[[signal]], lagStream), session$categ[[category]])
       if(attr(streamClean,"dropped")>0.75){
-        streamClean = na.omit(getCCF(session$signals[[signal]], lagStream))
+        streamClean = na.omit(getCCF(session[[signal]], lagStream))
       }
       random_quantiles_lag = quantile(streamClean,probs=c(0.25,0.5,0.75))
     } else{
@@ -452,9 +452,9 @@ plotCatLag.DyadSession = function(session, signal, category, column, nRand, min_
     capture.output({
       #try to compare the categories with the uncategorized stream, only if there is at least 25% uncategorized stream
       #otherwise compare to the whole stream
-    streamClean = noCatStream(getCCF(session$signals[[signal]], syncStream), session$categ[[category]])
+    streamClean = noCatStream(getCCF(session[[signal]], syncStream), session$categ[[category]])
     if(attr(streamClean,"dropped")>0.75){
-      streamClean = na.omit(getCCF(session$signals[[signal]], syncStream))
+      streamClean = na.omit(getCCF(session[[signal]], syncStream))
     }
     })
     random_quantiles_ccf = quantile(streamClean, probs=c(0.25,0.5,0.75))
@@ -546,7 +546,7 @@ plotCatLagCompare = function(sessionList, signal="RRmean", category="PACS", colu
   ##dati random o tutti i dati non categorizzati?
   capture.output({
     if(nRand==0){
-      streamClean = noCatStream(getCCF(session$signals[[signal]], "bestLag"), session$categ[[category]])
+      streamClean = noCatStream(getCCF(session[[signal]], "bestLag"), session$categ[[category]])
       rLines = quantile(streamClean,probs=c(0.25,0.5,0.75))
     } else{
       ranSess = catRandom(session,signal,"bestLag",category,column,nRand)
@@ -555,7 +555,7 @@ plotCatLagCompare = function(sessionList, signal="RRmean", category="PACS", colu
   
   #median ccf
   capture.output({
-    streamClean = noCatStream(getCCF(session$signals[[signal]], "bestCCF"), session$categ[[category]])
+    streamClean = noCatStream(getCCF(session[[signal]], "bestCCF"), session$categ[[category]])
   })
   medCCF = median(streamClean)
   all_col= dual.colors(201,center=medCCF)
@@ -632,7 +632,7 @@ plotCatStream.DyadExperiment = function(EXP, signal, stream, category, column, n
     names(res) = toPlot
     
     #clean: get data not corresponding to any category
-    streamCleanList =lapply(EXP, function(session) {noCatStream(getCCF(session$signals[[signal]], stream), session$categ[[category]])})
+    streamCleanList =lapply(EXP, function(session) {noCatStream(getCCF(session[[signal]], stream), session$categ[[category]])})
     dropped = sapply(streamCleanList, attr, "dropped") #check how much signal is lost through cleaning
     if (mean(dropped, na.rm=T)>0.80 | max(dropped)>0.80){
       warning("The categories extended over 80% of signal. The whole experiment will be used for comparison")
@@ -693,8 +693,8 @@ plotCatStream.DyadExperiment = function(EXP, signal, stream, category, column, n
     # names(res_lag) = names(res_ccf) = toPlot
     # 
     # #get uncategorized data
-    # streamClean_lag = do.call("c",lapply(EXP, function(session) {noCatStream(getCCF(session$signals[[signal]], "bestLag"), session$categ[[category]])}))
-    # streamClean_ccf = do.call("c",lapply(EXP, function(session) {noCatStream(getCCF(session$signals[[signal]], "bestCCF"), session$categ[[category]])}))
+    # streamClean_lag = do.call("c",lapply(EXP, function(session) {noCatStream(getCCF(session[[signal]], "bestLag"), session$categ[[category]])}))
+    # streamClean_ccf = do.call("c",lapply(EXP, function(session) {noCatStream(getCCF(session[[signal]], "bestCCF"), session$categ[[category]])}))
     # random_quantiles_lag =  quantile(streamClean_lag,probs=c(0.25,0.5,0.75))
     # random_quantiles_ccf =  quantile(streamClean_ccf,probs=c(0.25,0.5,0.75))
     # 
@@ -762,9 +762,9 @@ plotCatStream.DyadExperiment = function(EXP, signal, stream, category, column, n
 #     if(nRand==0){
 #       #try to compare the categories with the uncategorized stream, only if there is at least 25% uncategorized stream
 #       #otherwise compare to the whole stream
-#       streamClean = noCatStream(getCCF(session$signals[[signal]], "bestLag"), session$categ[[category]])
+#       streamClean = noCatStream(getCCF(session[[signal]], "bestLag"), session$categ[[category]])
 #       if(attr(streamClean,"dropped")>0.75){
-#         streamClean = na.omit(getCCF(session$signals[[signal]], "bestLag"))
+#         streamClean = na.omit(getCCF(session[[signal]], "bestLag"))
 #       }
 #       random_quantiles_lag = quantile(streamClean,probs=c(0.25,0.5,0.75))
 #     } else{
@@ -777,9 +777,9 @@ plotCatStream.DyadExperiment = function(EXP, signal, stream, category, column, n
 #   capture.output({
 #     #try to compare the categories with the uncategorized stream, only if there is at least 25% uncategorized stream
 #     #otherwise compare to the whole stream
-#     streamClean = noCatStream(getCCF(session$signals[[signal]], "bestCCF"), session$categ[[category]])
+#     streamClean = noCatStream(getCCF(session[[signal]], "bestCCF"), session$categ[[category]])
 #     if(attr(streamClean,"dropped")>0.75){
-#       streamClean = na.omit(getCCF(session$signals[[signal]], "bestCCF"))
+#       streamClean = na.omit(getCCF(session[[signal]], "bestCCF"))
 #     }
 #   })
 #   random_quantiles_ccf = quantile(streamClean, probs=c(0.25,0.5,0.75))

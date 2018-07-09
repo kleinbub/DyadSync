@@ -1,0 +1,22 @@
+---
+title: "Version history"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## v.1.0.0.9001
+#### 2018/07/08 15:56
+
+* sostituito con c() i vecchi experimentMerge
+* ho tolto signals e categ da DyadSession!!!! non aveva particolarmente senso tenere session\$signals e session\$category allo stesso livello, visto che non ci sono analisi solo categoriali (per definizione di IP), ha più senso considerare categ come un tipo speciale di signal, e risparmiare un livello. Es: invece di session\$signals\$SC --> session\$SC
+* ho cambiato la struttura delle analisi ccf nella classe, per renderela più astratta e generalizzabile. Ora c'è una classe CCFBest e PMBest per tenere i risultati delle analisi. Ciascuno contiene un vettore sync, uno lag, una tabella table con vari calcoli, e attributi con i settings. 
+* ho tolto tutti i metadata dalle liste e le ho messe negli attributes, 
+
+#### initial changes
+
+* cambiato patient therapist con s1 s2
+* readDyad ora accetta start, end o duration
+* la gestione degli artefatti ora è non-distruttiva (ma va implementata in ogni analisi)

@@ -75,7 +75,7 @@ ccfBest.DyadExperiment = function(experiment, signals, lagSec,winSec,incSec,acce
   nSessions = length(experiment)
   experiment2 = Map(function(session,iSession){
     if(signals=="all") signals = names(session)
-    cat("\r\n",paste(id(session),session(session)))
+    cat("\r\n",paste(dyadId(session),session(session)))
     session[signals] = Map(function(signal,iSignal){
       cat(" |",name(signal))
       signal = ccfBest(signal, lagSec,winSec,incSec,accelSec,weight,interpolate,simplify)

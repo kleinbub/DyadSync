@@ -139,12 +139,12 @@ ccfCompare = function(EXP, random, signal="SC", lag="bestCCF", FUN ="marciIndex"
   FUNname = FUN
   FUN <- match.fun(FUN)
   #print("Result is a matrix with each row rapresenting a random dyad, each column a window")
-  resList = lapply(EXP, function(ses){ses$signals[[signal]]$ccf$ccfmat[[lag]]})
+  resList = lapply(EXP, function(ses){ses[[signal]]$ccf$ccfmat[[lag]]})
   res = do.call("rbind",resList)
   colnames(res) = paste0("w",1:ncol(res))
   
   if(!is.null(random)){
-    ranList = lapply(random, function(ses){ses$signals[[signal]]$ccf$ccfmat[[lag]]})
+    ranList = lapply(random, function(ses){ses[[signal]]$ccf$ccfmat[[lag]]})
     ras = do.call("rbind",ranList)
     colnames(ras) = paste0("w",1:ncol(ras))
   }

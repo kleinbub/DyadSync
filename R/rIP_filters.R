@@ -84,9 +84,9 @@ NAartifacts.DyadSignal <- function(x, startEnd, signal="SC") {
     if(b<a) stop ("'start' cannot be greater than 'end' ")
     if(a < ref || b < ref) stop("all start and end definition must be progressively increasing and greater than signal start value")
     ref = b
-    sel[i,1] = a * signal$sampRate
+    sel[i,1] = a * sampRate(signal)
     if(b == duration) sel[i,2] =  length(signal$valid) #elminina tutto fino alla fine
-    else  sel[i,2] = b * signal$sampRate
+    else  sel[i,2] = b * sampRate(signal)
   }
   #2 controlla validità di signal
   if(!is.DyadSignal(signal)) stop("signal must be of class DyadSignal")
@@ -120,11 +120,11 @@ NAartifacts.DyadSignal <- function(x, startEnd, signal="SC") {
 #' @examples
 signalDecimate = function (signal, newSampRate) {
   if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
-  if (signal$sampRate <= newSampRate) 
-    stop("decimate only downsamples! newSampRate:",newSampRate," old:",signal$sampRate,call. = F)
-  if (signal$sampRate %% newSampRate != 0) 
+  if (sampRate(signal) <= newSampRate) 
+    stop("decimate only downsamples! newSampRate:",newSampRate," old:",sampRate(signal),call. = F)
+  if (sampRate(signal) %% newSampRate != 0) 
     stop("newSampRate must be an integer divisor of old sampRate ! newSampRate:",newSampRate," old:",sampRate,call. = F)
-  q = floor(signal$sampRate / newSampRate)  
+  q = floor(sampRate(signal) / newSampRate)  
   resPat = ts(signal$s1[seq(1,   length(signal$s1)  , by = q)], start=start(signal$s1),   frequency=newSampRate)
   resCli = ts(signal$s2[seq(1, length(signal$s2), by = q)], start=start(signal$s2), frequency=newSampRate)
   resVal = ts(signal$valid[seq(1, length(signal$valid), by = q)], start=start(signal$valid), frequency=newSampRate)
@@ -132,7 +132,7 @@ signalDecimate = function (signal, newSampRate) {
   signal$s1   = cloneDyadStream(resPat, signal$s1)
   signal$s2 = cloneDyadStream(resCli, signal$s2)
   signal$valid = resVal
-  signal$sampRate = newSampRate
+  attr(signal,"sampRate") = newSampRate
   return(signal)
 }
 
@@ -177,7 +177,7 @@ winInter = function(windowsList, winSec, incSec, sampRate){
 #if in doubt use this.
 signalflexMA = function(signal,winSec,remove=F){
   if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
-  win = winSec*signal$sampRate
+  win = winSec*sampRate(signal)
   win2 = floor(win/2)
   res = lapply(list(signal$s1,signal$s2), function(a){
     len = length(a)
@@ -187,8 +187,8 @@ signalflexMA = function(signal,winSec,remove=F){
       sum(a[i1:i2])/length(i1:i2)
     }))
     if(remove){
-      cloneDyadStream(ts(a-f,frequency=signal$sampRate,start=start(a)),a)
-    }else  cloneDyadStream(ts(f, frequency=signal$sampRate,start=start(a)),a)
+      cloneDyadStream(ts(a-f,frequency=sampRate(signal),start=start(a)),a)
+    }else  cloneDyadStream(ts(f, frequency=sampRate(signal),start=start(a)),a)
   })
   signal$s1   = res[[1]]
   signal$s2 = res[[2]]

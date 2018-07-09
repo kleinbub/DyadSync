@@ -8,14 +8,18 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Where I left
 CAZZO sto cambiando radicalmente le classi di sincro!!!
-  * **STO TOGLIENDO signals e categ da DyadSession!!!!** non ha particolarmente senso tenere session$signals e session$category allo stesso livello, visto che non ci sono analisi solo categoriali (per definizione di IP), avrebbe più senso considerare categ come un tipo speciale di signal, e risparmiare un livello. _Es: invece di session$signals$SC --> session$SC_ 
-    * cerca $signals e $categ in tutto il pacchetto e sostituisci (cioè rimuovi)
+
+  * **ho tolto signals e categ da DyadSession!!!!** non ha particolarmente senso tenere session\$signals e session\$category allo stesso livello, visto che non ci sono analisi solo categoriali (per definizione di IP), avrebbe più senso considerare categ come un tipo speciale di signal, e risparmiare un livello. _Es: invece di session\$signals\$SC --> session\$SC_ **[FATTO]**
+    * cerca ~~$signals~~ [signals], $categ e [categ] in tutto il pacchetto e sostituisci (cioè rimuovi)
+    * occhio che nei contesti session\$signals = ... ora si perdono i metadata di session. Devi o richiamare DyadSession o creare una funzione nuova.
   * ho eliminato CCFmatrix, quindi devi controllare a cascata tutto quello che usava signal\$ccf\$ccfmat, signal\$ccf\$sampRate, signal\$ccf\$settings
   * ora ho creato una classe CCFBest e PMBest per tenere i risultati delle analisi. Ciascuno contiene un vettore sync, uno lag, una tabella table con vari calcoli, e attributi con i settings. **NB tutti i dati qua sono ancora in formato grezzo, per trasformarli in stream serve getStream (ex getCCF), che interpoli alla giusta frequenza, oppure ha più senso tenere sync e lag già in formato stream?**
+    * trova e sostituisci $ccf $ccfmat
   *  CCFBest e PMBest sono ancora NON aggiornati rispetto a niente, quindi vanno updated entrambi
   * ho tolto tutti i metadata dalle liste e le ho messe negli attributes, quindi un sacco di roba sarà sputtanata
     *tutti i $sampRate diventano sampRate()
     *tutti i $name diventano name()
+    
 
 
 Sto massaggiando expPPsync. per il momento ho appena iniziato con ppBest.

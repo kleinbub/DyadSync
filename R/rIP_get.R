@@ -15,13 +15,18 @@ s1Name <- function(x) {attr(x,"s1Name")}
 s2Name <- function(x) {attr(x,"s2Name")}
 
 #' @export
-session = function(dyadSession){
+session = sessionId = function(dyadSession){
   attr(dyadSession,"sessionId")
 }
 #' @export
-id = function(dyadSession){
+dyad = dyadId = function(dyadSession){
   attr(dyadSession,"dyadId")
 } 
+#' @export
+group.DyadSession = groupId = function(dyadSession){
+  attr(dyadSession,"dyadId")
+} 
+
 
 #' @export
 name <- function(x) {

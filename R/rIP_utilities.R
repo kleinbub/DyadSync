@@ -53,8 +53,8 @@ expApply= function(experiment, signals="all", FUN, ...){
     #     session = lr$sessions[[1]]
     #     signals= c("SC","ASD","PPG")
     
-    if(length(signals)==1 && signals=="all") sigs = names(session$signals) else sigs = signals
-    session$signals[names(session$signals) %in% sigs] = lapply(session$signals[names(session$signals) %in% sigs],  fun, ...)
+    if(length(signals)==1 && signals=="all") sigs = names(session) else sigs = signals
+    session[names(session) %in% sigs] = lapply(session[names(session) %in% sigs],  fun, ...)
     prog(nSession,length(experiment))
     return(session)
   },experiment,seq_along(experiment))
@@ -62,69 +62,35 @@ expApply= function(experiment, signals="all", FUN, ...){
   return(experiment2)
 }
 
-#
-#' Title
-#' this function adds the signals from two experiments
-#' @param exp1 
-#' @param exp2 
-#'
-#' @return
+# DELETEME
 #' @export
-#'
-#' @examples
-signalMerge = experimentMerge = function(exp1,exp2){
-  if (length(exp1)!= length(exp2)) stop ("The two experiments must have the same number of sessions")
-  
-  exp3 = Map(function(ses1,ses2){
-    ses1$signals = c(ses1$signals,ses2$signals)
-    ses1$categ =  c(ses1$categ,ses2$categ)
-    return(ses1)
-  },exp1,exp2)
-  attributes(exp3)=attributes(exp1)
-  cat("\r\nSignals from exp2 have been added to exp1.")
-  return(exp3)
+experimentMerge = signalMerge = sessionMerge = function(...){
+  stop("These functions are obsolete. Please use c(...)")
 }
 
-#' Title
-#'
-#' @param exp1 
-#' @param exp2 
-#'
-#' @return
-#' @export
-#'
-#' @examples
-sessionMerge = function(exp1,exp2){
-  exp3 = c(exp1,exp2)
-  attributes(exp3)=attributes(exp1)
-  names(exp3) = c(names(exp1),names(exp2))
-  cat("\r\nSessions from exp2 have been added to exp1.")
-  return(exp3)
-}
 
 ##
 #' Title
 #' This function allows to subset only specific signals from an experiment
-#' @param experiment 
-#' @param signals 
+#' @param x a DyadExperiment or DyadSession object 
+#' @param signals a vector of signal names. Es: c("SC", "HRV", "PACS")
 #'
 #' @return
 #' @export
 #'
 #' @examples
-selectSignals = function(experiment, signals=c("test1","test2")){
-  if(!is(experiment,"DyadExperiment")) stop("Only objects of class DyadExperiment can be processed by this function")
-  if(sum(signals %in% names(experiment[[1]]$signals)) != length(signals)){
-    stop(paste("All signals must be present in the original experiment:", signals[which(!(signals %in% names(experiment[[1]]$signals)))], "not found."))
-  }
-  experiment2 = Map(function(session,iSession){
-    #cat("\r\n",session$sessionId)
-    session$signals = session$signals[signals]
-    return(session)
-  },experiment,seq_along(experiment))
-  cat("\r\nDone ;)")
-  attributes(experiment2)=attributes(experiment)
-  return(experiment2)
+selectSignals = function(x, signals){
+  UseMethod("selectSignals",x)
+}
+#' @export
+selectSignals.DyadSession = function(session,signals) {
+  session[!names(session) %in% signals] = NULL
+  session
+}
+#' @export
+selectSignals.DyadExperiment = function(experiment,signals) {
+  res = lapply(experiment, selectSignals, signals)
+  DyadExperiment(name(experiment),res)
 }
 
 
@@ -142,7 +108,7 @@ selectSignals = function(experiment, signals=c("test1","test2")){
 #' @examples
 ccfQuantile = function (EXP, signal="SC",lag="bestCCF",bySession=T,sessionFUN = "mean"){
   FUN = match.fun(sessionFUN)
-  resList = lapply(EXP, function(ses){ses$signals[[signal]]$ccf$ccfmat[[lag]]})
+  resList = lapply(EXP, function(ses){ses[[signal]]$ccf$ccfmat[[lag]]})
   res = do.call("rbind",resList)
   if(bySession) res =apply(res,1,FUN)
   quantile(res)

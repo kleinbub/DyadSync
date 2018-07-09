@@ -106,12 +106,20 @@
 ##   -class: list DyadExperiment
 DyadExperiment = function(name, sessionList){
   exp =  sessionList
-  attributes(exp) = c(attributes(exp), list(name   = name))
-  class(exp) = append(class(exp),"DyadExperiment")
+  attr(exp, "name") = name
+  class(exp) = "DyadExperiment"
   return(exp)
 }
 is.DyadExperiment = function(x) inherits(x,"DyadExperiment") && length(x)
 
+# c.DyadExperiment sostituisce experimentMerge() e permette di unire
+# i segnali di esperimenti con la stessa struttura di sessioni.
+#' @export
+c.DyadExperiment = function (...){
+  l = list(...)
+  res = do.call(Map, c("f"=function(...){ c(...) }, l))
+  DyadExperiment(sapply(l,name),res)
+}
 
 ### DYADSESSION ##############################################
 ## list of signals and categ with attributes:
@@ -139,10 +147,33 @@ DyadSession = function(groupId,sessionId,dyadId, signalList=NULL, s1Name,s2Name,
     s2Name = s2Name,
     fileName = fileName
   ))
-  class(x) = append(class(x),"DyadSession")
+  class(x) = "DyadSession"
   return(x)
 }
 is.DyadSession = function(x) inherits(x,"DyadSession") && length(x)
+
+#' @export
+c.DyadSession = function(...){
+  l = list(...);
+  x = l[[1]]
+  fileNames = sapply(l, attr, "fileName")
+  #check on different filenames (bad)
+  if(length(unique(sapply(l,name))) >1 ) stop("Can't combine sessions with different names:\r\n",paste(unlist(sapply(l, attr, "fileName")),collapse="\r\n"), call.=F)
+  #check on same signal names (bad)
+  if(length(unique(sapply(l,names)))<length(sapply(l,names))) stop("Can't combine sessions containing the same signal. Use selectSignals() to extract only different signals before merging", call.=F)
+  #check on different s1 s2 names (bad)
+  if(any(sapply(l,s1Name) %in% sapply(l,s2Name))) stop("Can't combine sessions mixing s1 and s2 names", call.=F)
+  
+  structure(NextMethod("c"),
+            "name" = name(x),
+            "sessionId" = sessionId(x),
+            "dyadId" = dyadId(x),
+            "groupId" = groupId(x),
+            "s1Name" = s1Name(x),
+            "s2Name" = s2Name(x),
+            "fileName" = fileNames,
+            "class" ="DyadSession")
+}
 
 
 ### DYADCATEGORY ###########################################

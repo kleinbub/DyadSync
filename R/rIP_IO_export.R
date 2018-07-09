@@ -45,16 +45,16 @@ megaExpExport = function(dirPath, experiment, signals="all", CCF=T, onlyBest=F, 
     # iSession = 1
     ##
     prog(iSession,nSessions)
-    if(signals =="all") signals = names(session$signals)
-    signalListSR = as.vector(unlist(sapply(session$signals[signals],function(x){c(x$sampRate,x$ccf$sampRate)})))
+    if(signals =="all") signals = names(session)
+    signalListSR = as.vector(unlist(sapply(session[signals],function(x){c(x$sampRate,x$ccf$sampRate)})))
     #print(str(signalListSR))
     if(!all(signalListSR == signalListSR[1])){
       stop("Not all the output signals have the same sampling rate, please use interpolation!")
     }
     sampRate = signalListSR[1]
-    signalList = lapply(session$signals[signals], function(signal){
+    signalList = lapply(session[signals], function(signal){
       ##debug
-      # signal = session$signals[[8]]
+      # signal = session[[8]]
       ##
       #print(name(signal))
       #rm(signal,my.ccf,my.orig,uberDS)

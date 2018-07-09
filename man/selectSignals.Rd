@@ -5,12 +5,12 @@
 \title{Title
 This function allows to subset only specific signals from an experiment}
 \usage{
-selectSignals(experiment, signals = c("test1", "test2"))
+selectSignals(x, signals)
 }
 \arguments{
-\item{experiment}{}
+\item{x}{a DyadExperiment or DyadSession object}
 
-\item{signals}{}
+\item{signals}{a vector of signal names. Es: c("SC", "HRV", "PACS")}
 }
 \description{
 Title

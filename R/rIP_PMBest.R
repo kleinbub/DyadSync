@@ -37,7 +37,7 @@ expPPsync = function(experiment, signals="all", lagSec=7, sgol_p = 2, sgol_n = 2
   nSessions = length(experiment)
   experiment2 = Map(function(session,iSession){
     if(signals=="all") signals = names(session)
-    cat("\r\n",paste(id(session),session(session)))
+    cat("\r\n",paste(dyadId(session),session(session)))
     session[signals] = Map(function(signal){
       cat(" |",name(signal))
       #the first function calculates best lag
