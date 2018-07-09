@@ -127,9 +127,9 @@ $(document).ready(function () {
 
 <div id="where-i-left" class="section level2">
 <h2>Where I left</h2>
-<p>CAZZO sto cambiando radicalmente le classi di sincro!!!</p>
 <ul>
-<li><strong>ho tolto signals e categ da DyadSession!!!!</strong> non ha particolarmente senso tenere session$signals e session$category allo stesso livello, visto che non ci sono analisi solo categoriali (per definizione di IP), avrebbe più senso considerare categ come un tipo speciale di signal, e risparmiare un livello. <em>Es: invece di session$signals$SC –&gt; session$SC</em> <strong>[FATTO]</strong>
+<li>testare PMBest</li>
+<li><strong>ho tolto signals e categ da DyadSession!!!!</strong>
 <ul>
 <li>cerca <del>$signals</del> [signals], $categ e [categ] in tutto il pacchetto e sostituisci (cioè rimuovi)</li>
 <li>occhio che nei contesti session$signals = … ora si perdono i metadata di session. Devi o richiamare DyadSession o creare una funzione nuova.</li>
@@ -139,7 +139,7 @@ $(document).ready(function () {
 <ul>
 <li>trova e sostituisci $ccf $ccfmat</li>
 </ul></li>
-<li>CCFBest e PMBest sono ancora NON aggiornati rispetto a niente, quindi vanno updated entrambi</li>
+<li>CCFBest è ancora NON aggiornati rispetto a niente, quindi vanno updated entrambi</li>
 <li>ho tolto tutti i metadata dalle liste e le ho messe negli attributes, quindi un sacco di roba sarà sputtanata <em>tutti i $sampRate diventano sampRate() </em>tutti i $name diventano name()</li>
 </ul>
 <p>Sto massaggiando expPPsync. per il momento ho appena iniziato con ppBest.</p>
@@ -162,6 +162,7 @@ $(document).ready(function () {
 <h2>high priority</h2>
 <ol start="0" style="list-style-type: decimal">
 <li>FAI FUNZIONARE expPPSync (non esiste più signal$ccf$settings$lagSec)</li>
+<li>Questa cosa: attributes(experiment2)=attributes(experiment) è male perché sovrascrive anche l’attributo “names” che invece deve essere tenuto free. Sostituisci con structure(experiment2, “asd”=attr(experiment2,“asd”))</li>
 <li>controlla l’efficacia di artifact remove e se tutte le altre funzioni reggono con gli NA</li>
 <li>testa DyadCategory con NAartifact</li>
 <li>tutta DyadCategory è da controllare</li>
@@ -184,6 +185,9 @@ $(document).ready(function () {
 <ul>
 <li>quando crei experiment fai tutti i check di coerenza interna e magari salva esplicitamente il tipo di disegno, longitudinale, gruppi, misto</li>
 <li>soprattutto gli stessi s1 e s2 names, altrimenti rischi di fare grossa confusione</li>
+<li>trova un modo per implementare i bei plot di PMBest<br />
+</li>
+<li>controlla che dyadComb.DyadExperiment funzioni dopo la rimozione di $signals</li>
 </ul>
 </div>
 <div id="dyadsession" class="section level3">

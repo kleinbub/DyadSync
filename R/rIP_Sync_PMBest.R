@@ -9,8 +9,8 @@
 #
 ############################################################################################################ 
 ## changelog
-
-
+# v3.0 compatibile (ma non testato) con rIP_classes v3.0
+# v2.0 integrato in rIP package
 #
 ############################################################################################################ 
 ## ToDo
@@ -19,11 +19,15 @@
 
 
 
-#' Title
+
+#' expPPsync
 #'
 #' @param experiment 
 #' @param signals 
 #' @param lagSec 
+#' @param sgol_p 
+#' @param sgol_n 
+#' @param weightMalus weightmalus è la percentuale di malus per il lag più estremo. Es, con weightMalus= 20 e r = 1 al massimo lag, la trasformazione diventa r' = 0.8
 #'
 #' @return
 #' @export
@@ -49,7 +53,7 @@ expPPsync = function(experiment, signals="all", lagSec=7, sgol_p = 2, sgol_n = 2
     return(session)
   },experiment,seq_along(experiment))
   cat("\r\nDone ;)")
-  attributes(experiment2)=attributes(experiment)
+  classAttr(experiment2)=classAttr(experiment)
   return(experiment2)
 }
 
@@ -57,17 +61,10 @@ expPPsync = function(experiment, signals="all", lagSec=7, sgol_p = 2, sgol_n = 2
 ## peak picking best lag
 ppBest = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30) {
   if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
-  # if(is.null(signal$ccf))
-  signal[length(signal)+1] = CcfMatrix(NULL, sampRate = signal$sampRate, list("lagSec"=lagSec,"incSec"=NA,
-                                                     "winSec"=NA,"accelSec"=NA,"weight"=weightMalus,"interpolated"=TRUE))
-  
-  ## weightmalus è la percentuale di malus per il lag più estremo.
-  ## Es, con weightMalus= 20 e r = 1 al massimo lag, la trasformazione diventa r' = 0.8
-  
+
   d = signal$s2
   d2  = signal$s1
-  lagSec = signal$ccf$settings$lagSec
-  sampRate = signal$sampRate
+  sampRate = sampRate(signal)
   ransamp = lagSec * sampRate
   
   ### peaks-valleys detection ########
@@ -81,7 +78,8 @@ ppBest = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30) {
   allSec1 = time(d)[allpik1]
   allSec2 = time(d2)[allpik2]
   
-  fullMat = matrix(NA ,nrow=length(allpik1),ncol=length(allpik2))
+  #full matrix with all matches values
+  M = matrix(NA ,nrow=length(allpik1),ncol=length(allpik2))
   
   for(i in 1:length(allpik1)){
     ipik = allpik1[i] 
@@ -93,7 +91,7 @@ ppBest = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30) {
     a = ifelse(any(allpik1<ipik),  max(allpik1[allpik1<ipik]), 1)
     #se non ci sono picchi/valli dopo, usa la fine del segnale
     b = ifelse(any(allpik1>ipik),  min(allpik1[allpik1>ipik]), length(d))
-    ab    = a:b
+    ab = a:b
     
     search_range[search_range<=0] = NA
     ab[ab<=0] = NA
@@ -144,7 +142,7 @@ ppBest = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30) {
         weightCor = thisCor * weights_val[lagv+ransamp+1]
         
         ## POPULATE FINAL MATRIX
-        fullMat[i,matches_i[f]] = weightCor
+        M[i,matches_i[f]] = weightCor
       }
     }
     
@@ -152,7 +150,6 @@ ppBest = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30) {
   
   ## SORTING APPROACH n2: try all combinations
   ## https://cs.stackexchange.com/questions/91502
-  M = fullMat
   M[is.na(M)] = 0
   ## ignora le correlazioni negative. Non sono buoni match cmq! (?)
   M[M<0] = 0
@@ -178,23 +175,22 @@ ppBest = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30) {
   xbest$lag =   allpik2[xbest$col]-allpik1[xbest$row]
   xbest$s1 = allpik1[xbest$row]
   xbest$s2 = allpik2[xbest$col]
-  signal$ccf$ppBest =xbest
+  #instantiate new sync class object
+  signal$PMBest = PMBest(NULL,NULL,xbest,lagSec,sgol_p,sgol_n,weightMalus)
   signal
 }
 
 
-
-
-
 ppSync = function(signal, type=c("block","continuous")) {
+  if(is.null(signal$PMBest)||is.null(signal$PMBest$xBest))stop("Please run ppBest before.")
   type=match.arg(type)
   d = signal$s2
   d2  = signal$s1
-  lagSec = signal$ccf$settings$lagSec
-  sampRate = signal$sampRate
+  lagSec = attr(signal$PMBest, "lagSec")
+  sampRate = sampRate(signal)
   ransamp = lagSec * sampRate
   if(is.null(signal$ccf$ppBest)) stop("you need to run ppBest beforehand")
-  xbest = signal$ccf$ppBest
+  xbest = signal$PMBest$xBest
   xbest$sync = rep(NA,nrow(xbest))
   
   lagvec = rep(NA,length(d) )
@@ -235,6 +231,7 @@ ppSync = function(signal, type=c("block","continuous")) {
       iCor = cor(d[ab[[1]]] , d2[ab[[2]]]) #"pear"
       
       ### [MODE 2] stretch the shorter to the width of the longer #########
+      # #is this working?
       # data = list("s1" = d, "s2" = d2)
       # 
       # if(length(ab[[1]]) != length(ab[[2]])){
@@ -285,18 +282,16 @@ ppSync = function(signal, type=c("block","continuous")) {
     # # } else signal$ccf$ccfmat = cbind(signal$ccf$ccfmat, res)
   }
   
-  #qui salva l'output in 3 posti diversi perché non sono ancora sicuro di come fare
-  signal$ccf$ppBest = xbest
-  signal$ccf$ppSync = list("sync"=syncvec, "lag"=lagvec,"time" = time(d))
-  if(length(signal$ccf$ccfmat)==0) {
-    signal$ccf$ccfmat = data.frame("ppSync" = syncvec, "ppLag"=lagvec,"time" = time(d))
-  } else signal$ccf$ccfmat = cbind(signal$ccf$ccfmat, data.frame("ppSync" = syncvec, "ppLag"=lagvec,"time" = time(d)))
+  #qui salva l'output
+  signal$PMBest$xBest = xbest
+  signal$PMBest$sync = DyadStream(syncvec, "PMBest_Sync", sampRate, start=start(d), col=rgb(191,50,59,max=255))
+  signal$PMBest$lag = DyadStream(lagvec, "PMBest_Lag", sampRate, start=start(d), col=rgb(253,177,2,max=255))
   return(signal)
   
 }
 
 ##peakfinder è una funzione ausiliaria di ppBestLag, è sviluppata in "peak-centered-flex-CCF_v1.93"
-peakFinder = function(x, sgol_p = 6, sgol_n = 45, mode=c("peaks","valleys"), correctionRangeSeconds = 0.5, valid){
+peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys"), correctionRangeSeconds = 0.5, valid){
   if(missing(valid)) valid = rep(T,length(x))
   sampRate = frequency(x)
   fdderiv1  = ts(signal::sgolayfilt(x,  p =sgol_p, n = sgol_n, m=1),frequency = 10,start=start(x))

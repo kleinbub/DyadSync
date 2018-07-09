@@ -54,8 +54,8 @@ NAartifacts.DyadExperiment <- function(x, startEnd, signal="SC") {
   
   for(i in unique(sel$session) ){
     cat("\r\ncleaning session:",i,"\r\n")
-    miniSel = sel[sel$session == i,2:3]
-    x[[i]]$signals[[signal]] = NAartifacts(x[[i]]$signals[[signal]],miniSel,signal)
+    miniSel = sel[sel$session == i, 2:3]
+    x[[i]][[signal]] = NAartifacts(x[[i]][[signal]],miniSel,signal)
   }
   x
 }

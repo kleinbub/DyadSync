@@ -10,6 +10,8 @@
 #
 ############################################################################################################ 
 ## Changelog
+# v3.0 rivoluzione! tolta separazione $signals $categ; tolto $ccf e implementate classi specifiche
+#      per ogni tipo di analisi
 # v2.0 integrato in rIP package
 # v1.6 usa la nuova versione di CCF, non backward compatibile
 # v1.4 a lot of goodies :3
@@ -55,17 +57,21 @@
 # bestCCF e bestLAG salvati come stream. Gli stream infatti sono time-series con un sacco di metadati utili
 # che rendono molto più semplice avere sempre tutte le info a portata di mano
 
-## STRUTTURA:
+## STRUTTURA v3
 ## DyadExperiment               | <- Experiment è semplicemente il contenitore di tutti i dati
 ##    $DyadSession              | <- la session è l'unità logica, contiene nomi partecipanti e id
 ##        $DyadSignal "SC"      | <- signal è il contenitore di tutti i dati e analisi di un tipo di segnale fisio
 ##            $DyadStream s1    | <- i diversi dati sono in forma di stream, ossia serie temporali con 
 ##            $DyadStream s2    |    più metadati, tra cui elementi grafici che forse sono da eliminare
-##            $DyadStream ccf1  |
-##            $DyadStream ccf2  |
-##            $DyadStream ...   |
-##            $CcfMatrix          | <- un vecchio contenitore della matrice di correlazione e i metadati con i setting della ccf
-##                              |    devo trovare il modo di renderlo più generale per accomodare diverse forme di ccf
+##            $valid            | <- un array di logical, indicante le parti buone (TRUE) o artefatti (FALSE)
+##            $CCFBest          | <- contenitore di analisi sincro basato sulle windowed x-cors
+##              $sync           | <- il vecchio BestCCF
+##              $lag            | <- il vecchio BestLag
+##              $table          | <- la vecchia ccfMatrix
+##            $PMBest           | <- contenitore di analisi sincro basato sul Peak Matching
+##              $sync           |
+##              $lag            |
+##              $xBest          |
 ##        $DyadSignal "PPG"     |
 ##            $DyadStream s1    |
 ##            $DyadStream s2    |
@@ -97,7 +103,48 @@
 ## - creare classi diverse e definire i metodi per le diverse classi
 ## -ccfMatrix, vectorBestLag, peakpicking best lag,
 
+merge.list = function(x,y) {
+  # l = list(...)
+  xNames = names(x)
+  yNames = names(y)
+  over = names(x)[which(names(x) %in% names(y))]
+  for(n in over){if(x[[n]]!=y[[n]]) stop("Can't merge list with different values for the same tag:\r\n",n,": ",x[[n]]," != ",y[[n]])}
 
+}
+
+
+
+#' Safe Object Attribute Lists
+#' @description a wrapper for \code{\link[base]{attributes}} which accesses and sets an object's attributes
+#' with the exception of protected ones, currently: \code{c("names", "comment", "dim", "dimnames", "row.names", "tsp")}
+#' @param x an object
+#' @param value an appropriate named list of attributes, or NULL.
+#' @return asd
+#' @examples 
+#' a <- list("a"=1,"b"=2,"c"=3)
+#' attr(a, "foo") <- "bar"
+#' #extracts as well names
+#' attributes(a) 
+#' #extracts only foo
+#' classAttr(a) 
+#' #overwrites only foo
+#' classAttr(a) <- list("bar"="foo") 
+#' 
+#' @export
+#' 
+classAttr = function(x){
+  protected_attributes = c("names", "comment", "dim", "dimnames", "row.names", "tsp")
+  attributes(x)[!names(attributes(x)) %in% protected_attributes]
+}
+#' @rdname classAttr
+#' @export
+`classAttr<-` = function(x,value){
+  if(!is.list(value)||!is.null(value)) stop("attributes must be a list or NULL")
+  protected_attributes = c("names", "comment", "dim", "dimnames", "row.names", "tsp")
+  value <- value[!names(value)%in%protected_attributes]
+  attributes(x) <- c(attributes(x)[protected_attributes],value)
+  x
+}
 
 
 ### DYADEXPERIMENT ###########################################
@@ -203,17 +250,15 @@ DyadSignal = function(name="some signal",s1=NULL,s2=NULL,sampRate=NULL, s1Name, 
   x = list(
     s1 = DyadStream(stream = s1, name=s1Name, sampRate = sampRate, col = "deeppink3",  lty=1, lwd=2),
     s2 = DyadStream(stream = s2, name=s2Name, sampRate = sampRate, col = "dodgerblue3", lty=1, lwd=2),
-    valid = DyadStream(stream = ts(rep(TRUE, length(s1)),start=start(s1),end= end(s1), frequency = frequency(s1) ), name="valid", sampRate = sampRate, col = "dodgerblue3", lty=1, lwd=2),
-    ccf = NULL
+    valid = DyadStream(stream = ts(rep(TRUE, length(s1)),start=start(s1),end= end(s1), frequency = frequency(s1) ), name="valid", sampRate = sampRate, col = "dodgerblue3", lty=1, lwd=2)
   )
   attributes(x) = c(attributes(x),list(
     name = name,
     sampRate = sampRate,
     filter = "raw",
-    ccf = FALSE, #obsolete?
     s1Name = s1Name,
     s2Name = s2Name,
-    start = start(s1), #start-end-duration of s1 and s2 are the same
+    start = start(s1), #start-end-duration of s1 and s2 are the same by design
     end = end(s1),
     duration = trunc(length(s1)/sampRate)
   ))
@@ -232,7 +277,7 @@ is.DyadSignal = function(x) inherits(x,"DyadSignal") && length(x)
 ##   -lwd
 ##   -tsp (inherited by ts)
 ##   -class: list DyadSession
-DyadStream = function(stream, name, sampRate=frequency(stream), start=0, settings = list(), col=1, lty=1, lwd=1){
+DyadStream = function(stream, name, sampRate=frequency(stream), start=0,  col=1, lty=1, lwd=1){
   if(!is(stream,"ts")){
     stream = ts(stream, start = start, frequency = sampRate)
     warning(paste0("Stream '",name,"' was coerced to ts starting at 0, with sampRate of: ",sampRate,"Hz, and duration of: ",end(stream)[1]," seconds."), call.=F)
@@ -241,7 +286,6 @@ DyadStream = function(stream, name, sampRate=frequency(stream), start=0, setting
                          list(
                             name = name,
                             duration = trunc(length(stream)/frequency(stream)),
-                            settings = settings,
                             col=col,
                             lty=lty,
                             lwd = lwd

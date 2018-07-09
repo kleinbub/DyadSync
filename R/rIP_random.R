@@ -76,8 +76,8 @@ dyadComb.DyadExperiment = function(exper, n, signals="all", verbose=F){
   #random, in cui vengono scombinati gli appaiamenti paziente/terapeuta
 
   if(sum(signals == "all")){
-    signals = names(exper[[1]]$signals)
-    nSignals = length(exper[[1]]$signals)
+    signals = names(exper[[1]])
+    nSignals = length(exper[[1]])
   } else {
     if(is.vector(signals)) {
       nSignals = length(signals)
@@ -95,7 +95,6 @@ dyadComb.DyadExperiment = function(exper, n, signals="all", verbose=F){
   names(comboList)=signals
   
   #do the magic
-  #this shit is verified!
   sessionList = list()
   for(i in 1:ncom){
     #cat("\r\n genero la seduta posticcia ",i)
@@ -103,13 +102,13 @@ dyadComb.DyadExperiment = function(exper, n, signals="all", verbose=F){
     for(j in 1:nSignals){
       #cat("\r\n   di",nSignals,"segnali, considero il #",j,":",signals[j])
       #cat("\r\n      prendo il segnale della seduta",comboList[[j]][i,"ranx_session"])
-      baseSignal = exper[[ comboList[[j]][i,"ranx_session"] ]]$signals[signals[j]]
+      baseSignal = exper[[ comboList[[j]][i,"ranx_session"] ]][signals[j]]
       if(comboList[[j]][i,"ranx_role"] == "clinician"){
         #cat("e sostituisco il segnale del paziente con quello del clinico")
         baseSignal[[1]]$s1 = baseSignal[[1]]$s2
       }
       #cat("\r\n      poi prendo il segnale della seduta", comboList[[j]][i,"rany_session"], "e tengo il segnale del",comboList[[j]][i,"rany_role"])
-      secondSignal = exper[[ comboList[[j]][i,"rany_session"] ]]$signals[signals[j]]
+      secondSignal = exper[[ comboList[[j]][i,"rany_session"] ]][signals[j]]
       baseSignal[[1]]$s2 = secondSignal[[1]][[ comboList[[j]][i,"rany_role"] ]]
       baseSignal[[1]]$ccf=NULL
       #make the signals of the same length

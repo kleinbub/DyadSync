@@ -8,7 +8,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## v.1.0.0.9001
-#### 2018/07/08 15:56
+#### 2018/07/09 18:47
+* PMBest completamente compatibile con la v3
+
+#### 2018/07/08 15:56 "class structure v3"
 
 * sostituito con c() i vecchi experimentMerge
 * ho tolto signals e categ da DyadSession!!!! non aveva particolarmente senso tenere session\$signals e session\$category allo stesso livello, visto che non ci sono analisi solo categoriali (per definizione di IP), ha più senso considerare categ come un tipo speciale di signal, e risparmiare un livello. Es: invece di session\$signals\$SC --> session\$SC

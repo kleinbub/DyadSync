@@ -7,15 +7,15 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Where I left
-CAZZO sto cambiando radicalmente le classi di sincro!!!
-
-  * **ho tolto signals e categ da DyadSession!!!!** non ha particolarmente senso tenere session\$signals e session\$category allo stesso livello, visto che non ci sono analisi solo categoriali (per definizione di IP), avrebbe più senso considerare categ come un tipo speciale di signal, e risparmiare un livello. _Es: invece di session\$signals\$SC --> session\$SC_ **[FATTO]**
+  
+  * testare PMBest
+  * **ho tolto signals e categ da DyadSession!!!!** 
     * cerca ~~$signals~~ [signals], $categ e [categ] in tutto il pacchetto e sostituisci (cioè rimuovi)
     * occhio che nei contesti session\$signals = ... ora si perdono i metadata di session. Devi o richiamare DyadSession o creare una funzione nuova.
   * ho eliminato CCFmatrix, quindi devi controllare a cascata tutto quello che usava signal\$ccf\$ccfmat, signal\$ccf\$sampRate, signal\$ccf\$settings
   * ora ho creato una classe CCFBest e PMBest per tenere i risultati delle analisi. Ciascuno contiene un vettore sync, uno lag, una tabella table con vari calcoli, e attributi con i settings. **NB tutti i dati qua sono ancora in formato grezzo, per trasformarli in stream serve getStream (ex getCCF), che interpoli alla giusta frequenza, oppure ha più senso tenere sync e lag già in formato stream?**
-    * trova e sostituisci $ccf $ccfmat
-  *  CCFBest e PMBest sono ancora NON aggiornati rispetto a niente, quindi vanno updated entrambi
+    * trova e sostituisci $ccf $ccfmat 
+  *  CCFBest è ancora NON aggiornati rispetto a niente, quindi vanno updated entrambi
   * ho tolto tutti i metadata dalle liste e le ho messe negli attributes, quindi un sacco di roba sarà sputtanata
     *tutti i $sampRate diventano sampRate()
     *tutti i $name diventano name()
@@ -38,6 +38,7 @@ Sto massaggiando expPPsync. per il momento ho appena iniziato con ppBest.
   
 ##high priority
 0) FAI FUNZIONARE expPPSync (non esiste più signal\$ccf\$settings$lagSec)
+1) Questa cosa: attributes(experiment2)=attributes(experiment) è male perché sovrascrive anche l'attributo "names"  che invece deve essere tenuto free. Sostituisci con structure(experiment2, "asd"=attr(experiment2,"asd"))
 1) controlla l'efficacia di artifact remove e se tutte le altre funzioni reggono con gli NA
 1) testa DyadCategory con NAartifact
 1) tutta DyadCategory è da controllare
@@ -55,6 +56,8 @@ Sto massaggiando expPPsync. per il momento ho appena iniziato con ppBest.
 ### DyadExperiment
 * quando crei experiment fai tutti i check di coerenza interna e magari salva esplicitamente il tipo di disegno, longitudinale, gruppi, misto
   * soprattutto gli stessi s1 e s2 names, altrimenti rischi di fare grossa confusione
+* trova un modo per implementare i bei plot di PMBest  
+* controlla che dyadComb.DyadExperiment funzioni dopo la rimozione di $signals
 
 ### DyadSession
 * controlla che tutti i segnali abbiano lo stesso dyadID e s1 s2 names
