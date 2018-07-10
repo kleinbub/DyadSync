@@ -175,32 +175,47 @@ winInter = function(windowsList, winSec, incSec, sampRate){
 
 #flexMA has improved managing of burn-in and burn-out sequences
 #if in doubt use this.
-signalflexMA = function(signal,winSec,remove=F){
-  if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
-  win = winSec*sampRate(signal)
-  win2 = floor(win/2)
-  res = lapply(list(signal$s1,signal$s2), function(a){
-    len = length(a)
-    f = unlist(lapply(seq_along(a),function(t){
-      i1 = ifelse(t <= win2, 1, (t-win2) )
-      i2 = ifelse(t+win2 >= len, len, (t+win2) )
-      sum(a[i1:i2])/length(i1:i2)
-    }))
-    if(remove){
-      cloneDyadStream(ts(a-f,frequency=sampRate(signal),start=start(a)),a)
-    }else  cloneDyadStream(ts(f, frequency=sampRate(signal),start=start(a)),a)
-  })
-  signal$s1   = res[[1]]
+#' Title
+#'
+#' @param x 
+#' @param win if x has a frequency, it will be the window size in seconds. Otherwise in samples.
+#' @param remove 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' a = c(rep(0,20),rep(5,20),rep(10,20),rep(20,20))
+#' plot(a)
+#' lines(flexMA(a,10,F))
+#' lines(flexMA(a,20,F),col=3)
+#' b=DyadStream(a,"test",col=2,frequency = 10, start=0)
+#' lines(flexMA(b,2,F),col=color(b),lty=3)
+#' sig=list("s1" = b, s2 = b)
+#' class(sig) ="DyadSignal" 
+#' lines(flexMA(sig$s1,2,F),col="skyblue",lwd=2)
+
+
+flexMA = function(x, win, remove=F) {
+  UseMethod("flexMA",x)
+}
+#' @export
+flexMA.DyadSignal = function(signal,win,remove=F){
+  res = lapply(list(signal$s1,signal$s2), flexMA, win=win, remove=remove)
+  signal$s1 = res[[1]]
   signal$s2 = res[[2]]
   return(signal)
 }
-
-#flexMA has improved managing of burn-in and burn-out sequences
-#if in doubt use this.
-flexMA = function(x,winSec,sampRate,remove=F){
-  win = winSec*sampRate
+#' @export
+flexMA.DyadStream = flexMA.ts = function(x,win,remove=F){
+  sampRate=frequency(x)
+  y = flexMA.default(x,win*sampRate,remove=F)
+  classAttr(y) = classAttr(x)
+  y
+}
+#' @export
+flexMA.default = function(x,win,sampRate,remove=F){
   win2 = floor(win/2)
-  # res = lapply(list(signal$s1,signal$s2), function(a){
     len = length(x)
     f = unlist(lapply(seq_along(x),function(t){
       i1 = ifelse(t <= win2, 1, (t-win2) )
@@ -210,7 +225,6 @@ flexMA = function(x,winSec,sampRate,remove=F){
     if(remove){
       x-f
     }else  f
-
 }
 
 

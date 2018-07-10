@@ -38,3 +38,16 @@ name <- function(x) {
 sampRate <-function(x) {
   attr(x,"sampRate")
 }
+
+#' @export
+color <-function(x){
+  attr(x,"col")
+}
+#' @export
+lty <-function(x){
+  attr(x,"lty")
+}
+#' @export
+lwd <-function(x){
+  # attr(x,"lwd")
+}

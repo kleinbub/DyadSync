@@ -8,6 +8,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## v.1.0.0.9001
+#### 2018/07/10
+* flexMA è un metodo S3 generale
+* classAttr permette di estrarre e copiare attributes in modo sicuro
+
 #### 2018/07/09 18:47
 * PMBest completamente compatibile con la v3
 

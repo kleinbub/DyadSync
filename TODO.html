@@ -161,6 +161,8 @@ $(document).ready(function () {
 <div id="high-priority" class="section level2">
 <h2>high priority</h2>
 <ol start="0" style="list-style-type: decimal">
+<li><strong>NB!! sarà fondamentale testare come parametro di PMBest una soglia di sincro minima per il match</strong></li>
+<li>PMBest enfatizza troppo le correlazioni di segmenti piccoli. <strong>DEVI</strong> unire quelli troppo piccoli.</li>
 <li>FAI FUNZIONARE expPPSync (non esiste più signal$ccf$settings$lagSec)</li>
 <li>Questa cosa: attributes(experiment2)=attributes(experiment) è male perché sovrascrive anche l’attributo “names” che invece deve essere tenuto free. Sostituisci con structure(experiment2, “asd”=attr(experiment2,“asd”))</li>
 <li>controlla l’efficacia di artifact remove e se tutte le altre funzioni reggono con gli NA</li>

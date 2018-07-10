@@ -28,12 +28,12 @@
 #' @param sgol_p 
 #' @param sgol_n 
 #' @param weightMalus weightmalus è la percentuale di malus per il lag più estremo. Es, con weightMalus= 20 e r = 1 al massimo lag, la trasformazione diventa r' = 0.8
-#'
+#' @param match_threshold
 #' @return
 #' @export
 #'
 #' @examples
-expPPsync = function(experiment, signals="all", lagSec=7, sgol_p = 2, sgol_n = 25, weightMalus = 30){
+expPPsync = function(experiment, signals="all", lagSec=7, sgol_p = 2, sgol_n = 25,  weightMalus = 30, match_threshold = 0.0){
   if(!is(experiment,"DyadExperiment")) stop("Only objects of class DyadExperiment can be processed by this function")
   cat(paste0("\r\nAre you sure about lag direction?\r\n"))
   #   cat(paste0("\r\nHigh Sync at positive lags implies that the ",s2Name(experiment[[1]]),
@@ -45,21 +45,21 @@ expPPsync = function(experiment, signals="all", lagSec=7, sgol_p = 2, sgol_n = 2
     session[signals] = Map(function(signal){
       cat(" |",name(signal))
       #the first function calculates best lag
-      signal = ppBest(signal,lagSec = lagSec, sgol_p = sgol_p, sgol_n = sgol_n, weightMalus = weightMalus)
+      signal = ppBest(signal,lagSec = lagSec, sgol_p = sgol_p, sgol_n = sgol_n, weightMalus = weightMalus,match_threshold = match_threshold)
       #the second calculates the actual sync values
       signal = ppSync(signal)
       return(signal)
     }, session[signals])
     return(session)
   },experiment,seq_along(experiment))
-  cat("\r\nDone ;)")
+  cat("\r\nDone ;)\r\n")
   classAttr(experiment2)=classAttr(experiment)
   return(experiment2)
 }
 
 
 ## peak picking best lag
-ppBest = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30) {
+ppBest = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30,match_threshold=0.0) {
   if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
 
   d = signal$s2
@@ -153,6 +153,8 @@ ppBest = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30) {
   M[is.na(M)] = 0
   ## ignora le correlazioni negative. Non sono buoni match cmq! (?)
   M[M<0] = 0
+  ## ignora le correlazioni sotto un certo threshold:
+  M[M<match_threshold] = 0
   A = matrix(rep(NA,length(M)), nrow = nrow(M) )
   best=list(row=rep(0,nrow(M)),col=rep(0,nrow(M)),similarity=rep(0,nrow(M)))
   for (i in 1:nrow(M)){
@@ -189,7 +191,6 @@ ppSync = function(signal, type=c("block","continuous")) {
   lagSec = attr(signal$PMBest, "lagSec")
   sampRate = sampRate(signal)
   ransamp = lagSec * sampRate
-  if(is.null(signal$ccf$ppBest)) stop("you need to run ppBest beforehand")
   xbest = signal$PMBest$xBest
   xbest$sync = rep(NA,nrow(xbest))
   
@@ -283,9 +284,11 @@ ppSync = function(signal, type=c("block","continuous")) {
   }
   
   #qui salva l'output
+  syncvec = ts(syncvec, start=start(d), frequency = sampRate)
+  lagvec  = ts(lagvec,  start=start(d), frequency = sampRate)
   signal$PMBest$xBest = xbest
-  signal$PMBest$sync = DyadStream(syncvec, "PMBest_Sync", sampRate, start=start(d), col=rgb(191,50,59,max=255))
-  signal$PMBest$lag = DyadStream(lagvec, "PMBest_Lag", sampRate, start=start(d), col=rgb(253,177,2,max=255))
+  signal$PMBest$sync = DyadStream(syncvec, "PMBest_Sync", col=rgb(191,50,59,max=255))
+  signal$PMBest$lag = DyadStream(lagvec, "PMBest_Lag", col=rgb(253,177,2,max=255))
   return(signal)
   
 }

@@ -8,7 +8,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Where I left
   
-  * testare PMBest
   * **ho tolto signals e categ da DyadSession!!!!** 
     * cerca ~~$signals~~ [signals], $categ e [categ] in tutto il pacchetto e sostituisci (cioè rimuovi)
     * occhio che nei contesti session\$signals = ... ora si perdono i metadata di session. Devi o richiamare DyadSession o creare una funzione nuova.
@@ -37,6 +36,8 @@ Sto massaggiando expPPsync. per il momento ho appena iniziato con ppBest.
   * implementa una preview con scroll
   
 ##high priority
+0) **NB!! sarà fondamentale testare come parametro di PMBest una soglia di sincro minima per il match**
+0) PMBest enfatizza troppo le correlazioni di segmenti piccoli. **DEVI** unire quelli troppo piccoli.
 0) FAI FUNZIONARE expPPSync (non esiste più signal\$ccf\$settings$lagSec)
 1) Questa cosa: attributes(experiment2)=attributes(experiment) è male perché sovrascrive anche l'attributo "names"  che invece deve essere tenuto free. Sostituisci con structure(experiment2, "asd"=attr(experiment2,"asd"))
 1) controlla l'efficacia di artifact remove e se tutte le altre funzioni reggono con gli NA
@@ -54,6 +55,7 @@ Sto massaggiando expPPsync. per il momento ho appena iniziato con ppBest.
 
 ## low priority
 ### DyadExperiment
+* in PMBest dif-dif prova a usare il quadrato di similarity, invece di un threshold molto alto. In questo modo si penalizzano i match mediocri e si potenziano quelli alti anche se più laggati.
 * quando crei experiment fai tutti i check di coerenza interna e magari salva esplicitamente il tipo di disegno, longitudinale, gruppi, misto
   * soprattutto gli stessi s1 e s2 names, altrimenti rischi di fare grossa confusione
 * trova un modo per implementare i bei plot di PMBest  

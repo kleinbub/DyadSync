@@ -132,8 +132,8 @@ readCategories = function(dirPath, startCol, endCol, catName, namefilt = NA,  re
     file = file[,colSums(is.na(file)) != nrow(file)]
     file[is.na(file)] = "NA" #use character NA to keep smooth subsequent analyses
     #convert shitty time formats to seconds
-    file[[startCol]] = timeMaster(file[[startCol]],-removeSec[iFile],out = "sec")
-    file[[endCol]]   = timeMaster(file[[endCol]],-removeSec[iFile],out="sec")
+    file[[startCol]] = timeMaster(file[[startCol]],out = "sec",add = -removeSec[iFile])
+    file[[endCol]]   = timeMaster(file[[endCol]],out="sec",add = -removeSec[iFile])
     if(any(is.na(file[[startCol]]))) stop("NA was found in startCol on line ", which(is.na(file[[startCol]])))
     if(any(is.na(file[[endCol]])))   stop("NA was found in startCol on line ", which(is.na(file[[endCol]])))
     

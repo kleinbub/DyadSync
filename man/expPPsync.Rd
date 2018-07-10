@@ -5,7 +5,7 @@
 \title{expPPsync}
 \usage{
 expPPsync(experiment, signals = "all", lagSec = 7, sgol_p = 2,
-  sgol_n = 25, weightMalus = 30)
+  sgol_n = 25, weightMalus = 30, match_threshold = 0)
 }
 \arguments{
 \item{experiment}{}

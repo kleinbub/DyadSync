@@ -133,18 +133,17 @@ merge.list = function(x,y) {
 #' @export
 #' 
 classAttr = function(x){
-  protected_attributes = c("names", "comment", "dim", "dimnames", "row.names", "tsp")
-  attributes(x)[!names(attributes(x)) %in% protected_attributes]
+  attributes(x)[!names(attributes(x)) %in% LOCK_ATTR]
 }
 #' @rdname classAttr
 #' @export
 `classAttr<-` = function(x,value){
-  if(!is.list(value)||!is.null(value)) stop("attributes must be a list or NULL")
-  protected_attributes = c("names", "comment", "dim", "dimnames", "row.names", "tsp")
-  value <- value[!names(value)%in%protected_attributes]
-  attributes(x) <- c(attributes(x)[protected_attributes],value)
+  if(!is.list(value)||is.null(value)) stop("attributes must be a list or NULL")
+  value <- value[!names(value)%in%LOCK_ATTR]
+  attributes(x) <- c(attributes(x)[LOCK_ATTR],value)
   x
 }
+LOCK_ATTR = c("names", "dim", "dimnames", "row.names")
 
 
 ### DYADEXPERIMENT ###########################################
@@ -277,10 +276,26 @@ is.DyadSignal = function(x) inherits(x,"DyadSignal") && length(x)
 ##   -lwd
 ##   -tsp (inherited by ts)
 ##   -class: list DyadSession
-DyadStream = function(stream, name, sampRate=frequency(stream), start=0,  col=1, lty=1, lwd=1){
-  if(!is(stream,"ts")){
-    stream = ts(stream, start = start, frequency = sampRate)
-    warning(paste0("Stream '",name,"' was coerced to ts starting at 0, with sampRate of: ",sampRate,"Hz, and duration of: ",end(stream)[1]," seconds."), call.=F)
+#' DyadStream
+#' 
+#' @param stream a ts object or numeric vector
+#' @param name 
+#' @param col,lty,lwd graphical parameters for plotting
+#' @param ... arguments passed to ts(), typicaly frequency and start. Only used if stream is NOT a ts object.
+## Note to self: I know that presentation and content should be separated,
+## yet storing some basic graphical information in the class, allows for consistency
+## and simplicity in the upcoming plotting routines.
+#' @export
+DyadStream = function(stream, name, col=1, lty=1, lwd=1, ...){
+  if(!is.ts(stream)){
+    stream = ts(stream, ...)
+    l = list(...)
+    if(!all(c("start","frequency")%in%names(l)))
+      warning( paste0("Stream '",name,"' was coerced to ts starting at ",
+               timeMaster(start(stream)[1],out = "hour"),", with sampRate of: ",
+               sampRate,"Hz, and duration of: ",timeMaster(end(stream)[1],out = "hour"),
+               ".\r\n"),
+        call.=F)
   }
   attributes(stream) = c(attributes(stream),
                          list(

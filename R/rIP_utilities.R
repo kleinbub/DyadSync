@@ -163,9 +163,18 @@ lead0 = function(x, width = 2){
   formatC(x,width = width, format = "d", flag = "0")
 }
 
+#' rangeRescale
+#' this extremely useful function rescales a numeric vector to a new range
+#' @param x 
+#' @param rangeMin,rangeMax  il minimo e il massimo della nuova scala
+#' @param xmin,xmax  il minimo e il massimo della scala originale.
+#' If xmin or xmax are missing the min or max of x are used instead
+#' @export
+#'
+#' @examples
 rangeRescale <- function(x, rangeMin, rangeMax, xmin =min(x, na.rm=T), xmax = max(x, na.rm=T)){
   #rangeMin e rangeMax indicano il minimo e il massimo della nuova scala
-  #xmin e xmax indicano il minimo e il massimo della scala originale
+  #
   #se xmin e xmax mancano, vengono usati il minimo e il massimo del campione
   (rangeMax-rangeMin) * (
     (x - xmin)  / (xmax - xmin )
@@ -235,15 +244,15 @@ unequalCbind = function(...) {
 #' This is verified. And useful. For reasons. :-D
 #'
 #' @param baseTime 
-#' @param add 
 #' @param out 
+#' @param add 
 #' @param baseSep 
 #'
 #' @return
 #' @export
 #'
 #' @examples
-timeMaster = function(baseTime, add=0, out=c("auto", "hour", "min","sec"), baseSep = "[\\.,:,\\,',-,\"]"){
+timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseSep = "[\\.,:,\\,',-,\"]"){
   #baseTime and add can either be  integers of seconds or a time string in the format h:m:s, m:s, or s, with or without leading zeroes
   #output forces the sum to be reported either as string h:m:s or m:s or as a integer of seconds. auto keeps the 'baseTime' format.
   out = match.arg(out)
@@ -253,7 +262,7 @@ timeMaster = function(baseTime, add=0, out=c("auto", "hour", "min","sec"), baseS
   }
   if(length(baseTime)>1)
   {
-    sapply(baseTime,timeMaster,add,out,baseSep,USE.NAMES = F)
+    sapply(baseTime,timeMaster,out,add,baseSep,USE.NAMES = F)
   } else {
     #da qui baseTime è contenente un tempo singolo, non un vettore
     if(is.character(baseTime)){
