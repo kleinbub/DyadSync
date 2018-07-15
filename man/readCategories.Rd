@@ -4,13 +4,10 @@
 \alias{readCategories}
 \title{Title}
 \usage{
-readCategories(dirPath, startCol, endCol, catName, namefilt = NA,
-  removeSec = NULL, idOrder = c("dyadId", "session", "group"),
-  idSep = "_", ...)
+readCategories(path, startCol, endCol, catName, namefilt = NA,
+  removeSec = 0, idOrder = c("id", "session", "group"), idSep = "_", ...)
 }
 \arguments{
-\item{dirPath}{}
-
 \item{startCol}{}
 
 \item{endCol}{}
@@ -26,6 +23,8 @@ readCategories(dirPath, startCol, endCol, catName, namefilt = NA,
 \item{idSep}{}
 
 \item{...}{}
+
+\item{dirPath}{}
 }
 \description{
 Title

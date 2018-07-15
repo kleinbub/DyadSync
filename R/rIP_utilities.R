@@ -94,28 +94,26 @@ selectSignals.DyadExperiment = function(experiment,signals) {
 }
 
 
+
+
+# ccfQuantile = function (EXP, signal="SC",lag="bestCCF",bySession=T,sessionFUN = "mean"){
+#   FUN = match.fun(sessionFUN)
+#   resList = lapply(EXP, function(ses){ses[[signal]]$ccf$ccfmat[[lag]]})
+#   res = do.call("rbind",resList)
+#   if(bySession) res =apply(res,1,FUN)
+#   quantile(res)
+# }
+
+
+
+
 #' Title
 #'
-#' @param EXP 
-#' @param signal 
-#' @param lag 
-#' @param bySession 
-#' @param sessionFUN 
+#' @param a 
+#' @param b 
 #'
 #' @return
 #' @export
-#'
-#' @examples
-ccfQuantile = function (EXP, signal="SC",lag="bestCCF",bySession=T,sessionFUN = "mean"){
-  FUN = match.fun(sessionFUN)
-  resList = lapply(EXP, function(ses){ses[[signal]]$ccf$ccfmat[[lag]]})
-  res = do.call("rbind",resList)
-  if(bySession) res =apply(res,1,FUN)
-  quantile(res)
-}
-
-
-
 
 cohend = function(a,b){
   pool = sqrt( (  (length(a)-1)*sd(a)^2 +  (length(b)-1)*sd(b)^2 )/(length(a)+ length(b)-2 ) )
@@ -128,8 +126,7 @@ cohend = function(a,b){
 #'
 #' @return
 #' @export
-#'
-#' @examples
+
 pvalFormat= function(x){
   if(x>= 0.0001) {
     if(x<0.001){
@@ -157,8 +154,10 @@ pvalFormat= function(x){
 ############################################################################################################
 ## GLOBAL TOOLS
 
+#' @export
 cat0 = function(...) {cat(..., sep="")}
 
+#' @export
 lead0 = function(x, width = 2){
   formatC(x,width = width, format = "d", flag = "0")
 }
@@ -312,3 +311,11 @@ timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseS
   }
 }
 
+#' @export
+merge.list = function(x,y) {
+  # l = list(...)
+  xNames = names(x)
+  yNames = names(y)
+  over = names(x)[which(names(x) %in% names(y))]
+  for(n in over){if(x[[n]]!=y[[n]]) stop("Can't merge list with different values for the same tag:\r\n",n,": ",x[[n]]," != ",y[[n]])}
+}

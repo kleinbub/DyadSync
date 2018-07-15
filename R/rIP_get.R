@@ -15,28 +15,36 @@ s1Name <- function(x) {attr(x,"s1Name")}
 s2Name <- function(x) {attr(x,"s2Name")}
 
 #' @export
-session = sessionId = function(dyadSession){
+sessionId = function(dyadSession){
   attr(dyadSession,"sessionId")
 }
+#' @rdname sessionId
 #' @export
-dyad = dyadId = function(dyadSession){
-  attr(dyadSession,"dyadId")
-} 
-#' @export
-group.DyadSession = groupId = function(dyadSession){
-  attr(dyadSession,"dyadId")
-} 
+session = sessionId
 
+#' @aliases dyad dyadId
+#' @export
+dyadId = function(dyadSession){
+  attr(dyadSession,"dyadId")
+} 
+#' @export
+dyad = dyadId
+#' @export
+groupId = function(dyadSession){
+  attr(dyadSession,"dyadId")
+} 
+#' @export
+group.DyadSession = groupId
 
 #' @export
 name <- function(x) {
   attr(x,"name")
 }
 
-
 #' @export
 sampRate <-function(x) {
-  attr(x,"sampRate")
+  if(is.ts(x)) frequency(x)
+  else attr(x,"sampRate")
 }
 
 #' @export

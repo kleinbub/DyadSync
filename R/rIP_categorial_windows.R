@@ -34,23 +34,69 @@
 #----------------------------------
 
 
-#marci index ottimizzato. (taglia i valori infiniti a +- 10)
-#per far na roba fatta ben si dovrebbe vedere la distribuzione casuale di marciIndex e vedere come e dove tagliare
-marciIndex = function(a){
-  if(is.list(a)){ ##se 'a' è una lista, applica l'indice a ogni elemento della lista
-    matrix(unlist(lapply(a, function(iFile){apply(iFile,2,marciIndex)})),nrow=length(a),byrow=T)
-  } else {
-    x=log(sum(a[a >0]) / abs(sum(a[a<0]))) #formula dell'indice
-    if(!is.na(x)){
-      if(x>=10)x=10 else if(x <= -10)x=-10
-    }
-    
-    x
-  }
+#' Title
+#'
+#' @param x 
+#' @param FUN 
+#' @param signal 
+#' @param sync 
+#' @param streamKey 
+#' @param category 
+#' @param column 
+#' @param return.type 
+#' @param ... arguments passed to FUN
+#'
+#' @return
+#' @export
+#'
+#' @examples
+catApply = function(x, FUN, signal= "SC",sync = c("none",SYNC_CLASSES), streamKey=c("s1","s2","time","sync","lag","zero"),
+                    category="PACS", column="CATEGORIA", return.type=c("summary","full"),... ){
+  UseMethod("catApply", x)
 }
 
-#catsummary ora dovrebbe essere più dignitosa, calcolando
-#media e dispersione di tutte le finestre di ciascuna categoria INSIEME
+#' @export
+catApply.DyadExperiment = function(x, FUN, signal, sync, streamKey, category, column, return.type,...  ){
+  FUNname = as.character(substitute(FUN))
+  res = Map(function(session, nSession){
+    prog(nSession, length(x))
+    catApply(session, FUNname, signal, sync, streamKey, category, column, return.type,... )
+  },x, seq_along(x))
+  classAttr(res) = classAttr(x)
+  res
+}
+#' @export
+catApply.DyadSession = function(x, FUN, signal, sync = c("none",SYNC_CLASSES), streamKey=c("s1","s2","time","sync","lag","zero"),
+                                category, column, return.type=c("summary","full"),...  ){
+  sync = match.arg(sync)
+  streamKey = match.arg(streamKey)
+  return.type = match.arg(return.type)
+
+  if(is.character(FUN))
+    FUNname = FUN
+  else FUNname = as.character(substitute(FUN))
+  FUN = match.fun(FUN)
+  
+  if(sync!="none"){
+    stream = x[[signal]][[sync]][[streamKey]]
+  } else {
+    if(!streamKey %in% c("s1","s2","time")) stop ("sync none requires streamkey == s1 or s2 or time")
+    stream = x[[signal]][[streamKey]]
+  }
+  
+  cate = x[[category]]
+  newName = paste(signal,sync,streamKey,FUNname,sep=".")
+  cate[,newName] = rep(NA,nrow(cate))
+  for(i in 1:nrow(cate)){
+    win = window(stream, start = cate$start[i], end = cate$end[i])
+    cate[i,newName] = FUN(win,na.rm=T)#FUN(win,...)
+  }
+  x[[category]]=cate
+  x
+}
+
+# catsummary ora dovrebbe essere più dignitosa, calcolando
+# media e dispersione di tutte le finestre di ciascuna categoria INSIEME
 # seprando solo per sessione (e non più per occorrenza)
 
 catSummary <- function(x, signal="RRmean", streamKey="bestCCF", category="PACS", column="CATEGORIA",return.type=c("summary","full")) {

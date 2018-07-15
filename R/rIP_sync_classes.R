@@ -32,16 +32,16 @@ hasSync = function(x){
 
 #COSTRUTTORI DI CLASSE per oggetti contenenti analisi
 
-CCFBest = function(sync, lag, ccf_matrix, lagSec, winSec, incSec, accelSec, weight)
+CCFBest = function(sync, lag, ccf_matrix, lagSec, winSec, incSec, accelSec, weight_type)
 {
-  x = list("sync"=sync, "lag"=lag, "table"=ccf_matrix)
+  x = list("sync"=sync, "lag"=lag, "zero"=ccf_matrix["lag0"], "table"=ccf_matrix)
   class(x) = "CCFBest"
   attributes(x) = c(attributes(x), list(
       "lagSec"   = lagSec,
       "winSec"   = winSec,
       "incSec"   = incSec,
       "accelSec" = accelSec,
-      "weight" = weight
+      "weight" = weight_type
   ))
   return(x)
 }                    

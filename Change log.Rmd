@@ -8,9 +8,28 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## v.1.0.0.9001
+#### 2018/07/15
+
+#### 2018/07/14
+* migliorie a PMBest: aggiunti un threshold minimo per i match, e una durata minima per le finestre di sincronizzazione.
+* PMBest testato accuratamente (restano solo alcuni dubbi sulla procedura di sync, cfr. todo)
+* readDyadExperiment scorporato in IOgeneric() che si occupa di tutti i lavori di manipolazione file, e readDyadSignal() e readDyadCategory() che fanno cose specifiche per segnali numerici o tabelle categoriali.
+* introdotta catApply() funzione generica per eseguire una funzione su ciascuna finestra categoriale
+* CCFBest reso compatibile con "class structure v3" e testato
+* migliorie a window.DyadStream() che ora supporta anche duration
+* migliorie a 'classAttr<-' che ora non sovrascrive 'tsp' se presente anche nel oggetto di destinazione
+
+#### 2018/07/11
+* NAartifacts renamed to setArtefacts
+* setArtefacts working with v3
+* added $time component to DyadSignals
+* fixed aliases in rIP_get.R
+
 #### 2018/07/10
 * flexMA è un metodo S3 generale
 * classAttr permette di estrarre e copiare attributes in modo sicuro
+* PMBest testato. Aggiunto un threshold per accettare i match p-p v-v. Un buon valore sembra 0.7
+
 
 #### 2018/07/09 18:47
 * PMBest completamente compatibile con la v3

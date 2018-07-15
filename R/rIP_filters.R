@@ -10,7 +10,7 @@
 #
 ############################################################################################################ 
 ## changelog
-# v1.1 - added NAartifacts function to remove bad parts of signal
+# v1.1 - added setArtefacts function to remove bad parts of signal
 # v1.0 - fully 'stream 1.2' compliant. All ts ARE ok, with explicit start calls.
 #         
 #
@@ -21,8 +21,8 @@
 #
 ############################################################################################################ 
 
-#' NAartifacts
-#' NAartifacts legge una tabella o lista con le componenti chiamate esattamente: 'session', 'start' ed 'end'
+#' setArtefacts
+#' setArtefacts legge una tabella o lista con le componenti chiamate esattamente: 'session', 'start' ed 'end'
 #' e mette ad NA tali sequenze nel segnale specificato.
 #' end può anche essere una stringa che contiene le parole 'fine' o 'end'
 #' 
@@ -34,14 +34,14 @@
 #' @export
 #'
 #' @examples
-NAartifacts <- function(x, startEnd, signal="SC"){
+setArtefacts <- function(x, startEnd, signal="SC"){
   names(startEnd) = tolower(names(startEnd))
   if("factor" %in% sapply(startEnd,class)) stop ("factors not supported in startEnd")
-  UseMethod("NAartifacts",x)
+  UseMethod("setArtefacts",x)
 }
 
 #' @export
-NAartifacts.DyadExperiment <- function(x, startEnd, signal="SC") {
+setArtefacts.DyadExperiment <- function(x, startEnd, signal="SC") {
   if(is.data.frame(startEnd)){
     if(ncol(startEnd)!=3 || !all.equal(names(startEnd), c('session', 'start', 'end') ))
       stop("startEnd must have 3 columns: 'session', 'start', 'end' of equal size")
@@ -55,15 +55,13 @@ NAartifacts.DyadExperiment <- function(x, startEnd, signal="SC") {
   for(i in unique(sel$session) ){
     cat("\r\ncleaning session:",i,"\r\n")
     miniSel = sel[sel$session == i, 2:3]
-    x[[i]][[signal]] = NAartifacts(x[[i]][[signal]],miniSel,signal)
+    x[[i]][[signal]] = setArtefacts(x[[i]][[signal]],miniSel,signal)
   }
   x
 }
 
 #' @export
-NAartifacts.DyadSignal <- function(x, startEnd, signal="SC") {
-  if(signal != name(signal)) stop("the provided signal did not include ",signal)
-  signal = x
+setArtefacts.DyadSignal <- function(x, startEnd, signal="SC") {
   #1 controlla validità di startEnd
   if(!is.data.frame(startEnd)){
     if(length(startEnd)!=2 || length(startEnd[[1]])!=length(startEnd[[2]]))
@@ -71,34 +69,31 @@ NAartifacts.DyadSignal <- function(x, startEnd, signal="SC") {
     sel = as.data.frame(startEnd,stringsAsFactors = F)
   } else sel = startEnd
   if(!all.equal(names(sel),c('start', 'end')) ) stop("startEnd names must be 'start','end'")
-  
   ref = 0
-  duration = duration(signal)
+  duration = duration(x)
   print(sel)
   
   for(i in 1:nrow(sel)){
-    a = timeMaster(sel[i,1],out="sec") -  start(signal)[1]
+    a = timeMaster(sel[i,1],out="sec") -  start(x)[1]
     if( grepl("end|fine",sel[i,2],ignore.case = T)  ) b = duration
-    else b = timeMaster(sel[i,2],out="sec") -  start(signal)[1]
+    else b = timeMaster(sel[i,2],out="sec") -  start(x)[1]
     if(a>duration || b > duration) stop ("one start or end were bigger than the signal length")
     if(b<a) stop ("'start' cannot be greater than 'end' ")
     if(a < ref || b < ref) stop("all start and end definition must be progressively increasing and greater than signal start value")
     ref = b
-    sel[i,1] = a * sampRate(signal)
-    if(b == duration) sel[i,2] =  length(signal$valid) #elminina tutto fino alla fine
-    else  sel[i,2] = b * sampRate(signal)
+    sel[i,1] = a * sampRate(x)
+    if(b == duration) sel[i,2] =  length(x$valid) #elminina tutto fino alla fine
+    else  sel[i,2] = b * sampRate(x)
   }
-  #2 controlla validità di signal
-  if(!is.DyadSignal(signal)) stop("signal must be of class DyadSignal")
-  
+
   #3 sostituisci con NA i segmenti
   for(i in 1:nrow(sel)){
-    signal$valid[sel[i,1]:sel[i,2]] = FALSE
+    x$valid[sel[i,1]:sel[i,2]] = FALSE
   }
   
   #4 aggiorna i metadati
-  attributes(signal)["filter"] = paste0(attr(signal,"filter"), "--> NAartifact")
-  signal
+  attributes(x)["filter"] = paste0(attr(x,"filter"), "--> NAartifact")
+  x
 }
 
 
@@ -132,20 +127,22 @@ signalDecimate = function (signal, newSampRate) {
   signal$s1   = cloneDyadStream(resPat, signal$s1)
   signal$s2 = cloneDyadStream(resCli, signal$s2)
   signal$valid = resVal
+  signal$time = time(signal$s1)
   attr(signal,"sampRate") = newSampRate
   return(signal)
 }
 
-streamDecimate = function (x, newSampRate) {
-  if(!is(x,"DyadStream")) stop("Only objects of class DyadStream can be processed by this function")
-  if (frequency(x) <= newSampRate) 
-    stop("decimate only downsamples! newSampRate:",newSampRate," old:",frequency(x),call. = F)
-  if (frequency(x) %% newSampRate != 0) 
-    stop("newSampRate must be an integer divisor of old sampRate ! newSampRate:",newSampRate," old:",frequency(x),call. = F)
-  q = floor(frequency(x) / newSampRate)  
-  res = ts(x[seq(1, length(x), by = q)], start=start(x), frequency=newSampRate)
-  cloneDyadStream(res, x)
-}
+### onlyy used one in connect area of graphic library. maybe delete, maybe integrate
+# streamDecimate = function (x, newSampRate) {
+#   if(!is(x,"DyadStream")) stop("Only objects of class DyadStream can be processed by this function")
+#   if (frequency(x) <= newSampRate) 
+#     stop("decimate only downsamples! newSampRate:",newSampRate," old:",frequency(x),call. = F)
+#   if (frequency(x) %% newSampRate != 0) 
+#     stop("newSampRate must be an integer divisor of old sampRate ! newSampRate:",newSampRate," old:",frequency(x),call. = F)
+#   q = floor(frequency(x) / newSampRate)  
+#   res = ts(x[seq(1, length(x), by = q)], start=start(x), frequency=newSampRate)
+#   cloneDyadStream(res, x)
+# }
 
 #Interpolate windowed data to original samplerate. 
 #useful to overlay computed indexes on original timeseries
@@ -173,7 +170,7 @@ winInter = function(windowsList, winSec, incSec, sampRate){
 ############################################################################################################
 #### Moving average filters
 
-#flexMA has improved managing of burn-in and burn-out sequences
+#movAv has improved managing of burn-in and burn-out sequences
 #if in doubt use this.
 #' Title
 #'
@@ -182,39 +179,41 @@ winInter = function(windowsList, winSec, incSec, sampRate){
 #' @param remove 
 #'
 #' @return
+#' @details please note that MA filters are not adequate to smooth sync calculation that shifts
+#' often between extreme negative and positive values.
 #' @export
 #'
 #' @examples
 #' a = c(rep(0,20),rep(5,20),rep(10,20),rep(20,20))
 #' plot(a)
-#' lines(flexMA(a,10,F))
-#' lines(flexMA(a,20,F),col=3)
+#' lines(movAv(a,10,F))
+#' lines(movAv(a,20,F),col=3)
 #' b=DyadStream(a,"test",col=2,frequency = 10, start=0)
-#' lines(flexMA(b,2,F),col=color(b),lty=3)
+#' lines(movAv(b,2,F),col=color(b),lty=3)
 #' sig=list("s1" = b, s2 = b)
 #' class(sig) ="DyadSignal" 
-#' lines(flexMA(sig$s1,2,F),col="skyblue",lwd=2)
+#' lines(movAv(sig$s1,2,F),col="skyblue",lwd=2)
 
 
-flexMA = function(x, win, remove=F) {
-  UseMethod("flexMA",x)
+movAv = function(x, win, remove=F) {
+  UseMethod("movAv",x)
 }
 #' @export
-flexMA.DyadSignal = function(signal,win,remove=F){
-  res = lapply(list(signal$s1,signal$s2), flexMA, win=win, remove=remove)
+movAv.DyadSignal = function(signal,win,remove=F){
+  res = lapply(list(signal$s1,signal$s2), movAv, win=win, remove=remove)
   signal$s1 = res[[1]]
   signal$s2 = res[[2]]
   return(signal)
 }
 #' @export
-flexMA.DyadStream = flexMA.ts = function(x,win,remove=F){
+movAv.DyadStream = movAv.ts = function(x,win,remove=F){
   sampRate=frequency(x)
-  y = flexMA.default(x,win*sampRate,remove=F)
+  y = movAv.default(x,win*sampRate,remove=F)
   classAttr(y) = classAttr(x)
   y
 }
 #' @export
-flexMA.default = function(x,win,sampRate,remove=F){
+movAv.default = function(x,win,sampRate,remove=F){
   win2 = floor(win/2)
     len = length(x)
     f = unlist(lapply(seq_along(x),function(t){

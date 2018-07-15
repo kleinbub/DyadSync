@@ -139,6 +139,8 @@ classAttr = function(x){
 #' @export
 `classAttr<-` = function(x,value){
   if(!is.list(value)||is.null(value)) stop("attributes must be a list or NULL")
+  if(!is.null(attr(x,"tsp")))
+    LOCK_ATTR = c(LOCK_ATTR,"tsp") #don't overwrite new tsp, but allow inheriting if missing
   value <- value[!names(value)%in%LOCK_ATTR]
   attributes(x) <- c(attributes(x)[LOCK_ATTR],value)
   x
@@ -208,15 +210,15 @@ c.DyadSession = function(...){
   #check on same signal names (bad)
   if(length(unique(sapply(l,names)))<length(sapply(l,names))) stop("Can't combine sessions containing the same signal. Use selectSignals() to extract only different signals before merging", call.=F)
   #check on different s1 s2 names (bad)
-  if(any(sapply(l,s1Name) %in% sapply(l,s2Name))) stop("Can't combine sessions mixing s1 and s2 names", call.=F)
+  if(any(na.omit(sapply(l,s1Name)) %in% na.omit(sapply(l,s2Name)))) stop("Can't combine sessions mixing s1 and s2 names", call.=F)
   
   structure(NextMethod("c"),
             "name" = name(x),
             "sessionId" = sessionId(x),
             "dyadId" = dyadId(x),
             "groupId" = groupId(x),
-            "s1Name" = s1Name(x),
-            "s2Name" = s2Name(x),
+            "s1Name" = na.omit(sapply(l,s1Name))[1], #even if one of the signals ha NA sNames
+            "s2Name" = na.omit(sapply(l,s2Name))[1], #the first full value gets selected
             "fileName" = fileNames,
             "class" ="DyadSession")
 }
@@ -235,7 +237,7 @@ DyadCategory = function(name, data){
 is.DyadCategory = function(x) inherits(x,"DyadCategory") && length(x)
 
 ### DYADSIGNAL ###########################################
-## list of DyadStreams, CcfMatrix, and sampRate with attributes:
+## list of DyadStreams, time, valid with attributes:
 ##   -sampRate
 ##   -filter 
 ##   -ccf 
@@ -249,6 +251,7 @@ DyadSignal = function(name="some signal",s1=NULL,s2=NULL,sampRate=NULL, s1Name, 
   x = list(
     s1 = DyadStream(stream = s1, name=s1Name, sampRate = sampRate, col = "deeppink3",  lty=1, lwd=2),
     s2 = DyadStream(stream = s2, name=s2Name, sampRate = sampRate, col = "dodgerblue3", lty=1, lwd=2),
+    time = time(s1),
     valid = DyadStream(stream = ts(rep(TRUE, length(s1)),start=start(s1),end= end(s1), frequency = frequency(s1) ), name="valid", sampRate = sampRate, col = "dodgerblue3", lty=1, lwd=2)
   )
   attributes(x) = c(attributes(x),list(
@@ -311,6 +314,8 @@ DyadStream = function(stream, name, col=1, lty=1, lwd=1, ...){
 
 is.DyadStream = function(x){ inherits(x,"DyadStream") && length(x)
 }
+
+
 print.DyadStream = function (x, ...) {
   #x <- as.ts(x)
   Tsp <- tsp(x)
@@ -345,16 +350,32 @@ print.DyadStream = function (x, ...) {
   }
   invisible(x)
 }
-cloneDyadStream = function(x, stream){
-  if(!"ts"%in%class(x) & !"DyadStream" %in% class(stream)) stop ("a ts object must be cloned with a DyadStream object")
-  attributes(x) = c(attributes(x)["tsp"],attributes(stream)[!names(attributes(stream))%in% "tsp"])
-  x
+# cloneDyadStream = function(x, stream){
+#   if(!"ts"%in%class(x) & !"DyadStream" %in% class(stream)) stop ("a ts object must be cloned with a DyadStream object")
+#   attributes(x) = c(attributes(x)["tsp"],attributes(stream)[!names(attributes(stream))%in% "tsp"])
+#   x
+# }
+
+#' Time Windows
+#'
+#' @param x 
+#' @param duration an alternative specification to end
+#' @param ... 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+window.DyadStream = function(x, duration, ...){
+  if(missing(duration)) duration = NULL
+  l = list(...)
+  l$duration = duration
+  xstart = if(is.null(l$start)) start(x) else l$start
+  xend =  if(is.null(l$end)) end(x) else l$end
+  if(!is.null(l[["duration"]]) && is.null(l[["end"]])){
+    xend =  c(xstart[1] + duration-1, frequency(x)) 
+  }
+  res = NextMethod("window",x,start= xstart, end = xend)
+  classAttr(res) = classAttr(x)
+  res
 }
-window.DyadStream = function(x, ...){
-  cloneDyadStream(stats::window(x,...),x)
-}
-
-
-
-
- 
