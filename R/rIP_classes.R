@@ -103,16 +103,7 @@
 ## - creare classi diverse e definire i metodi per le diverse classi
 ## -ccfMatrix, vectorBestLag, peakpicking best lag,
 
-merge.list = function(x,y) {
-  # l = list(...)
-  xNames = names(x)
-  yNames = names(y)
-  over = names(x)[which(names(x) %in% names(y))]
-  for(n in over){if(x[[n]]!=y[[n]]) stop("Can't merge list with different values for the same tag:\r\n",n,": ",x[[n]]," != ",y[[n]])}
-
-}
-
-
+## ----------------------------------------------------------
 
 #' Safe Object Attribute Lists
 #' @description a wrapper for \code{\link[base]{attributes}} which accesses and sets an object's attributes

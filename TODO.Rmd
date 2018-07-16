@@ -8,18 +8,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Development 
 ### non puoi rifinire per sempre.
-  1) sii sicuro di pmBest()
-    * ~~**CONTROLLA** la direzione lag di pmBest~~ [SI!]
-    * ~~**CONTROLLA** l'allineamento di pmBest rispetto ai dati raw, il discorso della
-    mezza finestra, etc.~~ [PMBest comincia dal primo picco-valle matchato, non ha finestre fisse]
-    * ~~risolvi il problema delle finestre troppo piccole (PMBest enfatizza troppo le correlazioni di segmenti piccoli. **DEVI** unire quelli troppo piccoli.)~~
-      * FATTO! il sitema attuale però è strano e unreliable. Tra i difetti:
-        * se in una lunga sequenza c'è solo discesa, risulta alta sync
-        * non si capisce bene dove inizia e dove finisce ciascuna finestra
-        *ci sono valori sovrapposti e valori NA
-        * se subito dopo la fine della sequenza "short" inizia un altro picco, l'ingrandimento della finestra a "long" porta a confrontare fischi per fiaschi ed ovviamente la sync crolla
-      * un sistema migliore potrebbe essere di prendere sempre una sequenza v-p-v e stretchare le due
-  2) sistema dyadCategory
+
+  0) sistema dyadCategory
     * INNANZITUTTO catSummary. Lascia stare i plot cazzo
     * sessionApply = applica media/mediana/sd/marci quel caxx che ti pare su qualsiasi dyadStream, diviso per ciascuna categoria, in ciascuna seduta.
       * split by: dyadId, session, group, role
@@ -31,46 +21,44 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 
-## Where I left
- *
+## Clean Up
 
-  * ho tolto signals e categ da DyadSession!!!!
-    * cerca ~~$signals~~ [signals], $categ e [categ] in tutto il pacchetto e sostituisci (cioè rimuovi)
-    * occhio che nei contesti session\$signals = ... ora si perdono i metadata di session. Devi o richiamare DyadSession o creare una funzione nuova.
-  * ho eliminato CCFmatrix, quindi devi controllare a cascata tutto quello che usava signal\$ccf\$ccfmat, signal\$ccf\$sampRate, signal\$ccf\$settings
-  * ora ho creato una classe CCFBest e PMBest per tenere i risultati delle analisi. Ciascuno contiene un vettore sync, uno lag, una tabella table con vari calcoli, e attributi con i settings. **NB tutti i dati qua sono ancora in formato grezzo, per trasformarli in stream serve getStream (ex getCCF), che interpoli alla giusta frequenza, oppure ha più senso tenere sync e lag già in formato stream?**
-    * trova e sostituisci $ccf $ccfmat 
-  *  CCFBest è ancora NON aggiornati rispetto a niente, quindi vanno updated entrambi
-  * ho tolto tutti i metadata dalle liste e le ho messe negli attributes, quindi un sacco di roba sarà sputtanata
-    *tutti i $sampRate diventano sampRate()
-    *tutti i $name diventano name()
+  * cerca ~~$signals~~ [signals], $categ e [categ] in tutto il pacchetto e sostituisci (cioè rimuovi)
+  * controllare a cascata tutto quello che usava signal\$ccf\$ccfmat, signal\$ccf\$sampRate, signal\$ccf\$settings
+  * trova e sostituisci $ccf $ccfmat 
+  *tutti i $sampRate diventano sampRate()
+  *tutti i $name diventano name()
   *getCCF è obsoleta tranne per estrarre dati dalla matrice (es: lag0). e va aggiornata.
-
-
-
-##high priority
-0) **NB!! sarà fondamentale testare come parametro di PMBest una soglia di sincro minima per il match**
-0) implementare bene NAartifact, in modo da renderlo universale
-0) trova un modo agile di visualizzazione
-  * fixa il motore di plot
-  * implementa una preview con scroll
-0) FAI FUNZIONARE expPPSync (non esiste più signal\$ccf\$settings$lagSec)
-1) Questa cosa: attributes(experiment2)=attributes(experiment) è male perché sovrascrive anche l'attributo "names"  che invece deve essere tenuto free. Sostituisci con structure(experiment2, "asd"=attr(experiment2,"asd"))
-1) controlla l'efficacia di artifact remove e se tutte le altre funzioni reggono con gli NA
-1) testa DyadCategory con NAartifact
-1) tutta DyadCategory è da controllare
-  1) il read è aggiornato con le ultime furbate di experiment?
-  1) perché uno è read Experiment e l'altro read Category? Dovrebbe essere signal e category o un lettore unico
-  1) DyadSummary ha grande potenzialità ma al momento non so in che stato di reliability è
+  * tutta DyadCategory è da controllare
+  * DyadSummary ha grande potenzialità ma al momento non so in che stato di reliability è
     * implementa le parti mancanti (disegno longit, etc)
-1) signalDecimate non aggiorna il sampRate attribute del signal
-1) Creare un mapply generico function(…, signals="", FUN, … ) che funzioni sia su experiments, sessions, signals o streams
-3) Crea delle funzioni di analisi come dyadcategory ma con zSync, medie e ds longitudinali e confronto fra gruppi
-1) **TESTA I METODI E COMPARALI CAZZO!)**
+
+## next steps
+### high priority
+  0) metodi di analisi solo sync:
+    * zSync
+    * sync by group / id /sessions
+    * longitudinal sync
+  0) **NB!! sarà fondamentale testare come parametro di PMBest una soglia di sincro minima per il match**
+  0) implementare bene NAartifact, in modo da renderlo universale
+    * tutte le altre funzioni reggono con gli NA?
+  0) Migliora PMBest() sync procedure ! il sitema attuale è strano e unreliable. Tra i difetti:
+          * se in una lunga sequenza c'è solo discesa, risulta alta sync
+          * non si capisce bene dove inizia e dove finisce ciascuna finestra
+          *ci sono valori sovrapposti e valori NA
+          * se subito dopo la fine della sequenza "short" inizia un altro picco, l'ingrandimento della finestra a "long" porta a confrontare fischi per fiaschi ed ovviamente la sync crolla
+        * un sistema migliore potrebbe essere di prendere sempre una sequenza v-p-v e stretchare le due
+  0) trova un modo agile di visualizzazione
+    * fixa il motore di plot
+    * implementa una preview con scroll
+  0) FAI FUNZIONARE expPPSync (non esiste più signal\$ccf\$settings$lagSec)
+  1) Questa cosa: attributes(experiment2)=attributes(experiment) è male perché sovrascrive anche l'attributo "names"  che invece deve essere tenuto free. Sostituisci con structure(experiment2, "asd"=attr(experiment2,"asd"))
+  1) Creare un mapply generico function(…, signals="", FUN, … ) che funzioni sia su experiments, sessions, signals o streams
+  1) **TESTA I METODI E COMPARALI CAZZO!)**
 
 
-## low priority
-### DyadExperiment
+### low priority
+#### DyadExperiment
 * in PMBest dif-dif prova a usare il quadrato di similarity, invece di un threshold molto alto. In questo modo si penalizzano i match mediocri e si potenziano quelli alti anche se più laggati.
 * quando crei experiment fai tutti i check di coerenza interna e magari salva esplicitamente il tipo di disegno, longitudinale, gruppi, misto
   * soprattutto gli stessi s1 e s2 names, altrimenti rischi di fare grossa confusione
@@ -78,12 +66,12 @@ knitr::opts_chunk$set(echo = TRUE)
 * controlla che dyadComb.DyadExperiment funzioni dopo la rimozione di $signals
 * rotating or 0-100 progress bar in nested funcstions
 
-### DyadSession
+#### DyadSession
 * controlla che tutti i segnali abbiano lo stesso dyadID e s1 s2 names
 
-### Class structure
+#### Class structure
 
-* non ha particolarmente senso tenere session$signals e session$category allo stesso livello, visto che non ci sono analisi solo categoriali (per definizione di IP), avrebbe più senso considerare categ come un tipo speciale di signal, e risparmiare un livello. _Es: invece di session$signals$SC --> session$SC_
+
 
 <!-- This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>. -->
 

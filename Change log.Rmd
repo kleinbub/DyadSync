@@ -9,6 +9,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## v.1.0.0.9001
 #### 2018/07/15
+* bugfixes a catApply()
+* NEW: catExtract() funzione che estrae da un DyadExperiment tutte le categorie di un tipo, e aggrega secondo i parametri specificati
+* trasnsizione dal concetto di catSummary al concetto di "extract"
+  * dovrebbe trasformarsi in un generico "epoching" più in là
+* Nuova funzione streamExtract()!!!
 
 #### 2018/07/14
 * migliorie a PMBest: aggiunti un threshold minimo per i match, e una durata minima per le finestre di sincronizzazione.

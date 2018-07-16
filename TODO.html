@@ -129,20 +129,7 @@ $(document).ready(function () {
 <h2>Development</h2>
 <div id="non-puoi-rifinire-per-sempre." class="section level3">
 <h3>non puoi rifinire per sempre.</h3>
-<ol style="list-style-type: decimal">
-<li>sii sicuro di pmBest()
-<ul>
-<li><del><strong>CONTROLLA</strong> la direzione lag di pmBest</del> [SI!]</li>
-<li><del><strong>CONTROLLA</strong> l’allineamento di pmBest rispetto ai dati raw, il discorso della mezza finestra, etc.</del> [PMBest comincia dal primo picco-valle matchato, non ha finestre fisse]</li>
-<li><del>risolvi il problema delle finestre troppo piccole (PMBest enfatizza troppo le correlazioni di segmenti piccoli. <strong>DEVI</strong> unire quelli troppo piccoli.)</del></li>
-<li>FATTO! il sitema attuale però è strano e unreliable. Tra i difetti:
-<ul>
-<li>se in una lunga sequenza c’è solo discesa, risulta alta sync</li>
-<li>non si capisce bene dove inizia e dove finisce ciascuna finestra *ci sono valori sovrapposti e valori NA</li>
-<li>se subito dopo la fine della sequenza “short” inizia un altro picco, l’ingrandimento della finestra a “long” porta a confrontare fischi per fiaschi ed ovviamente la sync crolla</li>
-</ul></li>
-<li>un sistema migliore potrebbe essere di prendere sempre una sequenza v-p-v e stretchare le due</li>
-</ul></li>
+<ol start="0" style="list-style-type: decimal">
 <li>sistema dyadCategory
 <ul>
 <li>INNANZITUTTO catSummary. Lascia stare i plot cazzo</li>
@@ -156,44 +143,43 @@ $(document).ready(function () {
 </ol>
 </div>
 </div>
-<div id="where-i-left" class="section level2">
-<h2>Where I left</h2>
-<ul>
-<li></li>
-<li>ho tolto signals e categ da DyadSession!!!!
+<div id="clean-up" class="section level2">
+<h2>Clean Up</h2>
 <ul>
 <li>cerca <del>$signals</del> [signals], $categ e [categ] in tutto il pacchetto e sostituisci (cioè rimuovi)</li>
-<li>occhio che nei contesti session$signals = … ora si perdono i metadata di session. Devi o richiamare DyadSession o creare una funzione nuova.</li>
-</ul></li>
-<li>ho eliminato CCFmatrix, quindi devi controllare a cascata tutto quello che usava signal$ccf$ccfmat, signal$ccf$sampRate, signal$ccf$settings</li>
-<li>ora ho creato una classe CCFBest e PMBest per tenere i risultati delle analisi. Ciascuno contiene un vettore sync, uno lag, una tabella table con vari calcoli, e attributi con i settings. <strong>NB tutti i dati qua sono ancora in formato grezzo, per trasformarli in stream serve getStream (ex getCCF), che interpoli alla giusta frequenza, oppure ha più senso tenere sync e lag già in formato stream?</strong>
-<ul>
-<li>trova e sostituisci $ccf $ccfmat</li>
-</ul></li>
-<li>CCFBest è ancora NON aggiornati rispetto a niente, quindi vanno updated entrambi</li>
-<li>ho tolto tutti i metadata dalle liste e le ho messe negli attributes, quindi un sacco di roba sarà sputtanata <em>tutti i $sampRate diventano sampRate() </em>tutti i $name diventano name() *getCCF è obsoleta tranne per estrarre dati dalla matrice (es: lag0). e va aggiornata.</li>
+<li>controllare a cascata tutto quello che usava signal$ccf$ccfmat, signal$ccf$sampRate, signal$ccf$settings</li>
+<li>trova e sostituisci $ccf $ccfmat <em>tutti i $sampRate diventano sampRate() </em>tutti i $name diventano name() *getCCF è obsoleta tranne per estrarre dati dalla matrice (es: lag0). e va aggiornata.</li>
 </ul>
 </div>
-<div id="high-priority" class="section level2">
-<h2>high priority</h2>
+<div id="next-steps" class="section level2">
+<h2>next steps</h2>
+<div id="high-priority" class="section level3">
+<h3>high priority</h3>
 <ol start="0" style="list-style-type: decimal">
+<li>metodi di analisi solo sync:
+<ul>
+<li>zSync</li>
+<li>sync by group / id /sessions</li>
+<li>longitudinal sync</li>
+</ul></li>
 <li><strong>NB!! sarà fondamentale testare come parametro di PMBest una soglia di sincro minima per il match</strong></li>
 <li>implementare bene NAartifact, in modo da renderlo universale</li>
-<li>trova un modo agile di visualizzazione</li>
-</ol>
+<li>Migliora PMBest() sync procedure ! il sitema attuale è strano e unreliable. Tra i difetti: * se in una lunga sequenza c’è solo discesa, risulta alta sync * non si capisce bene dove inizia e dove finisce ciascuna finestra <em>ci sono valori sovrapposti e valori NA </em> se subito dopo la fine della sequenza “short” inizia un altro picco, l’ingrandimento della finestra a “long” porta a confrontare fischi per fiaschi ed ovviamente la sync crolla * un sistema migliore potrebbe essere di prendere sempre una sequenza v-p-v e stretchare le due</li>
+<li>trova un modo agile di visualizzazione
 <ul>
 <li>fixa il motore di plot</li>
 <li>implementa una preview con scroll</li>
-</ul>
-<ol start="0" style="list-style-type: decimal">
+</ul></li>
 <li>FAI FUNZIONARE expPPSync (non esiste più signal$ccf$settings$lagSec)</li>
 <li>Questa cosa: attributes(experiment2)=attributes(experiment) è male perché sovrascrive anche l’attributo “names” che invece deve essere tenuto free. Sostituisci con structure(experiment2, “asd”=attr(experiment2,“asd”))</li>
 <li>controlla l’efficacia di artifact remove e se tutte le altre funzioni reggono con gli NA</li>
 <li>testa DyadCategory con NAartifact</li>
-<li>tutta DyadCategory è da controllare</li>
+<li>tutta DyadCategory è da controllare
+<ol style="list-style-type: decimal">
 <li>il read è aggiornato con le ultime furbate di experiment?</li>
 <li>perché uno è read Experiment e l’altro read Category? Dovrebbe essere signal e category o un lettore unico</li>
-<li>DyadSummary ha grande potenzialità ma al momento non so in che stato di reliability è
+<li>DyadSummary ha grande potenzialità ma al momento non so in che stato di reliability è</li>
+</ol>
 <ul>
 <li>implementa le parti mancanti (disegno longit, etc)</li>
 </ul></li>
@@ -203,10 +189,10 @@ $(document).ready(function () {
 <li><strong>TESTA I METODI E COMPARALI CAZZO!)</strong></li>
 </ol>
 </div>
-<div id="low-priority" class="section level2">
-<h2>low priority</h2>
-<div id="dyadexperiment" class="section level3">
-<h3>DyadExperiment</h3>
+<div id="low-priority" class="section level3">
+<h3>low priority</h3>
+<div id="dyadexperiment" class="section level4">
+<h4>DyadExperiment</h4>
 <ul>
 <li>in PMBest dif-dif prova a usare il quadrato di similarity, invece di un threshold molto alto. In questo modo si penalizzano i match mediocri e si potenziano quelli alti anche se più laggati.</li>
 <li>quando crei experiment fai tutti i check di coerenza interna e magari salva esplicitamente il tipo di disegno, longitudinale, gruppi, misto</li>
@@ -217,17 +203,14 @@ $(document).ready(function () {
 <li>rotating or 0-100 progress bar in nested funcstions</li>
 </ul>
 </div>
-<div id="dyadsession" class="section level3">
-<h3>DyadSession</h3>
+<div id="dyadsession" class="section level4">
+<h4>DyadSession</h4>
 <ul>
 <li>controlla che tutti i segnali abbiano lo stesso dyadID e s1 s2 names</li>
 </ul>
 </div>
-<div id="class-structure" class="section level3">
-<h3>Class structure</h3>
-<ul>
-<li>non ha particolarmente senso tenere session<span class="math inline">\(signals e session\)</span>category allo stesso livello, visto che non ci sono analisi solo categoriali (per definizione di IP), avrebbe più senso considerare categ come un tipo speciale di signal, e risparmiare un livello. <em>Es: invece di session<span class="math inline">\(signals\)</span>SC –&gt; session$SC</em></li>
-</ul>
+<div id="class-structure" class="section level4">
+<h4>Class structure</h4>
 <!-- This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>. -->
 <!-- When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this: -->
 <!-- ```{r cars} -->
@@ -239,6 +222,7 @@ $(document).ready(function () {
 <!-- plot(pressure) -->
 <!-- ``` -->
 <!-- Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot. -->
+</div>
 </div>
 </div>
 
