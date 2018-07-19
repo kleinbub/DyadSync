@@ -8,6 +8,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## v.1.0.0.9001
+
+
+#### 2018/07/15
+* catApply.DyadSession ora permette output multipli
+* aggiunta cloneAttr per fare copia di classAttr in un solo comando, versione generale di cloneDyadStream
+* bug fixes on catApply and timeMaster and IO functions
+
 #### 2018/07/15
 * bugfixes a catApply()
 * NEW: catExtract() funzione che estrae da un DyadExperiment tutte le categorie di un tipo, e aggrega secondo i parametri specificati

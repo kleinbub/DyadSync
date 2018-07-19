@@ -2,7 +2,6 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F, ...){
   # if(missing(pairBind)) pairBind = F
   l = list(...)
   print(l)
-  iStep=0
   if(!file.exists(path)){stop("Selected file or directory does not exists")}
   patt = "\\.(txt|csv)$"
   if (!is.na(namefilt)){
@@ -92,10 +91,9 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F, ...){
   }
   
   
-  iStep = iStep +1
   ndyads = ifelse(pairBind, length(filenames)/2,length(filenames))
   nFiles = length(filenames)
-  cat("\r\nSTEP",iStep,"| Reading",ndyads,"dyads\r\n")
+  cat("\r\nReading",ndyads,"dyads\r\n")
   options = list(...)
   #ugly stuff to set read.csv options
   if("skip" %in% names(options)){

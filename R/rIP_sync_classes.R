@@ -1,3 +1,4 @@
+#' @export
 SYNC_CLASSES = c("CCFBest","PMBest")
 
 #' hasSync

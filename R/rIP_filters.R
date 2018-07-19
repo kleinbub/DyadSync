@@ -120,12 +120,12 @@ signalDecimate = function (signal, newSampRate) {
   if (sampRate(signal) %% newSampRate != 0) 
     stop("newSampRate must be an integer divisor of old sampRate ! newSampRate:",newSampRate," old:",sampRate,call. = F)
   q = floor(sampRate(signal) / newSampRate)  
-  resPat = ts(signal$s1[seq(1,   length(signal$s1)  , by = q)], start=start(signal$s1),   frequency=newSampRate)
-  resCli = ts(signal$s2[seq(1, length(signal$s2), by = q)], start=start(signal$s2), frequency=newSampRate)
+  ress1 = ts(signal$s1[seq(1,   length(signal$s1)  , by = q)], start=start(signal$s1),   frequency=newSampRate)
+  ress2 = ts(signal$s2[seq(1, length(signal$s2), by = q)], start=start(signal$s2), frequency=newSampRate)
   resVal = ts(signal$valid[seq(1, length(signal$valid), by = q)], start=start(signal$valid), frequency=newSampRate)
   
-  signal$s1   = cloneDyadStream(resPat, signal$s1)
-  signal$s2 = cloneDyadStream(resCli, signal$s2)
+  signal$s1 = cloneAttr(signal$s1, ress1)
+  signal$s2 = cloneAttr(signal$s2, ress2)
   signal$valid = resVal
   signal$time = time(signal$s1)
   attr(signal,"sampRate") = newSampRate

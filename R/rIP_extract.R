@@ -25,18 +25,18 @@ catApply = function(x, FUN, signal= "SC",sync = c("none",SYNC_CLASSES), streamKe
 }
 
 #' @export
-catApply.DyadExperiment = function(x, FUN, signal, sync, streamKey, category, ...  ){
+catApply.DyadExperiment = function(x, FUN, signal, sync, streamKey, category, artefact.rm = T, ...  ){
   FUNname = as.character(substitute(FUN))
   res = Map(function(session, nSession){
     prog(nSession, length(x))
-    catApply(session, FUNname, signal, sync, streamKey, category, ... )
+    catApply(session, FUNname, signal, sync, streamKey, category, artefact.rm, ... )
   },x, seq_along(x))
   classAttr(res) = classAttr(x)
   res
 }
 #' @export
 catApply.DyadSession = function(x, FUN, signal, sync = c("none",SYNC_CLASSES), streamKey=c("s1","s2","time","sync","lag","zero"),
-                                category,...  ){
+                                category, artefact.rm = T, ...  ){
   sync = match.arg(sync)
   streamKey = match.arg(streamKey)
 
@@ -47,22 +47,37 @@ catApply.DyadSession = function(x, FUN, signal, sync = c("none",SYNC_CLASSES), s
   
   if(sync!="none"){
     stream = x[[signal]][[sync]][[streamKey]]
+    
   } else {
     if(!streamKey %in% c("s1","s2","time")) stop ("sync none requires streamkey == s1 or s2 or time")
     stream = x[[signal]][[streamKey]]
   }
+  if( artefact.rm ){
+    if(length(stream)!=length(x[[signal]]$valid)) stop("artefact.rm temporarily requires that stream has the same frequency of valid")
+    stream[!x[[signal]]$valid]=NA
+  }
+
   
   cate = x[[category]]
   newName = paste(signal,sync,streamKey,FUNname,sep=".")
-  cate[,newName] = rep(NA,nrow(cate))
+  # cate[,newName] = rep(NA,nrow(cate))
+  lres = list()
   for(i in 1:nrow(cate)){
-    if(end(stream)[1]>cate$end[i]){
+    if(end(stream)[1]>cate$end[i] && cate$start[i]<end(stream)[1]){
       win = window(stream, start = cate$start[i], end = cate$end[i])
-      cate[i,newName] = FUN(win,na.rm=T)#FUN(win,...)
+      lres[[i]] = FUN(win,...)
     } else {
-      warning("In session ", sessionId(session), ", end of window ",i,": was beyond the stream end.")
+      warning("In session ", dyadId(x),"-",sessionId(x), ", end of window ",i,": was beyond the stream end.")
+      lres[[i]] = NA
     }
   }
+  funcols = names(lres[[1]])
+  rexp2 = data.frame(do.call(rbind,lres))
+  if(is.null(funcols)) colnames(rexp2) = FUNname
+  else colnames(rexp2) = funcols
+  colnames(rexp2) = paste(sync,streamKey,colnames(rexp2),sep = ".")
+
+  cate = cbind(cate,rexp2)
   x[[category]]=cate
   x
 }
@@ -116,8 +131,11 @@ catExtract.DyadExperiment = function(experiment, category, by, FUN = mean, ...){
   }
   if(!is.null(by)){
     xNum = sapply(res, is.numeric)
-    xNum[c("start","end") ] = F
-    res = aggregate(res[,xNum],by=by,FUN = FUN, ...)
+    xNum[c("start","end","session","dyad","group")] = F
+    res2 = aggregate(res[,xNum],by=by,FUN = FUN, ...)
+    res3 = aggregate(res[,xNum],by=by,FUN = length)
+    res2$n = res3[,length(res3)]
+    res = res2
   }
   res
 }

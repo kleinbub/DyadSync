@@ -8,13 +8,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Development 
 ### non puoi rifinire per sempre.
-
-  0) sistema dyadCategory
-    * INNANZITUTTO catSummary. Lascia stare i plot cazzo
-    * sessionApply = applica media/mediana/sd/marci quel caxx che ti pare su qualsiasi dyadStream, diviso per ciascuna categoria, in ciascuna seduta.
-      * split by: dyadId, session, group, role
-      * ho fatto catApply. salva i risultati nelle DyadCateg ora serve un estrattore organizzato, es: una cosa che estrae tutte quelle colonne e le organizza per session/group/id e tipo di categoria.
-      *inoltre catApply al momento restituisce soltanto il vecchio summary di catSummary, bisogna vedere in quali casi era utile il return=full e vedere se serve sopperire.
+    
+    
   3) analisi Napoli
   4) analisi Brasini
   5) analisi Gennaro
@@ -22,26 +17,31 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ## Clean Up
-
-  * cerca ~~$signals~~ [signals], $categ e [categ] in tutto il pacchetto e sostituisci (cioè rimuovi)
-  * controllare a cascata tutto quello che usava signal\$ccf\$ccfmat, signal\$ccf\$sampRate, signal\$ccf\$settings
-  * trova e sostituisci $ccf $ccfmat 
-  *tutti i $sampRate diventano sampRate()
-  *tutti i $name diventano name()
-  *getCCF è obsoleta tranne per estrarre dati dalla matrice (es: lag0). e va aggiornata.
-  * tutta DyadCategory è da controllare
-  * DyadSummary ha grande potenzialità ma al momento non so in che stato di reliability è
-    * implementa le parti mancanti (disegno longit, etc)
+  * trova e sostituisci:
+    * $ccf\$settings
+    * $ccf $ccfmat 
+    * tutti i $sampRate diventano sampRate()
+    * tutti i $name diventano name()
+    * getCCF
+    * attributes(experiment2)=attributes(experiment) è male perché sovrascrive anche l'attributo "names"
 
 ## next steps
 ### high priority
-  0) metodi di analisi solo sync:
-    * zSync
-    * sync by group / id /sessions
-    * longitudinal sync
-  0) **NB!! sarà fondamentale testare come parametro di PMBest una soglia di sincro minima per il match**
-  0) implementare bene NAartifact, in modo da renderlo universale
-    * tutte le altre funzioni reggono con gli NA?
+  0) implementare **meglio** NAartifact, in modo da renderlo universale
+    * **NB!!!!!** setArtefacts al momento non capisce i diversi dyadID!!!!
+    * difficile usare valid con le ts con frequenza diversa tipo CCFBest. Quindi per ora limitati a PMBest, poi dovrai implementare un windowed assign: se invece di salvare valid salvi le epoche start-end degli artefatti poi puoi eliminarli così:
+    ```{r}
+      asd = ts(1:101, frequency=10,start=0)
+      #i campioni da rimuovere sono:
+      window(asd, start=5,end=6)
+      # in una ts con frequenza diversa
+      asd2 = ts(seq(1,101,by=10),frequency = 1,start=0)
+      window(asd2,start=5,end=6)
+      
+      matches = round(time(asd2),4) %in% round(time(window(asd2,start=5,end=6)),4) 
+      asd2[matches] =NA
+      asd2
+    ```
   0) Migliora PMBest() sync procedure ! il sitema attuale è strano e unreliable. Tra i difetti:
           * se in una lunga sequenza c'è solo discesa, risulta alta sync
           * non si capisce bene dove inizia e dove finisce ciascuna finestra
@@ -51,10 +51,12 @@ knitr::opts_chunk$set(echo = TRUE)
   0) trova un modo agile di visualizzazione
     * fixa il motore di plot
     * implementa una preview con scroll
-  0) FAI FUNZIONARE expPPSync (non esiste più signal\$ccf\$settings$lagSec)
   1) Questa cosa: attributes(experiment2)=attributes(experiment) è male perché sovrascrive anche l'attributo "names"  che invece deve essere tenuto free. Sostituisci con structure(experiment2, "asd"=attr(experiment2,"asd"))
   1) Creare un mapply generico function(…, signals="", FUN, … ) che funzioni sia su experiments, sessions, signals o streams
   1) **TESTA I METODI E COMPARALI CAZZO!)**
+    * Implementa zSync
+    * per PMBest miglior valore di threshold, minSizeSec, e weightMalus
+    
 
 
 ### low priority

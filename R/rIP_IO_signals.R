@@ -164,8 +164,7 @@ readDyadSignals = function(
       s2Col = s2Col + ncol(lf[[1]])
     }
     
-    iStep = iStep +1
-    cat0("\r\nSTEP ",iStep," | Combining '",levels(factor(unlist(role)))[1],"' and '", levels(factor(unlist(role)))[2],"' files\r\n")
+    cat0("\r\nCombining '",levels(factor(unlist(role)))[1],"' and '", levels(factor(unlist(role)))[2],"' files\r\n")
     #add 'role' labels to each column. 'lr' = list renamed
     lf =  Map(function (x,i) {names(x)=paste(names(x),role[[i]],sep="_"); x}, lf, seq_along(lf) )
     
@@ -201,8 +200,7 @@ readDyadSignals = function(
   
   
   if(!is.null(winTerpolate$winSec) & !is.null(winTerpolate$incSec)){
-    iStep = iStep +1
-    cat("\r\nSTEP",iStep,"| Interpolating files\r\n")
+    cat("\r\nInterpolating files\r\n")
     prog(1,2)
     lf=winInter(lf,winTerpolate$winSec,winTerpolate$incSec,sampRate)
     prog(2,2)
@@ -226,8 +224,7 @@ readDyadSignals = function(
     
   if(!is.null(duration)){ #if duration is NOT false
     duration = timeMaster(duration,out="sec")
-    iStep = iStep +1
-    cat("\r\nSTEP",iStep,"| Trimming files (samples)\r\n")
+    cat("\r\nTrimming files (samples)\r\n")
     
     if(length(duration) == 1 && ndyads>1) {
       duration=rep(duration,ndyads)

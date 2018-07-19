@@ -138,6 +138,19 @@ classAttr = function(x){
 }
 LOCK_ATTR = c("names", "dim", "dimnames", "row.names")
 
+#' Title
+#'
+#' @param from 
+#' @param to 
+#'
+#' @return
+#' @export
+
+cloneAttr = function(from, to){
+  classAttr(to) <- classAttr(from)
+  to
+}
+
 
 ### DYADEXPERIMENT ###########################################
 ## list of DyadSessions with attributes:
@@ -197,7 +210,7 @@ c.DyadSession = function(...){
   x = l[[1]]
   fileNames = sapply(l, attr, "fileName")
   #check on different filenames (bad)
-  if(length(unique(sapply(l,name))) >1 ) stop("Can't combine sessions with different names:\r\n",paste(unlist(sapply(l, attr, "fileName")),collapse="\r\n"), call.=F)
+  # if(length(unique(sapply(l,name))) >1 ) stop("Can't combine sessions with different names:\r\n",paste(unlist(sapply(l, attr, "fileName")),collapse="\r\n"), call.=F)
   #check on same signal names (bad)
   if(length(unique(sapply(l,names)))<length(sapply(l,names))) stop("Can't combine sessions containing the same signal. Use selectSignals() to extract only different signals before merging", call.=F)
   #check on different s1 s2 names (bad)

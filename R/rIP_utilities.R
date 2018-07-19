@@ -290,7 +290,7 @@ timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseS
     } else {
       auto = "sec"
     }
-    if(is.character(add)) add = timeMaster(add,0,"sec")
+    if(is.character(add)) add = timeMaster(add,out="sec")
     x = baseTime + add #that's the final amount in seconds
     
     if(out=="auto") out=auto

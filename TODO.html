@@ -129,14 +129,7 @@ $(document).ready(function () {
 <h2>Development</h2>
 <div id="non-puoi-rifinire-per-sempre." class="section level3">
 <h3>non puoi rifinire per sempre.</h3>
-<ol start="0" style="list-style-type: decimal">
-<li>sistema dyadCategory
-<ul>
-<li>INNANZITUTTO catSummary. Lascia stare i plot cazzo</li>
-<li>sessionApply = applica media/mediana/sd/marci quel caxx che ti pare su qualsiasi dyadStream, diviso per ciascuna categoria, in ciascuna seduta.</li>
-<li>split by: dyadId, session, group, role</li>
-<li>ho fatto catApply. salva i risultati nelle DyadCateg ora serve un estrattore organizzato, es: una cosa che estrae tutte quelle colonne e le organizza per session/group/id e tipo di categoria. *inoltre catApply al momento restituisce soltanto il vecchio summary di catSummary, bisogna vedere in quali casi era utile il return=full e vedere se serve sopperire.</li>
-</ul></li>
+<ol start="3" style="list-style-type: decimal">
 <li>analisi Napoli</li>
 <li>analisi Brasini</li>
 <li>analisi Gennaro</li>
@@ -146,9 +139,15 @@ $(document).ready(function () {
 <div id="clean-up" class="section level2">
 <h2>Clean Up</h2>
 <ul>
-<li>cerca <del>$signals</del> [signals], $categ e [categ] in tutto il pacchetto e sostituisci (cioè rimuovi)</li>
-<li>controllare a cascata tutto quello che usava signal$ccf$ccfmat, signal$ccf$sampRate, signal$ccf$settings</li>
-<li>trova e sostituisci $ccf $ccfmat <em>tutti i $sampRate diventano sampRate() </em>tutti i $name diventano name() *getCCF è obsoleta tranne per estrarre dati dalla matrice (es: lag0). e va aggiornata.</li>
+<li>trova e sostituisci:
+<ul>
+<li>$ccf$settings</li>
+<li>$ccf $ccfmat</li>
+<li>tutti i $sampRate diventano sampRate()</li>
+<li>tutti i $name diventano name()</li>
+<li>getCCF</li>
+<li>attributes(experiment2)=attributes(experiment) è male perché sovrascrive anche l’attributo “names”</li>
+</ul></li>
 </ul>
 </div>
 <div id="next-steps" class="section level2">
@@ -156,37 +155,47 @@ $(document).ready(function () {
 <div id="high-priority" class="section level3">
 <h3>high priority</h3>
 <ol start="0" style="list-style-type: decimal">
-<li>metodi di analisi solo sync:
+<li>implementare <strong>meglio</strong> NAartifact, in modo da renderlo universale
 <ul>
-<li>zSync</li>
-<li>sync by group / id /sessions</li>
-<li>longitudinal sync</li>
-</ul></li>
-<li><strong>NB!! sarà fondamentale testare come parametro di PMBest una soglia di sincro minima per il match</strong></li>
-<li>implementare bene NAartifact, in modo da renderlo universale</li>
+<li>difficile usare valid con le ts con frequenza diversa tipo CCFBest. Quindi per ora limitati a PMBest, poi dovrai implementare un windowed assign: se invece di salvare valid salvi le epoche start-end degli artefatti poi puoi eliminarli così:</li>
+</ul>
+<pre class="r"><code>  asd = ts(1:101, frequency=10,start=0)
+  #i campioni da rimuovere sono:
+  window(asd, start=5,end=6)</code></pre>
+<pre><code>## Time Series:
+## Start = c(5, 1) 
+## End = c(6, 1) 
+## Frequency = 10 
+##  [1] 51 52 53 54 55 56 57 58 59 60 61</code></pre>
+<pre class="r"><code>  # in una ts con frequenza diversa
+  asd2 = ts(seq(1,101,by=10),frequency = 1,start=0)
+  window(asd2,start=5,end=6)</code></pre>
+<pre><code>## Time Series:
+## Start = 5 
+## End = 6 
+## Frequency = 1 
+## [1] 51 61</code></pre>
+<pre class="r"><code>  matches = round(time(asd2),4) %in% round(time(window(asd2,start=5,end=6)),4) 
+  asd2[matches] =NA
+  asd2</code></pre>
+<pre><code>## Time Series:
+## Start = 0 
+## End = 10 
+## Frequency = 1 
+##  [1]   1  11  21  31  41  NA  NA  71  81  91 101</code></pre></li>
 <li>Migliora PMBest() sync procedure ! il sitema attuale è strano e unreliable. Tra i difetti: * se in una lunga sequenza c’è solo discesa, risulta alta sync * non si capisce bene dove inizia e dove finisce ciascuna finestra <em>ci sono valori sovrapposti e valori NA </em> se subito dopo la fine della sequenza “short” inizia un altro picco, l’ingrandimento della finestra a “long” porta a confrontare fischi per fiaschi ed ovviamente la sync crolla * un sistema migliore potrebbe essere di prendere sempre una sequenza v-p-v e stretchare le due</li>
 <li>trova un modo agile di visualizzazione
 <ul>
 <li>fixa il motore di plot</li>
 <li>implementa una preview con scroll</li>
 </ul></li>
-<li>FAI FUNZIONARE expPPSync (non esiste più signal$ccf$settings$lagSec)</li>
 <li>Questa cosa: attributes(experiment2)=attributes(experiment) è male perché sovrascrive anche l’attributo “names” che invece deve essere tenuto free. Sostituisci con structure(experiment2, “asd”=attr(experiment2,“asd”))</li>
-<li>controlla l’efficacia di artifact remove e se tutte le altre funzioni reggono con gli NA</li>
-<li>testa DyadCategory con NAartifact</li>
-<li>tutta DyadCategory è da controllare
-<ol style="list-style-type: decimal">
-<li>il read è aggiornato con le ultime furbate di experiment?</li>
-<li>perché uno è read Experiment e l’altro read Category? Dovrebbe essere signal e category o un lettore unico</li>
-<li>DyadSummary ha grande potenzialità ma al momento non so in che stato di reliability è</li>
-</ol>
-<ul>
-<li>implementa le parti mancanti (disegno longit, etc)</li>
-</ul></li>
-<li>signalDecimate non aggiorna il sampRate attribute del signal</li>
 <li>Creare un mapply generico function(…, signals=“”, FUN, … ) che funzioni sia su experiments, sessions, signals o streams</li>
-<li>Crea delle funzioni di analisi come dyadcategory ma con zSync, medie e ds longitudinali e confronto fra gruppi</li>
-<li><strong>TESTA I METODI E COMPARALI CAZZO!)</strong></li>
+<li><strong>TESTA I METODI E COMPARALI CAZZO!)</strong>
+<ul>
+<li>Implementa zSync</li>
+<li>per PMBest miglior valore di threshold, minSizeSec, e weightMalus</li>
+</ul></li>
 </ol>
 </div>
 <div id="low-priority" class="section level3">

@@ -34,6 +34,16 @@
 
 
 #generate as different as possible colors
+#' Title
+#'
+#' @param n 
+#' @param demo 
+#' @param alpha 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 mycolz = function(n,demo=F,alpha=1){
   fmod= function(k,m){
     j = floor(k/m)
