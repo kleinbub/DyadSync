@@ -1,7 +1,6 @@
 genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F, ...){
   # if(missing(pairBind)) pairBind = F
   l = list(...)
-  print(l)
   if(!file.exists(path)){stop("Selected file or directory does not exists")}
   patt = "\\.(txt|csv)$"
   if (!is.na(namefilt)){
@@ -77,7 +76,6 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F, ...){
     
     if(length(unique(nCheck)) != length(nCheck))
       warning("Two equal session identifier were found, please check that the session order/names are correct:\r\n",paste0("\r\n",shortNames,"\t",nCheck),call. = F)
-    # print(sess);print(dyadIds)
     #now check if the session are in progressive order
     deltaSess = mapply(function(x,i){
       if(pairBind){

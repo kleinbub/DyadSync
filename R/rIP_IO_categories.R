@@ -42,9 +42,8 @@ readCategories = function(path,
   
   if(length(removeSec)==1) {warning("removeSec = ",removeSec," was used for all files")
     removeSec = rep(removeSec, length(lf))
-    }  else if(length(removeSec)!=length(lf)) stop("removeSec must be defined for every file (n=",length(lf),")")
-  
-  
+  }  else if(length(removeSec)!=length(lf)) stop("removeSec must be defined for every file (n=",length(lf),")")
+
   cat("File name","\t","seconds removed\r\n")
   listCat = Map(function(file,iFile){
     cat(shortNames[iFile],"\t",removeSec[iFile],"\r\n")
@@ -76,8 +75,16 @@ readCategories = function(path,
       }
     }
     
-    #convert remaining to factors
-    data.frame("start"=file[[startCol]], "end" =file[[endCol]], "delta"=deltaSec, as.list(file[-c(startCol,endCol)]))
+    
+    res = data.frame("start"=file[[startCol]], "end" =file[[endCol]], "delta"=deltaSec)
+    #all other columns should be characters if colClasses was not overridden
+    res = cbind(res, file[-c(startCol,endCol)])
+    #check it and finally apply type.convert on all other columns
+    k = list(...)
+    if(is.null(k$colClasses)){ 
+      res[which(sapply(res,is.character))] = lapply(res[which(sapply(res,is.character))],type.convert)
+    }
+    res
   },lf,seq_along(lf))
   
   

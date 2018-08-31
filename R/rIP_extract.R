@@ -5,7 +5,9 @@
 ## cose con "extract" restituiscono un oggetto diverso
 
 #' Title
-#'
+#' epochStreamApply cycles through all sessions in an experiment. For each session extracts a stream, then cuts it
+#' according to categories epochs, and applies a function to each epoch.
+#' 
 #' @param x 
 #' @param FUN 
 #' @param signal 
@@ -14,32 +16,32 @@
 #' @param category 
 #' @param column 
 #' @param ... arguments passed to FUN
-#'
-#' @return
+#' 
+#' @return the updated DyadExperiment, or single DyadSession object.
 #' @export
 #'
 #' @examples
-catApply = function(x, FUN, signal= "SC",sync = c("none",SYNC_CLASSES), streamKey=c("s1","s2","time","sync","lag","zero"),
-                    category="PACS",... ){
-  UseMethod("catApply", x)
+epochStreamApply = function(x, FUN, signal= "SC",sync = c("none",SYNC_CLASSES), streamKey=c("s1","s2","time","sync","lag","zero"),
+                            category="PACS",... ){
+  UseMethod("epochStreamApply", x)
 }
 
 #' @export
-catApply.DyadExperiment = function(x, FUN, signal, sync, streamKey, category, artefact.rm = T, ...  ){
+epochStreamApply.DyadExperiment = function(x, FUN, signal, sync, streamKey, category, artefact.rm = T, ...  ){
   FUNname = as.character(substitute(FUN))
   res = Map(function(session, nSession){
     prog(nSession, length(x))
-    catApply(session, FUNname, signal, sync, streamKey, category, artefact.rm, ... )
+    epochStreamApply(session, FUNname, signal, sync, streamKey, category, artefact.rm, ... )
   },x, seq_along(x))
   classAttr(res) = classAttr(x)
   res
 }
 #' @export
-catApply.DyadSession = function(x, FUN, signal, sync = c("none",SYNC_CLASSES), streamKey=c("s1","s2","time","sync","lag","zero"),
-                                category, artefact.rm = T, ...  ){
+epochStreamApply.DyadSession = function(x, FUN, signal, sync = c("none",SYNC_CLASSES), streamKey=c("s1","s2","time","sync","lag","zero"),
+                                        category, artefact.rm = T, ...  ){
   sync = match.arg(sync)
   streamKey = match.arg(streamKey)
-
+  
   if(is.character(FUN))
     FUNname = FUN
   else FUNname = as.character(substitute(FUN))
@@ -56,27 +58,32 @@ catApply.DyadSession = function(x, FUN, signal, sync = c("none",SYNC_CLASSES), s
     if(length(stream)!=length(x[[signal]]$valid)) stop("artefact.rm temporarily requires that stream has the same frequency of valid")
     stream[!x[[signal]]$valid]=NA
   }
-
+  
   
   cate = x[[category]]
   newName = paste(signal,sync,streamKey,FUNname,sep=".")
   # cate[,newName] = rep(NA,nrow(cate))
   lres = list()
   for(i in 1:nrow(cate)){
-    if(end(stream)[1]>cate$end[i] && cate$start[i]<end(stream)[1]){
-      win = window(stream, start = cate$start[i], end = cate$end[i])
-      lres[[i]] = FUN(win,...)
-    } else {
-      warning("In session ", dyadId(x),"-",sessionId(x), ", end of window ",i,": was beyond the stream end.")
+    if(cate$start[i]>=end(stream)[1]){
+      warning("In session ", dyadId(x),"-",sessionId(x), ", start of window ",i,": was beyond the stream end.", call.=F)
       lres[[i]] = NA
+    } else { #if start is ok
+      if(cate$end[i] > end(stream)[1] ){
+        warning("In session ", dyadId(x),"-",sessionId(x), ", end of window ",i,": was reduced to the stream end.", call.=F)
+        cate$end[i]= end(stream)[1]
+      }
+      win = window(stream, start = cate$start[i], end = cate$end[i])
+      lres[[i]] = FUN(win, ...)
     }
+    
   }
   funcols = names(lres[[1]])
   rexp2 = data.frame(do.call(rbind,lres))
   if(is.null(funcols)) colnames(rexp2) = FUNname
   else colnames(rexp2) = funcols
   colnames(rexp2) = paste(sync,streamKey,colnames(rexp2),sep = ".")
-
+  
   cate = cbind(cate,rexp2)
   x[[category]]=cate
   x
@@ -108,7 +115,7 @@ catExtract.DyadExperiment = function(experiment, category, by, FUN = mean, ...){
   keepNames = checkNames
   for(iname in checkNames){
     if(!all(sapply(experiment,function(x){iname %in% colnames(x[[category]])})))
-      keepNames = checkNames[checkNames!= iname]
+      keepNames = keepNames[keepNames!= iname]
   }
   if(!all(checkNames %in% keepNames)) warning("'",paste(checkNames[!checkNames %in% keepNames], collapse="', '"),"' columns were not found in every session and were dropped")
   #rbind
@@ -161,12 +168,12 @@ streamExtract<- function(experiment, signal, sync = c("none",SYNC_CLASSES), stre
 streamExtract.DyadExperiment <- function(experiment, signal, sync = c("none",SYNC_CLASSES), streamKey=c("s1","s2","time","sync","lag","zero"), FUN=mean, ...){
   sync = match.arg(sync)
   streamKey = match.arg(streamKey)
-
+  
   if(is.character(FUN))
     FUNname = FUN
   else FUNname = as.character(substitute(FUN))
   FUN = match.fun(FUN)
-
+  
   rexp = Map(function(session,nsession){
     prog(nsession,length(experiment))
     if(sync!="none"){
@@ -176,7 +183,7 @@ streamExtract.DyadExperiment <- function(experiment, signal, sync = c("none",SYN
       stream = session[[signal]][[streamKey]]
     }
     FUN(stream, ...)
-
+    
   },experiment,seq_along(experiment))
   rexp2 = do.call(rbind,rexp)
   if(is.null(colnames(rexp2)))colnames(rexp2) = FUNname
@@ -191,4 +198,3 @@ streamExtract.DyadExperiment <- function(experiment, signal, sync = c("none",SYN
   cbind(res, rexp2)
   
 }
- 

@@ -162,6 +162,7 @@ DyadExperiment = function(name, sessionList){
   class(exp) = "DyadExperiment"
   return(exp)
 }
+#' @export
 is.DyadExperiment = function(x) inherits(x,"DyadExperiment") && length(x)
 
 # c.DyadExperiment sostituisce experimentMerge() e permette di unire
@@ -202,6 +203,7 @@ DyadSession = function(groupId,sessionId,dyadId, signalList=NULL, s1Name,s2Name,
   class(x) = "DyadSession"
   return(x)
 }
+#' @export
 is.DyadSession = function(x) inherits(x,"DyadSession") && length(x)
 
 #' @export
@@ -238,6 +240,7 @@ DyadCategory = function(name, data){
   class(categ) = append(class(categ),"DyadCategory")
   return(categ)
 }
+#' @export
 is.DyadCategory = function(x) inherits(x,"DyadCategory") && length(x)
 
 ### DYADSIGNAL ###########################################
@@ -271,7 +274,7 @@ DyadSignal = function(name="some signal",s1=NULL,s2=NULL,sampRate=NULL, s1Name, 
   class(x) = append(class(x),"DyadSignal")
   return(x)
 } 
-
+#' @export
 is.DyadSignal = function(x) inherits(x,"DyadSignal") && length(x)
 
 ### DYADSTREAM ###########################################
@@ -315,7 +318,7 @@ DyadStream = function(stream, name, col=1, lty=1, lwd=1, ...){
   class(stream) = append("DyadStream",class(stream))
   return(stream)
 }
-
+#' @export
 is.DyadStream = function(x){ inherits(x,"DyadStream") && length(x)
 }
 

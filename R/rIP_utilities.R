@@ -36,15 +36,18 @@
 #' Title
 #' applies a function on each signal of an experiment.
 #' @param experiment 
-#' @param signals 
-#' @param FUN 
-#' @param ... 
+#' @param signals either the string "all" or a vector of signal names.
+#' If 'all' the function will be applied on all DyadSignal objects. To apply on epochs,
+#' and other objects, the names must be specified
+#' @param FUN a function passed to a lapply call on a list of DyadSignals
+#' @param ... further arguments passed to lapply
 #'
-#' @return
+#' @details the FUN can be in the generic form function(x, ...){ } where x is each DyadSignal object
+#' among the selected signals, in each session.
 #' @export
 #'
 #' @examples
-expApply= function(experiment, signals="all", FUN, ...){
+expApply = function(experiment, signals="all", FUN, ...){
   #signals can either be "all" or a vector of signal names. es: c("PPG","SC").
   if(!is(experiment,"DyadExperiment")) stop("Only objects of class DyadExperiment can be processed by this function")
   fun = match.fun(FUN)
@@ -53,7 +56,9 @@ expApply= function(experiment, signals="all", FUN, ...){
     #     session = lr$sessions[[1]]
     #     signals= c("SC","ASD","PPG")
     
-    if(length(signals)==1 && signals=="all") sigs = names(session) else sigs = signals
+    if(length(signals)==1 && signals=="all") {
+      sigs = names(session)[sapply(session,is.DyadSignal)]
+      } else sigs = signals
     session[names(session) %in% sigs] = lapply(session[names(session) %in% sigs],  fun, ...)
     prog(nSession,length(experiment))
     return(session)

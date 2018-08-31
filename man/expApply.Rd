@@ -10,13 +10,19 @@ expApply(experiment, signals = "all", FUN, ...)
 \arguments{
 \item{experiment}{}
 
-\item{signals}{}
+\item{signals}{either the string "all" or a vector of signal names.
+If 'all' the function will be applied on all DyadSignal objects. To apply on epochs,
+and other objects, the names must be specified}
 
-\item{FUN}{}
+\item{FUN}{a function passed to a lapply call on a list of DyadSignals}
 
-\item{...}{}
+\item{...}{further arguments passed to lapply}
 }
 \description{
 Title
 applies a function on each signal of an experiment.
+}
+\details{
+the FUN can be in the generic form function(x, ...){ } where x is each DyadSignal object
+among the selected signals, in each session.
 }

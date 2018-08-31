@@ -9,6 +9,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## v.1.0.0.9001
 
+#### 2018/07/19
+* bugfixes in catExtract.DyadExperiment
 
 #### 2018/07/15
 * catApply.DyadSession ora permette output multipli
