@@ -48,6 +48,9 @@ sampRate <-function(x) {
 }
 
 #' @export
+frequency.DyadSignal = function(x){attr(x,"sampRate")}
+
+#' @export
 color <-function(x){
   attr(x,"col")
 }

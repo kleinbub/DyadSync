@@ -7,29 +7,23 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Development 
-### non puoi rifinire per sempre.
-    
-    
-  3) analisi Napoli
-  4) analisi Brasini
-  5) analisi Gennaro
 
-
-
+## High alert:
+  * in xbest di PMbest ci sono delle (rare) occorrenze in cui lo stesso picco viene usato 2 volte, che è grave.
+  
 ## Clean Up
   * cat --> epoch
-  * trova e sostituisci:
-    * $ccf\$settings
-    * $ccf $ccfmat 
-    * tutti i $sampRate diventano sampRate()
-    * tutti i $name diventano name()
-    * getCCF
-    * attributes(experiment2)=attributes(experiment) è male perché sovrascrive anche l'attributo "names"
+  * sampRate() diventa frequency()
+  * sccf sarebbe meglio wccs "window cross corr of slopes"
+  * avere una funzione diversa per CCFBestSlope è stupido. elimina e aggiungi un parametro a CCFBest
+  * aggiungi '...' a PMBest e CCFBest, per accomodare i parametri di eventuali altri algoritmi di calcolo.
 
 ## next steps
 ### high priority
   0) implementare **meglio** NAartifact, in modo da renderlo universale
     * **NB!!!!!** setArtefacts al momento non capisce i diversi dyadID!!!!
+    * salvare una timeseries "valid" fa cagare, ad esempio con filtri e altro, il riferimento deve essere sempre temporale.
+    * inoltre salvare un "valid" solo è problematico nella pseudosincronia (random)
     * difficile usare valid con le ts con frequenza diversa tipo CCFBest. Quindi per ora limitati a PMBest, poi dovrai implementare un windowed assign: se invece di salvare valid salvi le epoche start-end degli artefatti poi puoi eliminarli così:
     ```{r}
       asd = ts(1:101, frequency=10,start=0)
@@ -61,6 +55,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ### low priority
+
 * catApply stop() se la sync/streamkey/valid/category/etc.. non esistono. al momento gira comunque e da errori strani
 #### DyadExperiment
 * in PMBest dif-dif prova a usare il quadrato di similarity, invece di un threshold molto alto. In questo modo si penalizzano i match mediocri e si potenziano quelli alti anche se più laggati.

@@ -128,13 +128,124 @@ $(document).ready(function () {
 <div id="v.1.0.0.9001" class="section level2">
 <h2>v.1.0.0.9001</h2>
 <div id="section" class="section level4">
-<h4>2018/07/08 15:56</h4>
+<h4>2018/10/17</h4>
+<p>Questa versione è ad uno stato di sviluppo instabile, ma per avere un punto di backup.</p>
+<div id="sync_ccfbest.r" class="section level5">
+<h5>Sync_CCFBest.R</h5>
+<ul>
+<li>eliminato il warning sui 5 secondi di lag</li>
+<li>aggiunto il parametro “outputName” per salvare diversi CCFBest nello stesso DyadSignal</li>
+<li>aggiunto kleinbubIndex session index, in alternativa a Marci Concordance</li>
+<li>aggiunta ccfBestSlope, come ccfBest, ma fa le correlazioni sullo slope. Non bastava aggiungere un parametro?</li>
+</ul>
+</div>
+<div id="sync_pmbest.r" class="section level5">
+<h5>Sync_PMBest.R</h5>
+<ul>
+<li>pmBest, aggiunto il parametro “algorithm” per specificare il tipo di ppSync, classico, “dev”, o sloped cross correlations
+<ul>
+<li>dev: ogni sequenza picco-valle di s1 e s2 è stretchata alla stessa lunghezza (durata)</li>
+<li>sccf (o wccs): PM trova la sequenza di best lag, poi la solita windowed CC sulle slope, applicando per ogni finestra la lag corrispondente</li>
+</ul></li>
+<li>aggiunto il parametro “outputName” per salvare diversi CCFBest nello stesso DyadSignal</li>
+</ul>
+</div>
+<div id="classes.r" class="section level5">
+<h5>classes.R</h5>
+<ul>
+<li>sampRate() deprecato. è un clone di frequency() che è stato esteso agli oggetti Dyad…</li>
+<li>aggiunto as.ts.DyadStream come fix di diff.ts(). Potrebbe avere conseguenze.</li>
+</ul>
+</div>
+<div id="filters.r" class="section level5">
+<h5>filters.R</h5>
+<ul>
+<li><strong>IMPORTANTE:</strong> cambiato sostanzialmente l’approccio ai filtri. La funzione filtro deve essere più semplice possibile, e funzionare su un solo vettore. Altre funzioni poi devono occuparsi di applicare il filtro base ad oggetti complessi:
+<ul>
+<li>expApply() deprecato. Può essere utile in alcune situazioni, ma forse meglio estendere lapply.DyadExperiment</li>
+<li>signalFilter() applica una funzione (filtro) su s1 e s2 in oggetti Dyad….</li>
+<li>movAv() non è più un metodo generico</li>
+</ul></li>
+</ul>
+</div>
+<div id="random.r" class="section level5">
+<h5>random.R</h5>
+<ul>
+<li>diversi export di funzioni</li>
+<li>aggiornamenti dal vecchio DyadClass a rIP</li>
+<li>nuovo approccio a dyadComb()</li>
+</ul>
+<hr />
+</div>
+</div>
+<div id="section-1" class="section level4">
+<h4>2018/07/19</h4>
+<ul>
+<li>bugfixes in catExtract.DyadExperiment</li>
+</ul>
+</div>
+<div id="section-2" class="section level4">
+<h4>2018/07/15</h4>
+<ul>
+<li>catApply.DyadSession ora permette output multipli</li>
+<li>aggiunta cloneAttr per fare copia di classAttr in un solo comando, versione generale di cloneDyadStream</li>
+<li>bug fixes on catApply and timeMaster and IO functions</li>
+</ul>
+</div>
+<div id="section-3" class="section level4">
+<h4>2018/07/15</h4>
+<ul>
+<li>bugfixes a catApply()</li>
+<li>NEW: catExtract() funzione che estrae da un DyadExperiment tutte le categorie di un tipo, e aggrega secondo i parametri specificati</li>
+<li>trasnsizione dal concetto di catSummary al concetto di “extract”</li>
+<li>dovrebbe trasformarsi in un generico “epoching” più in là</li>
+<li>Nuova funzione streamExtract()!!!</li>
+</ul>
+</div>
+<div id="section-4" class="section level4">
+<h4>2018/07/14</h4>
+<ul>
+<li>migliorie a PMBest: aggiunti un threshold minimo per i match, e una durata minima per le finestre di sincronizzazione.</li>
+<li>PMBest testato accuratamente (restano solo alcuni dubbi sulla procedura di sync, cfr. todo)</li>
+<li>readDyadExperiment scorporato in IOgeneric() che si occupa di tutti i lavori di manipolazione file, e readDyadSignal() e readDyadCategory() che fanno cose specifiche per segnali numerici o tabelle categoriali.</li>
+<li>introdotta catApply() funzione generica per eseguire una funzione su ciascuna finestra categoriale</li>
+<li>CCFBest reso compatibile con “class structure v3” e testato</li>
+<li>migliorie a window.DyadStream() che ora supporta anche duration</li>
+<li>migliorie a ‘classAttr&lt;-’ che ora non sovrascrive ‘tsp’ se presente anche nel oggetto di destinazione</li>
+</ul>
+</div>
+<div id="section-5" class="section level4">
+<h4>2018/07/11</h4>
+<ul>
+<li>NAartifacts renamed to setArtefacts</li>
+<li>setArtefacts working with v3</li>
+<li>added $time component to DyadSignals</li>
+<li>fixed aliases in rIP_get.R</li>
+</ul>
+</div>
+<div id="section-6" class="section level4">
+<h4>2018/07/10</h4>
+<ul>
+<li>flexMA è un metodo S3 generale</li>
+<li>classAttr permette di estrarre e copiare attributes in modo sicuro</li>
+<li>PMBest testato. Aggiunto un threshold per accettare i match p-p v-v. Un buon valore sembra 0.7</li>
+</ul>
+</div>
+<div id="section-7" class="section level4">
+<h4>2018/07/09 18:47</h4>
+<ul>
+<li>PMBest completamente compatibile con la v3</li>
+</ul>
+</div>
+<div id="class-structure-v3" class="section level4">
+<h4>2018/07/08 15:56 “class structure v3”</h4>
 <ul>
 <li>sostituito con c() i vecchi experimentMerge</li>
 <li>ho tolto signals e categ da DyadSession!!!! non aveva particolarmente senso tenere session$signals e session$category allo stesso livello, visto che non ci sono analisi solo categoriali (per definizione di IP), ha più senso considerare categ come un tipo speciale di signal, e risparmiare un livello. Es: invece di session$signals$SC –&gt; session$SC</li>
 <li>ho cambiato la struttura delle analisi ccf nella classe, per renderela più astratta e generalizzabile. Ora c’è una classe CCFBest e PMBest per tenere i risultati delle analisi. Ciascuno contiene un vettore sync, uno lag, una tabella table con vari calcoli, e attributi con i settings.</li>
 <li>ho tolto tutti i metadata dalle liste e le ho messe negli attributes,</li>
 </ul>
+<hr />
 </div>
 <div id="initial-changes" class="section level4">
 <h4>initial changes</h4>

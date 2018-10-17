@@ -256,10 +256,10 @@ is.DyadCategory = function(x) inherits(x,"DyadCategory") && length(x)
 ##   -class: list DyadSession
 DyadSignal = function(name="some signal",s1=NULL,s2=NULL,sampRate=NULL, s1Name, s2Name){
   x = list(
-    s1 = DyadStream(stream = s1, name=s1Name, sampRate = sampRate, col = "deeppink3",  lty=1, lwd=2),
-    s2 = DyadStream(stream = s2, name=s2Name, sampRate = sampRate, col = "dodgerblue3", lty=1, lwd=2),
+    s1 = DyadStream(stream = s1, name=s1Name, frequency = sampRate, col = "deeppink3",  lty=1, lwd=2),
+    s2 = DyadStream(stream = s2, name=s2Name, frequency = sampRate, col = "dodgerblue3", lty=1, lwd=2),
     time = time(s1),
-    valid = DyadStream(stream = ts(rep(TRUE, length(s1)),start=start(s1),end= end(s1), frequency = frequency(s1) ), name="valid", sampRate = sampRate, col = "dodgerblue3", lty=1, lwd=2)
+    valid = DyadStream(stream = ts(rep(TRUE, length(s1)),start=start(s1),end= end(s1), frequency = frequency(s1) ), name="valid", sampRate = sampRate, col = "darkgrey", lty=1, lwd=2)
   )
   attributes(x) = c(attributes(x),list(
     name = name,
@@ -300,10 +300,10 @@ DyadStream = function(stream, name, col=1, lty=1, lwd=1, ...){
   if(!is.ts(stream)){
     stream = ts(stream, ...)
     l = list(...)
-    if(!all(c("start","frequency")%in%names(l)))
+    if(!all(c("start","frequency")%in%names(l)) )
       warning( paste0("Stream '",name,"' was coerced to ts starting at ",
-               timeMaster(start(stream)[1],out = "hour"),", with sampRate of: ",
-               sampRate,"Hz, and duration of: ",timeMaster(end(stream)[1],out = "hour"),
+                timeMaster(start(stream)[1],out = "hour"),", with sampRate of: ",
+                frequency(stream),"Hz, and duration of: ",timeMaster(end(stream)[1],out = "hour"),
                ".\r\n"),
         call.=F)
   }
@@ -386,3 +386,7 @@ window.DyadStream = function(x, duration, ...){
   classAttr(res) = classAttr(x)
   res
 }
+
+
+#' @export
+as.ts.DyadStream = function(x){class(x) = class(x)[class(x)!="DyadStream"]; x} #this is needed to fix diff.ts() on dyadstreams

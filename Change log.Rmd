@@ -9,6 +9,38 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## v.1.0.0.9001
 
+#### 2018/10/17
+Questa versione è ad uno stato di sviluppo instabile, ma per avere un punto di backup.
+
+#####Sync_CCFBest.R
+  * eliminato il warning sui 5 secondi di lag
+  * aggiunto il parametro "outputName" per salvare diversi CCFBest nello stesso DyadSignal
+  * aggiunto kleinbubIndex session index, in alternativa a Marci Concordance
+  * aggiunta ccfBestSlope, come ccfBest, ma fa le correlazioni sullo slope. Non bastava aggiungere un parametro?
+  
+#####Sync_PMBest.R
+  * pmBest, aggiunto il parametro "algorithm" per specificare il tipo di ppSync, classico, "dev", o sloped cross correlations
+    * dev: ogni sequenza picco-valle di s1 e s2 è stretchata alla stessa lunghezza (durata)
+    * sccf (o wccs): PM trova la sequenza di best lag, poi la solita windowed CC sulle slope, applicando per ogni finestra la lag corrispondente
+  * aggiunto il parametro "outputName" per salvare diversi CCFBest nello stesso DyadSignal
+  
+#####classes.R
+  * sampRate() deprecato. è un clone di frequency() che è stato esteso agli oggetti Dyad...
+  * aggiunto as.ts.DyadStream come fix di diff.ts(). Potrebbe avere conseguenze.
+  
+#####filters.R
+  * **IMPORTANTE:** cambiato sostanzialmente l'approccio ai filtri. La funzione filtro deve essere più semplice possibile, e funzionare su un solo vettore. Altre funzioni poi devono occuparsi di applicare il filtro base ad oggetti complessi:
+    * expApply() deprecato. Può essere utile in alcune situazioni, ma forse meglio estendere lapply.DyadExperiment
+    * signalFilter() applica una funzione (filtro) su s1 e s2 in oggetti Dyad....
+    * movAv() non è più un metodo generico
+    
+#####random.R
+  * diversi export di funzioni
+  * aggiornamenti dal vecchio DyadClass a rIP
+  * nuovo approccio a dyadComb()
+  
+---------------------------------------
+
 #### 2018/07/19
 * bugfixes in catExtract.DyadExperiment
 
@@ -54,6 +86,8 @@ knitr::opts_chunk$set(echo = TRUE)
 * ho tolto signals e categ da DyadSession!!!! non aveva particolarmente senso tenere session\$signals e session\$category allo stesso livello, visto che non ci sono analisi solo categoriali (per definizione di IP), ha più senso considerare categ come un tipo speciale di signal, e risparmiare un livello. Es: invece di session\$signals\$SC --> session\$SC
 * ho cambiato la struttura delle analisi ccf nella classe, per renderela più astratta e generalizzabile. Ora c'è una classe CCFBest e PMBest per tenere i risultati delle analisi. Ciascuno contiene un vettore sync, uno lag, una tabella table con vari calcoli, e attributi con i settings. 
 * ho tolto tutti i metadata dalle liste e le ho messe negli attributes, 
+
+---------------------------------------
 
 #### initial changes
 

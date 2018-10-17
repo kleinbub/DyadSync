@@ -2,7 +2,8 @@
 % Please edit documentation in R/rIP_utilities.R
 \name{expApply}
 \alias{expApply}
-\title{Title
+\title{THIS IS OLD
+USE signalFilter instead
 applies a function on each signal of an experiment.}
 \usage{
 expApply(experiment, signals = "all", FUN, ...)
@@ -19,7 +20,8 @@ and other objects, the names must be specified}
 \item{...}{further arguments passed to lapply}
 }
 \description{
-Title
+THIS IS OLD
+USE signalFilter instead
 applies a function on each signal of an experiment.
 }
 \details{

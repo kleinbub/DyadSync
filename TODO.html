@@ -127,28 +127,21 @@ $(document).ready(function () {
 
 <div id="development" class="section level2">
 <h2>Development</h2>
-<div id="non-puoi-rifinire-per-sempre." class="section level3">
-<h3>non puoi rifinire per sempre.</h3>
-<ol start="3" style="list-style-type: decimal">
-<li>analisi Napoli</li>
-<li>analisi Brasini</li>
-<li>analisi Gennaro</li>
-</ol>
 </div>
+<div id="high-alert" class="section level2">
+<h2>High alert:</h2>
+<ul>
+<li>in xbest di PMbest ci sono delle (rare) occorrenze in cui lo stesso picco viene usato 2 volte, che è grave.</li>
+</ul>
 </div>
 <div id="clean-up" class="section level2">
 <h2>Clean Up</h2>
 <ul>
 <li>cat –&gt; epoch</li>
-<li>trova e sostituisci:
-<ul>
-<li>$ccf$settings</li>
-<li>$ccf $ccfmat</li>
-<li>tutti i $sampRate diventano sampRate()</li>
-<li>tutti i $name diventano name()</li>
-<li>getCCF</li>
-<li>attributes(experiment2)=attributes(experiment) è male perché sovrascrive anche l’attributo “names”</li>
-</ul></li>
+<li>sampRate() diventa frequency()</li>
+<li>sccf sarebbe meglio wccs “window cross corr of slopes”</li>
+<li>avere una funzione diversa per CCFBestSlope è stupido. elimina e aggiungi un parametro a CCFBest</li>
+<li>aggiungi ‘…’ a PMBest e CCFBest, per accomodare i parametri di eventuali altri algoritmi di calcolo.</li>
 </ul>
 </div>
 <div id="next-steps" class="section level2">
@@ -159,6 +152,8 @@ $(document).ready(function () {
 <li>implementare <strong>meglio</strong> NAartifact, in modo da renderlo universale
 <ul>
 <li><strong>NB!!!!!</strong> setArtefacts al momento non capisce i diversi dyadID!!!!</li>
+<li>salvare una timeseries “valid” fa cagare, ad esempio con filtri e altro, il riferimento deve essere sempre temporale.</li>
+<li>inoltre salvare un “valid” solo è problematico nella pseudosincronia (random)</li>
 <li>difficile usare valid con le ts con frequenza diversa tipo CCFBest. Quindi per ora limitati a PMBest, poi dovrai implementare un windowed assign: se invece di salvare valid salvi le epoche start-end degli artefatti poi puoi eliminarli così:</li>
 </ul>
 <pre class="r"><code>  asd = ts(1:101, frequency=10,start=0)
@@ -203,6 +198,7 @@ $(document).ready(function () {
 <div id="low-priority" class="section level3">
 <h3>low priority</h3>
 <ul>
+<li>sampRate() è un brutto duplicato di frequency(). PURGA!</li>
 <li>catApply stop() se la sync/streamkey/valid/category/etc.. non esistono. al momento gira comunque e da errori strani #### DyadExperiment</li>
 <li>in PMBest dif-dif prova a usare il quadrato di similarity, invece di un threshold molto alto. In questo modo si penalizzano i match mediocri e si potenziano quelli alti anche se più laggati.</li>
 <li>quando crei experiment fai tutti i check di coerenza interna e magari salva esplicitamente il tipo di disegno, longitudinale, gruppi, misto</li>

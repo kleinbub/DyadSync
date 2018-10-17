@@ -23,25 +23,24 @@
 #interpolate = if TRUE, the CCF is translated to the same sampling rate of the signal
 #simplify = if TRUE, only the ccf matrix will be reduced to discrete seconds of lag.
 
+
+
 #' Title
 #'
-#' @param experiment 
+#' @param x 
 #' @param signals 
 #' @param lagSec 
 #' @param winSec 
 #' @param incSec 
 #' @param accelSec 
-#' @param weight 
-#' @param interpolate 
+#' @param weight_type 
 #' @param simplify 
 #'
 #' @return
 #' @export
 #'
 #' @examples
-#' 
-
-ccfBest = function(x, signals="all", lagSec,winSec,incSec,accelSec,weight_type=c("center","free"),simplify = T)
+ccfBest = function(x, signals="all", lagSec,winSec,incSec,accelSec,weight_type=c("center","free","off"),simplify = T)
 {
   UseMethod("ccfBest",x)
 }
@@ -69,11 +68,12 @@ ccfBest.DyadExperiment = function(experiment, signals, lagSec,winSec,incSec,acce
   cat("\r\nDone ;)")
   attributes(experiment2)=attributes(experiment)
   return(experiment2)
+  if(lagSec > 5)  warning("SC latency from stimuli is between 1 and 5 sec. Bigger lags are robably wrong in a stimulus-response perspective")
+  
 }
 
-
+#' @export
 ccfBest.DyadSignal = function(signal, lagSec,winSec,incSec,accelSec,weight_type,simplify=T){
-  if(lagSec > 5)  warning("SC latency from stimuli is between 1 and 5 sec. Bigger lags are robably wrong in a stimulus-response perspective")
   
   signal$CCFBest = CCFBest(NULL,NULL,NULL, lagSec,winSec,incSec,accelSec,weight_type)
   
@@ -90,7 +90,7 @@ ccfBest.DyadSignal = function(signal, lagSec,winSec,incSec,accelSec,weight_type,
 }
 
 
-dyadCCF = function(signal,lagSec,winSec,incSec, simplify){
+dyadCCF = function(signal,lagSec,winSec,incSec, simplify, outputName = "CCFBest"){
   if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
   sampRate = sampRate(signal)
   #import C correlation function
@@ -128,14 +128,14 @@ dyadCCF = function(signal,lagSec,winSec,incSec, simplify){
       }))
     }#fine else
   }) #fine lapply finestre
-  signal$CCFBest$table = data.frame(matrix(unlist(lcc),ncol=length(ran), byrow = T, dimnames=list(paste0("w",seq_len(n_win)),paste0("lag",ran))))
-  colnames(signal$CCFBest$table) = paste0("lag",ran)
+  signal[[outputName]]$table = data.frame(matrix(unlist(lcc),ncol=length(ran), byrow = T, dimnames=list(paste0("w",seq_len(n_win)),paste0("lag",ran))))
+  colnames(signal[[outputName]]$table) = paste0("lag",ran)
   # signal$ccf$ccfmat[is.na(signal$ccf$ccfmat)] = 0
   xStart = c(start(signal)[1] +winSec/2,1)
-  signal$CCFBest$zero =DyadStream(signal$CCFBest$table[["lag0"]],"lagZeroSync","#A11F12",start=xStart,frequency=1/incSec )
+  signal[[outputName]]$zero =DyadStream(signal[[outputName]]$table[["lag0"]],"lagZeroSync","#A11F12",start=xStart,frequency=1/incSec )
   #dimostrazione che la CCF inizia a metà della finestra!
   # plot(rangeRescale(window(signal$s1,start=277,end=277+15),-1,1),type="l");abline(v=277+7.5,lty=3)
-  # points(signal$CCFBest$zero)
+  # points(signal[[outputName]]$zero)
   # abline(v=277+7.5+incSec*0:5,lty=3)
   return(signal)
 }
@@ -147,30 +147,32 @@ dyadCCF = function(signal,lagSec,winSec,incSec, simplify){
 #la flessibilità della funzione dipende da:
 ## -accelSec: indica di quanti secondi può variare il lag ogni secondo di segnale
 ## - weight_type: BOOL indica se rendere elastica la lag o no (attualmente l'elastico tira verso il valore attuale, non lag0)
-vectorBestLag = function(signal, accelSec, weight_type=c("off","center","free")){
+vectorBestLag = function(signal, accelSec, weight_type=c("off","center","free"), outputName = "CCFBest"){
   if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
   weight_type = match.arg(weight_type)
-  mat = as.matrix(signal$CCFBest$table)
+  mat = as.matrix(signal[[outputName]]$table)
   sampRate = sampRate(signal)
   
   #ora a è più corretto e funziona anche se simplify = TRUE
-  colFrequency = (ncol(mat)-1)/(2*attr(signal$CCFBest,"lagSec")) #quante colonne compongono un secondo?
-  incSec = attr(signal$CCFBest,"incSec") #quante righe compongono un secondo?
+  colFrequency = (ncol(mat)-1)/(2*attr(signal[[outputName]],"lagSec")) #quante colonne compongono un secondo?
+  incSec = attr(signal[[outputName]],"incSec") #quante righe compongono un secondo?
   #muovere la lag di 1 secondo ogni secondo di segnale, implica muovere di 'acc' colonne per ogni riga:
   acc = colFrequency*incSec
   #a = n colonne per muovere la lag di accelSec secondi al secondo
   a = accelSec*acc
   if(a<1) stop ("With chosen [incSec, sampRate, and simplify], accelSec must be at least:", 1/acc)
-  if(a%%1!=0) {
+  if(a%%1!=0) { #if not integer
     a = max(1,round(a))
-    realAccelSec = a/acc
-    #show the warning only once, per setting.
-    if(getOption("accelSec_check")!=paste0(accelSec,incSec,sampRate,simplify) ) {
-      warning ("With chosen [incSec, sampRate, and simplify], accelSec should be a multiple of ",acc,
-               " that returns an integer. Eg:\r\n",paste(1:10/acc,collapse = ", "),
-               "\r\nAccelSec was approximated to ",realAccelSec)
-    }
-    options("accelSec_check"=paste0(accelSec,incSec,sampRate,simplify)) 
+    ## this code stinks
+    # simplify = attr(signal$CCFBestSlope,"simplify"); accelSec = attr(signal$CCFBestSlope,"accelSec")
+    # incSec = attr(signal$CCFBestSlope,"incSec")
+    # #show the warning only once, per setting.
+    # if(getOption("accelSec_check")!=paste0(accelSec,incSec,sampRate,simplify) ) {
+    #   warning ("With chosen [incSec, sampRate, and simplify], accelSec should be a multiple of ",acc,
+    #            " that returns an integer. Eg:\r\n",paste(1:10/acc,collapse = ", "),
+    #            "\r\nAccelSec was approximated to ",a/acc)
+    # }
+    # options("accelSec_check"=paste0(accelSec,incSec,sampRate,simplify)) 
   }
 
   
@@ -234,10 +236,10 @@ vectorBestLag = function(signal, accelSec, weight_type=c("off","center","free"))
   }
   
   blag = (blag-lag0)/colFrequency #trasforms blag from columns to seconds
-  signal$CCFBest$table = cbind(signal$CCFBest$table, "bestCCF" = bCC, "bestLag" = blag)
-  xStart = c(start(signal)[1] +attr(signal$CCFBest,"winSec")/2,1)
-  signal$CCFBest$sync = DyadStream(bCC,  name="bestCCF", "#FF0041", start=xStart, frequency= 1/incSec )
-  signal$CCFBest$lag  = DyadStream(blag, name="bestLAG", "#BFBF00", start=xStart, frequency= 1/incSec )
+  signal[[outputName]]$table = cbind(signal[[outputName]]$table, "bestCCF" = bCC, "bestLag" = blag)
+  xStart = c(start(signal)[1] +attr(signal[[outputName]],"winSec")/2,1)
+  signal[[outputName]]$sync = DyadStream(bCC,  name="bestCCF", "#FF0041", start=xStart, frequency= 1/incSec )
+  signal[[outputName]]$lag  = DyadStream(blag, name="bestLAG", "#BFBF00", start=xStart, frequency= 1/incSec )
 
   return(signal)
 }
@@ -254,8 +256,9 @@ vectorBestLag = function(signal, accelSec, weight_type=c("off","center","free"))
 
 marciIndex = function(a){
   if(is.list(a)){ ##se 'a' è una lista, applica l'indice a ogni elemento della lista
-    matrix(unlist(lapply(a, function(iFile){apply(iFile,2,marciIndex)})),nrow=length(a),byrow=T)
+    sapply(a, function(iFile){apply(iFile,2,marciIndex)})
   } else {
+    a = na.omit(as.numeric(a))
     x=log(sum(a[a >0]) / abs(sum(a[a<0]))) #formula dell'indice
     if(!is.na(x)){
       if(x>=10)x=10 else if(x <= -10)x=-10
@@ -263,6 +266,93 @@ marciIndex = function(a){
     x
   }
 }
+
+#' Title
+#'
+#' @param a 
+#'
+#' @return
+#' @export
+
+kleinbubIndex=function(a){ #KSI = kleinbub session index
+  if(is.list(a)){ ##se 'a' è una lista, applica l'indice a ogni elemento della lista
+    sapply(a, function(iFile){apply(iFile,2,kleinbubIndex)})
+  } else {
+  n = length(a)
+  a = na.omit(as.numeric(a))
+  a = a[a > 0]
+  median(a)
+  }
+}
+
+
+
+#' ccfBest function but applied on the slope
+#' eventually a moving average is further performed on data to mimic Marci et al 2007 procedure.
+#'
+#' @param x 
+#' @param signals 
+#' @param lagSec 
+#' @param winSec 
+#' @param incSec 
+#' @param accelSec 
+#' @param weight_type 
+#' @param simplify 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ccfBestSlope = function(x, signals="all", lagSec,winSec,incSec,accelSec, MAwin, MAinc, weight_type=c("center","free","off"),simplify = T)
+{
+  UseMethod("ccfBestSlope",x)
+}
+
+#' @export
+ccfBestSlope.DyadExperiment = function(experiment, signals, lagSec,winSec,incSec,accelSec, MAwin, MAinc,weight_type,simplify){
+  cat("\r\nccfBestSlope routine | moving windows cross-correlation with sync maximizing\r\nWith the chosen settings,
+      the best lag is able to change by +/-",
+      (accelSec)/(incSec),
+      "seconds each second of signal." )
+  cat(paste0("\r\nHigh Sync at positive lags implies that the ",s2Name(experiment[[1]]), " follows the ",
+             s1Name(experiment[[1]]),"\r\n"))
+  nSessions = length(experiment)
+  experiment2 = Map(function(session,iSession){
+    if(signals=="all") signals = names(session)
+    cat("\r\n",paste(dyadId(session),session(session)))
+    session[signals] = Map(function(signal,iSignal){
+      cat(" |",name(signal))
+      signal = ccfBestSlope(signal, lagSec,winSec,incSec,accelSec,MAwin,MAinc,weight_type,simplify)
+      return(signal)
+    }, session[signals])
+    #prog(iSession,nSessions)
+    return(session)
+  },experiment,seq_along(experiment))
+  cat("\r\nDone ;)")
+  attributes(experiment2)=attributes(experiment)
+  return(experiment2)
+  if(lagSec > 5)  warning("SC latency from stimuli is between 1 and 5 sec. Bigger lags are robably wrong in a stimulus-response perspective")
+  
+}
+
+#' @export
+ccfBestSlope.DyadSignal = function(signal, lagSec,winSec,incSec,accelSec, MAwin, MAinc,weight_type,simplify=T){
+  signal$CCFBestSlope = CCFBest(NULL,NULL,NULL, lagSec,winSec,incSec,accelSec,weight_type, MAwin, MAinc)
+  origs1 = signal$s1
+  origs2 = signal$s2
+  signal = signalFilter(signal,diff)
+  if(MAwin>0){
+    signal = signalFilter(signal,movAv,MAwin,MAinc)
+  }
+  signal = dyadCCF(signal,lagSec,winSec,incSec,simplify,"CCFBestSlope")
+  signal = vectorBestLag(signal,accelSec,weight_type,"CCFBestSlope")
+  signal$s1 = origs1
+  signal$s2 = origs2
+  
+  signal
+}
+
+
 
 #this function extracts a column from ccfmat of a given signal
 #the data is extracted as a DyadStream object with appropriate frequency

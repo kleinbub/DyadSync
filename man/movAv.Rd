@@ -4,30 +4,19 @@
 \alias{movAv}
 \title{Title}
 \usage{
-movAv(x, win, remove = F)
+movAv(x, win, inc, sampRate = frequency(x), remove = F)
 }
 \arguments{
 \item{x}{}
 
-\item{win}{if x has a frequency, it will be the window size in seconds. Otherwise in samples.}
+\item{win}{}
+
+\item{inc}{}
+
+\item{sampRate}{}
 
 \item{remove}{}
 }
 \description{
 Title
-}
-\details{
-please note that MA filters are not adequate to smooth sync calculation that shifts
-often between extreme negative and positive values.
-}
-\examples{
-a = c(rep(0,20),rep(5,20),rep(10,20),rep(20,20))
-plot(a)
-lines(movAv(a,10,F))
-lines(movAv(a,20,F),col=3)
-b=DyadStream(a,"test",col=2,frequency = 10, start=0)
-lines(movAv(b,2,F),col=color(b),lty=3)
-sig=list("s1" = b, s2 = b)
-class(sig) ="DyadSignal" 
-lines(movAv(sig$s1,2,F),col="skyblue",lwd=2)
 }

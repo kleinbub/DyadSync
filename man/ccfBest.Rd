@@ -5,9 +5,11 @@
 \title{Title}
 \usage{
 ccfBest(x, signals = "all", lagSec, winSec, incSec, accelSec,
-  weight_type = c("center", "free"), simplify = T)
+  weight_type = c("center", "free", "off"), simplify = T)
 }
 \arguments{
+\item{x}{}
+
 \item{signals}{}
 
 \item{lagSec}{}
@@ -18,17 +20,10 @@ ccfBest(x, signals = "all", lagSec, winSec, incSec, accelSec,
 
 \item{accelSec}{}
 
+\item{weight_type}{}
+
 \item{simplify}{}
-
-\item{experiment}{}
-
-\item{weight}{}
-
-\item{interpolate}{}
 }
 \description{
 Title
-}
-\examples{
-
 }

@@ -21,6 +21,60 @@
 #
 ############################################################################################################ 
 
+
+#' apply a function on each dyad's member signal
+#'
+#' @param signal DyadSignal Object 
+#' @param FUN 
+#' @param ... additional parameters of FUN
+#' @param newAttributes named list of attributes to be added or replaced
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' 
+signalFilter = function (x, FUN, ..., newAttributes=NULL, signals="all") {
+  UseMethod("signalFilter",x)
+}
+#' @export
+signalFilter.DyadExperiment = function (x, FUN, ..., newAttributes=NULL, signals="all") {
+  #for each session
+  experiment2 = Map(function (session,nSession){
+    #find signal names
+    if(length(signals)==1 && signals=="all") {
+      sigs = names(session)[sapply(session,is.DyadSignal)]
+    } else sigs = signals
+    #apply signalFilter on each DyadSignal object
+    session[names(session) %in% sigs] = lapply(session[names(session) %in% sigs],  signalFilter, FUN, ..., newAttributes, signals=NULL)
+    prog(nSession,length(x))
+    return(session)
+  },x,seq_along(x))
+  experiment2 = cloneAttr(x,experiment2)
+  return(experiment2)
+}
+#' @export
+signalFilter.DyadSignal = function (x, FUN, ..., newAttributes=NULL, signals=NULL) {
+  if(!is(x,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
+  FUN = match.fun(FUN)
+  ress1 = FUN(x$s1, ...)
+  ress2 = FUN(x$s2, ...)
+  if(!is.ts(ress1)) ress1 = ts(ress1, start=start(x$s1), frequency=frequency(x$s1))
+  if(!is.ts(ress2)) ress2 = ts(ress2, start=start(x$s2), frequency=frequency(x$s2))
+  
+  x$s1 = cloneAttr(x$s1, ress1)
+  x$s2 = cloneAttr(x$s2, ress2)
+  x$time = time(x$s1)
+  if(!is.null(newAttributes)){
+    if("filter"%in%names(newAttributes)){
+      newAttributes[["filter"]] = paste0(attributes(x)[["filter"]]," -> ",newAttributes[["filter"]])
+    }
+    attributes(x)[names(newAttributes)] = newAttributes
+  }
+  return(x)
+}
+
+
 #' setArtefacts
 #' setArtefacts legge una tabella o lista con le componenti chiamate esattamente: 'session', 'start' ed 'end'
 #' e mette ad NA tali sequenze nel segnale specificato.
@@ -85,7 +139,7 @@ setArtefacts.DyadSignal <- function(x, startEnd, signal="SC") {
     if(b == duration) sel[i,2] =  length(x$valid) #elminina tutto fino alla fine
     else  sel[i,2] = b * sampRate(x)
   }
-
+  
   #3 sostituisci con NA i segmenti
   for(i in 1:nrow(sel)){
     x$valid[sel[i,1]:sel[i,2]] = FALSE
@@ -132,6 +186,9 @@ signalDecimate = function (signal, newSampRate) {
   return(signal)
 }
 
+
+
+
 ### onlyy used one in connect area of graphic library. maybe delete, maybe integrate
 # streamDecimate = function (x, newSampRate) {
 #   if(!is(x,"DyadStream")) stop("Only objects of class DyadStream can be processed by this function")
@@ -172,58 +229,32 @@ winInter = function(windowsList, winSec, incSec, sampRate){
 
 #movAv has improved managing of burn-in and burn-out sequences
 #if in doubt use this.
+
+
+
 #' Title
 #'
 #' @param x 
-#' @param win if x has a frequency, it will be the window size in seconds. Otherwise in samples.
+#' @param win 
+#' @param inc 
+#' @param sampRate 
 #' @param remove 
 #'
 #' @return
-#' @details please note that MA filters are not adequate to smooth sync calculation that shifts
-#' often between extreme negative and positive values.
 #' @export
 #'
-#' @examples
-#' a = c(rep(0,20),rep(5,20),rep(10,20),rep(20,20))
-#' plot(a)
-#' lines(movAv(a,10,F))
-#' lines(movAv(a,20,F),col=3)
-#' b=DyadStream(a,"test",col=2,frequency = 10, start=0)
-#' lines(movAv(b,2,F),col=color(b),lty=3)
-#' sig=list("s1" = b, s2 = b)
-#' class(sig) ="DyadSignal" 
-#' lines(movAv(sig$s1,2,F),col="skyblue",lwd=2)
 
-
-movAv = function(x, win, remove=F) {
-  UseMethod("movAv",x)
-}
-#' @export
-movAv.DyadSignal = function(signal,win,remove=F){
-  res = lapply(list(signal$s1,signal$s2), movAv, win=win, remove=remove)
-  signal$s1 = res[[1]]
-  signal$s2 = res[[2]]
-  return(signal)
-}
-#' @export
-movAv.DyadStream = movAv.ts = function(x,win,remove=F){
-  sampRate=frequency(x)
-  y = movAv.default(x,win*sampRate,remove=F)
-  classAttr(y) = classAttr(x)
-  y
-}
-#' @export
-movAv.default = function(x,win,sampRate,remove=F){
+movAv = function(x,win,inc,sampRate=frequency(x),remove=F){
   win2 = floor(win/2)
-    len = length(x)
-    f = unlist(lapply(seq_along(x),function(t){
-      i1 = ifelse(t <= win2, 1, (t-win2) )
-      i2 = ifelse(t+win2 >= len, len, (t+win2) )
-      sum(x[i1:i2])/length(i1:i2)
-    }))
-    if(remove){
-      x-f
-    }else  f
+  len = length(x)
+  f = unlist(lapply(seq_along(x),function(t){
+    i1 = if(t <= win2) 1 else (t-win2) 
+    i2 = if(t+win2 >= len) len else (t+win2)
+    sum(x[i1:i2])/length(i1:i2)
+  }))
+  if(remove){
+    x-f
+  }else  f
 }
 
 

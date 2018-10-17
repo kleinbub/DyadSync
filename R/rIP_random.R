@@ -25,7 +25,7 @@
 #quindi nuove diadi composte dal segnale di due pazienti sono possibili.
 
 getCombo = function(n_dyads, max_combo=10000){
-  elements = c(paste0("patient:",1:n_dyads),paste0("clinician:",1:n_dyads))
+  elements = c(paste0("s1",":",1:n_dyads),paste0("s2",":",1:n_dyads))
   combo = combn(elements,2)
   comborem = sapply(1:ncol(combo), function(i){strsplit(combo[1,i],":")[[1]][2] != strsplit(combo[2,i],":")[[1]][2] })
   combo = combo[,comborem]
@@ -38,10 +38,10 @@ getCombo = function(n_dyads, max_combo=10000){
     com = data.frame(t(combo[,zamp]),stringsAsFactors=F)
   }
   rownames(com)=1:nrow(com)
-  cat(paste("\r\n",nrow(com),"combinations selected"))
+  cat(paste("\r\n",nrow(com),"drawn out of",nCombo(n_dyads),"possible combinations"))
   print(table(as.vector(as.matrix(com))))
   par(las=2,oma=c(2,0,0,0))
-  plot(table(as.vector(as.matrix(com))),main="Signal instances in sample")
+  plot(table(as.vector(as.matrix(com))),main="Signal instances in sample", ylab = "number of instances")
   com$ranx_session = sapply(com$X1, function(x) as.numeric(strsplit(x,":")[[1]][2]))
   com$ranx_role = sapply(com$X1, function(x) strsplit(x,":")[[1]][1])
   com$rany_session = sapply(com$X2, function(x) as.numeric(strsplit(x,":")[[1]][2]))
@@ -50,6 +50,16 @@ getCombo = function(n_dyads, max_combo=10000){
   ##print(table(c(as.numeric(com$ranx_session),as.numeric(com$rany_session))))
   return(com)
 }
+
+#' Calculate the number of possible pseudo-dyads
+#'
+#' @param n_dyads 
+#' @param max_combo 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 nCombo = function(n_dyads, max_combo=10000){
   n = n_dyads*2
   r=2
@@ -68,12 +78,29 @@ nCombo = function(n_dyads, max_combo=10000){
 ## dyadPerm uses permutations, which allow for exact testing.
 ## dyadShift instead of shuffling between dyads, shifts and reverse the data inside each dyad.
 
+#' Title
+#'
+#' @param x 
+#' @param ... 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 dyadComb = function(x,...) {UseMethod("dyadComb")}
 
+#' @export
 dyadComb.DyadExperiment = function(exper, n, signals="all", verbose=F){
 
   #Questa funzione accetta in ingresso un esperimento, e genera un nuovo esperimento con n "sedute"
   #random, in cui vengono scombinati gli appaiamenti paziente/terapeuta
+  
+  
+  #debug
+  # exper = lr
+  # n =10
+  # signals="all"
+  # verbose = T
 
   if(sum(signals == "all")){
     signals = names(exper[[1]])
@@ -90,9 +117,10 @@ dyadComb.DyadExperiment = function(exper, n, signals="all", verbose=F){
   #create a different reshuffling for each signal
   comboList = list()
   for(i in 1:length(signals)){
-    comboList[[i]]=getCombo(length(exper),n)
+    comboList[[i]]=getCombo(length(exper),n ) 
   }
   names(comboList)=signals
+  if(verbose) print(comboList)
   
   #do the magic
   sessionList = list()
@@ -100,31 +128,32 @@ dyadComb.DyadExperiment = function(exper, n, signals="all", verbose=F){
     #cat("\r\n genero la seduta posticcia ",i)
     signalList = list()
     for(j in 1:nSignals){
-      #cat("\r\n   di",nSignals,"segnali, considero il #",j,":",signals[j])
-      #cat("\r\n      prendo il segnale della seduta",comboList[[j]][i,"ranx_session"])
-      baseSignal = exper[[ comboList[[j]][i,"ranx_session"] ]][signals[j]]
-      if(comboList[[j]][i,"ranx_role"] == "clinician"){
-        #cat("e sostituisco il segnale del paziente con quello del clinico")
-        baseSignal[[1]]$s1 = baseSignal[[1]]$s2
-      }
-      #cat("\r\n      poi prendo il segnale della seduta", comboList[[j]][i,"rany_session"], "e tengo il segnale del",comboList[[j]][i,"rany_role"])
-      secondSignal = exper[[ comboList[[j]][i,"rany_session"] ]][signals[j]]
-      baseSignal[[1]]$s2 = secondSignal[[1]][[ comboList[[j]][i,"rany_role"] ]]
-      baseSignal[[1]]$ccf=NULL
-      #make the signals of the same length
-      if(length(baseSignal[[1]]$s1) > length(baseSignal[[1]]$s2) ){
-        baseSignal[[1]]$s1 = window(baseSignal[[1]]$s1, start= start(baseSignal[[1]]$s2),end=end(baseSignal[[1]]$s2))
-      } else {
-        baseSignal[[1]]$s2 = window(baseSignal[[1]]$s2, start= start(baseSignal[[1]]$s1),end=end(baseSignal[[1]]$s1))
-        
-      }
-      signalList[j] = baseSignal
+
+      #### new approach
+      #estraggo lo stream raw per la sessione ed il ruolo identificati in combolist
+      jSampRate = sampRate(exper[[1]][[signals[j]]])
+      olds1name = s1Name(exper[[ comboList[[j]][i,"ranx_session"] ]])
+      olds2name = s2Name(exper[[ comboList[[j]][i,"ranx_session"] ]])
+      
+      s1raw = as.numeric(exper[[ comboList[[j]][i,"ranx_session"] ]][[signals[j]]][[comboList[[j]][i,"ranx_role"]]])
+      s2raw = as.numeric(exper[[ comboList[[j]][i,"rany_session"] ]][[signals[j]]][[comboList[[j]][i,"rany_role"]]])
+      # tieni la lunghezza del più corto
+      s1raw = ts(s1raw[1:min(length(s1raw),length(s2raw))], frequency = jSampRate)
+      s2raw = ts(s2raw[1:min(length(s1raw),length(s2raw))], frequency = jSampRate)
+      #ricostruisci il dyadsignal
+      newSignal = DyadSignal(name= signals[j],s1 = s1raw, s2 = s2raw, sampRate = jSampRate,
+                             s1Name= paste0(comboList[[j]][i,"ranx_session"], if(comboList[[j]][i,"ranx_role"] =="s1") olds1name else olds2name ),
+                             s2Name =paste0(comboList[[j]][i,"rany_session"], if(comboList[[j]][i,"rany_role"] =="s1") olds1name else olds2name ))
+      signalList[[j]] = newSignal
+
     }
     names(signalList) = signals
     
-    sessionList[[i]] = DyadSession(sessionId = paste0("shuffle_",i),
-                                 dyadId = "random dyads",
-                                 signalList = signalList,s1Name ="random", s2Name = "random")
+    sessionList[[i]] = DyadSession(
+                                  groupId = "randomGroup",
+                                  sessionId = paste0("randomSession_",i),
+                                  dyadId = "randomDyad",
+                                  signalList = signalList, s1Name ="random", s2Name = "random",fileName = "random")
   }
   names(sessionList) = paste0("shuffle_",1:ncom)
   nexp = DyadExperiment(paste0(n,"_combinations"),sessionList)

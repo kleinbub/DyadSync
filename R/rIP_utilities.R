@@ -33,7 +33,8 @@
 
 
 ##
-#' Title
+#' THIS IS OLD
+#' USE signalFilter instead
 #' applies a function on each signal of an experiment.
 #' @param experiment 
 #' @param signals either the string "all" or a vector of signal names.
@@ -48,6 +49,7 @@
 #'
 #' @examples
 expApply = function(experiment, signals="all", FUN, ...){
+  warning("expApply just applies a function on each session. Try signalFilter!")
   #signals can either be "all" or a vector of signal names. es: c("PPG","SC").
   if(!is(experiment,"DyadExperiment")) stop("Only objects of class DyadExperiment can be processed by this function")
   fun = match.fun(FUN)
