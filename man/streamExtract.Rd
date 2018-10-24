@@ -4,8 +4,8 @@
 \alias{streamExtract}
 \title{Title}
 \usage{
-streamExtract(experiment, signal, sync = c("none", SYNC_CLASSES),
-  streamKey = c("s1", "s2", "time", "sync", "lag", "zero"), FUN = mean, ...)
+streamExtract(experiment, signal, sync = "none", streamKey = c("s1", "s2",
+  "time", "sync", "lag", "zero"), FUN = mean, ...)
 }
 \arguments{
 \item{experiment}{}

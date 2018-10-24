@@ -72,10 +72,15 @@ pmBest = function(experiment, signals="all", lagSec=7,
 peakMatch = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30,match_threshold=0.0, outputName) {
   if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
   
+  # signal = loncc$CC_1$SC
+  
   d = signal$s1
   d2  = signal$s2
-  sampRate = sampRate(signal)
+  sampRate = frequency(signal)
   ransamp = lagSec * sampRate
+  
+  sd1 = c(0,rangeRescale(diff(d),-0.5,0.5,-max(abs(diff(d))),max(abs(diff(d))) ))
+  sd2 = c(0,rangeRescale(diff(d2),-0.5,0.5,-max(abs(diff(d2))),max(abs(diff(d2))) ))
   
   ### peaks-valleys detection ########
   s1p = peakFinder(d,  sgol_p, sgol_n, mode = "p", 0.5)
@@ -112,7 +117,7 @@ peakMatch = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30,
     
     if(nMatch>0) {
       ###per ogni match
-      for(f in 1:length(matches)){
+      for(f in 1:nMatch){
         ipik2 = matches[f]
         lagv = matches[f] - ipik #distanza fra i due picchi, in samples. Valori negativi indicano giallo anticipa blu
         
@@ -132,16 +137,72 @@ peakMatch = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30,
         range1 = (ipik -l_mar):(ipik +r_mar)
         range2 = (ipik2-l_mar):(ipik2+r_mar)
         
-        # plot(ab,d[ab],type="l",ylim=c(6,7.5),xlim=c(320,400)); lines(ab2 - lagv,d2[ab2])
-        # abline(v=ipik); abline(v=ipik2 - lagv);abline(v=ipik-l_mar); abline(v=ipik+r_mar)
-        # lines(range1, d[range1], col="red",lty=2,lwd=2);lines(range2 - lagv, d2[range2], col="red",lty=2,lwd=2)
-        
         toCor1 = d[range1]
         toCor2 = d2[range2]
+        dd1 = as.numeric(diff(toCor1)); dd2 = as.numeric(diff(toCor2))
         
-        #invece delle correlazioni usa la differenza fra le derivate normalizzate
-        m2d = 1-mean(abs(rangeRescale(diff(toCor1),0,1) - rangeRescale(diff(toCor2),0,1)))
-        thisCor = m2d
+        # #invece delle correlazioni usa la differenza fra le derivate normalizzate
+        #questo è la formula classica di Agosto 2018 e precedenti. Gold standard
+        m2d = 1-mean(abs(rangeRescale(dd1,0,1) - rangeRescale(dd2,0,1)))
+        
+        # #per favore normalizzare le derivate così non ha senso! mantieni almeno il segno:
+        # dd1x = rangeRescale(dd1,-1,1,pres.signs = T)
+        # dd2x = rangeRescale(dd2,-1,1,pres.signs = T)
+        # distance = sqrt(abs(dd1x - dd2x)) # radice quadrata serve a normalizzare la distribuzione
+        # m2d = sqrt(2) - distance
+        
+        thisCorOld = mean(m2d)^2
+        # thisCorOld = mean(m2d^2)
+        
+        
+        
+        # marciCor = rangeRescale(cor(diff(toCor1),diff(toCor2)),0,1,-1,1)
+        # 
+        # ## se normalizzi ciascuna derivata, la differenza si riduce arbitrariamente.
+        # ##prova a normalizzare sulla base di minimi e massimi di entrambe le serie:
+        # 
+        # dmin = min(dd1,dd2,na.rm = T); dmax = max(dd1,dd2,na.rm = T)
+        # dd1 = rangeRescale(dd1,0,1,dmin,dmax)
+        # dd2 = rangeRescale(dd2,0,1,dmin,dmax)
+        # 
+        # #•calcola l'area di differenza massima teorica:
+        # n=length(dd1)
+        # yy = abs(sin(seq(0,2*pi,length.out = n))/2)
+        # amax = (2*sum(yy))
+        # m2d = amax-sum(abs(dd1-dd2))
+        # # m2d = 1-sqrt(mean((dd1-dd2)^2))# m2d = 1-mean(abs(dd1-dd2))
+        # thisCor = m2d/n
+        # ## bel tentativo ma farlocco. Infatti la distanza media fra le derivate è sempre più
+        # ## o meno uguale. è più interessante la correlazione, o la distanza delle derivate
+        # ## normalizzate.
+        # 
+        # #ultimo tentativo! Normalizza le slope all'inizio, quindi 0.5 è il massimo individuale!
+        # ## poi fai 1- la distanza assoluta fra le slope (max=1), che da la similitudine
+        # ## tuttavia, se il segno è diverso, qualsiasi valore di "similitudine" in realtà
+        # ## indica un trend diverso nel segnale, quindi assegna segno meno
+        # dd1 = sd1[range1]
+        # dd2 = sd2[range2]
+        # distanza = abs(dd1-dd2)
+        # simil = 1 - abs(dd1-dd2)
+        # res = mean((sign(dd1)*sign(dd2))*simil)
+        # res = rangeRescale(res,0,1,-1,1)
+        # ## Non male, ma thisCorOld resta il migliore lol!
+        
+        thisCor = thisCorOld
+        
+        
+        ## plot area ##########################
+        # tit = paste0("F:",f," - dd:",round(thisCor,2)," | sCor:",round(marciCor,2)," | ddOld:",round(thisCorOld,2)," | res:",round(res,2))
+        # 
+        # plot(range1[-1],yy+0.5,ylim=c(0,1),type="h",main=tit,col="grey80");lines(range1[-1],-yy+0.5,type="h",col=0)
+        # abline(h=0.5)
+        # lines(ab,        rangeRescale(d[ab],  0,1,xmin = min(d[ab],d2[ab2]),xmax = max(d[ab],d2[ab2])),col="blue");
+        # lines(ab2 - lagv,rangeRescale(d2[ab2],0,1,xmin = min(d[ab],d2[ab2]),xmax = max(d[ab],d2[ab2])),col="red")
+        # 
+        # lines(range1,dd1+0.5,col="grey30",lwd=2);
+        # lines(range2-lagv,dd2+0.5,col="grey1",lwd=2);
+        
+        # ###################################
         
         ## WEIGHT CORRELATION
         # weightMalus = 50 #percentuale di riduzione per il lag più estremo
@@ -150,6 +211,7 @@ peakMatch = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30,
         wx = (-ransamp):+ransamp
         weights_val = rangeRescale(dnorm(wx, mean=0, sd=1000),0,malus ) + maxMalus
         weightCor = thisCor * weights_val[lagv+ransamp+1]
+        
         
         ## POPULATE FINAL MATRIX
         M[i,matches_i[f]] = weightCor
@@ -257,8 +319,8 @@ ppSync = function(signal,minSizeSec, outputName) {
       toKeep1 = which(ab[[1]]>0 & ab[[1]]<length(d))
       toKeep2 = which(ab[[2]]>0 & ab[[2]]<length(d2))
       ab = lapply(ab, function(x) x[if(length(toKeep1)<length(toKeep2)) toKeep1 else toKeep2  ])
-      # iCor = cor(d[ab[[1]]] , d2[ab[[2]]]) #"pear"
-      iCor = cor(diff(d[ab[[1]]]) , diff(d2[ab[[2]]])) #"pear" on slopes
+      iCor = cor(d[ab[[1]]] , d2[ab[[2]]]) #"pear"
+      # iCor = cor(diff(d[ab[[1]]]) , diff(d2[ab[[2]]])) #"pear" on slopes
       
       ### [MODE 2] stretch the shorter to the width of the longer #########
       # #is this working?
@@ -411,7 +473,8 @@ ppSync_dev = function(signal,minSizeSec, outputName) {
     }
     
     if(length(rs1) >= minSizeSec*sampRate){
-      iCor = cor(diff(rs1),diff(rs2), use = "c")
+      iCor = cor(rs1,rs2, use = "c")
+      # iCor = cor(diff(rs1),diff(rs2), use = "c")
       
       # ### diagnostic plot ####
       # par(mfrow=c(2,2))
@@ -487,14 +550,14 @@ ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
   
   #import C correlation function
   C_cor=get("C_cor", asNamespace("stats"))
-  cat(" - dev version of ppSync")
+  cat(" - wccs version of ppSync")
   #please refer to ppSync dev.R in research folder of DyadClass
   
   # signal = mimic$s09_01$SC
   # outputName = "PMsccf"
   # minSizeSec=5 <-- can be smaller as the check is on the shorter segment?
   if(is.null(signal[[outputName]])||is.null(signal[[outputName]]$xBest)) stop("Please run peakMatch before.")
-
+  
   lagSec = attr(signal[[outputName]], "lagSec")
   sampRate = sampRate(signal)
   ransamp = lagSec * sampRate
@@ -503,7 +566,7 @@ ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
   
   iFile = data.frame(movAv(diff(signal$s1),5,1),
                      movAv(diff(signal$s2),5,1))
-
+  
   #crea il vettore di lag al sample rate finale
   lagvec = rep(NA,nrow(iFile) )
   lags = xbest$lag
@@ -518,7 +581,7 @@ ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
   }
   lagvec[is.na(lagvec)] = lags[length(lags)] #fix the last values
   # lagvecsec = lagvec[seq(1,length(lagvec),by=sampRate)]
-
+  
   #ora CCF!!
   win = winSec*sampRate
   lagSamp = lagSec*sampRate
@@ -536,9 +599,11 @@ ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
     yWin = iFile[ab+iLag,2] #estrai i dati della finestra in un vettore per sogg x e y
     # plot(ab,rangeRescale(iFile[ab,1],1,0),type="l");lines(ab,rangeRescale(iFile[ab+iLag,2],1,0),lty=3)
     if(sum(xWin!=yWin,na.rm = T)<length(xWin)/2 )  NA #controlla che ci siano almeno 3 punti !=0
-    else suppressWarnings(.Call(C_cor, xWin, yWin, 2L, FALSE))
-    # else  cor(xWin,yWin)
-
+    else {
+      suppressWarnings(.Call(C_cor, xWin, yWin, 2L, FALSE))
+    }
+    
+    
   }) #fine lapply finestre
   
   
@@ -566,6 +631,7 @@ ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
 #' "samples" the index of matches in x;
 #' "seconds" the position in seconds of matches (if x is a ts object);
 #' and "type" a charachter vector defining for each "samples" value if its a 'p' peak or a 'v' valley.
+#' @export
 peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both"), correctionRangeSeconds = 0.5, valid){
   if(missing(valid)) valid = rep(T,length(x))
   sampRate = frequency(x)

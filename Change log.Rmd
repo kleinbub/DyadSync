@@ -9,6 +9,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## v.1.0.0.9001
 
+#### 2018/10/24
+Questa versione è ad uno stato di sviluppo instabile, ma PMBest (lagSec=7,match_threshold=0.5,algorithm = "dev") discrimina PS da non PS.
+
+  * unificati ccfBest e ccfBestSlope con parametro per slope e MA
+  * un sacco di immondizia su PMBest. ma fondamentale ritorno alle correlazioni sul segnale e non sulle slope!
+  * abilitate le funzioni di Extract ai diversi outputName e non solo PMBest e CCFBest
+  * dal momento che outputName: deprecata la var globale SYNC_CLASSES, eliminata hasSync
+  * aggiunto argomento pres.sign a rangeRescale. Quando la scala deve preservare i segni.
+
 #### 2018/10/17
 Questa versione è ad uno stato di sviluppo instabile, ma per avere un punto di backup.
 

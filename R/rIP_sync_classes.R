@@ -1,17 +1,17 @@
-#' @export
-SYNC_CLASSES = c("CCFBest","PMBest")
-
-#' hasSync
-#' Recursive function which checks if any of the nested object(s) (typically a DyadSignal)
-#' contains at least one children of a class defined in the global constant SYNC_CLASSES
-#' @param x 
-#' @export
-hasSync = function(x){
-  res = unique(rapply(x,class))
-  if(any(res%in%SYNC_CLASSES)){
-    which(res%in%SYNC_CLASSES)
-  } else FALSE
-}
+# this is deprecated since outputName allows for multiple and custom sync functions 
+#' SYNC_CLASSES = c("CCFBest","PMBest")
+#' 
+#' #' hasSync
+#' #' Recursive function which checks if any of the nested object(s) (typically a DyadSignal)
+#' #' contains at least one children of a class defined in the global constant SYNC_CLASSES
+#' #' @param x 
+#' #' @export
+#' hasSync = function(x){
+#'   res = unique(rapply(x,class))
+#'   if(any(res%in%SYNC_CLASSES)){
+#'     which(res%in%SYNC_CLASSES)
+#'   } else FALSE
+#' }
 
 # JUST WHY?!?
 # #' settings
@@ -33,7 +33,7 @@ hasSync = function(x){
 
 #COSTRUTTORI DI CLASSE per oggetti contenenti analisi
 
-CCFBest = function(sync, lag, ccf_matrix, lagSec, winSec, incSec, accelSec, weight_type, MAwin, MAinc)
+CCFBest = function(sync, lag, ccf_matrix, lagSec, winSec, incSec, accelSec, weight_type, MAwin, MAinc,slopes)
 {
   x = list("sync"=sync, "lag"=lag, "zero"=ccf_matrix["lag0"], "table"=ccf_matrix)
   class(x) = "CCFBest"
@@ -48,6 +48,11 @@ CCFBest = function(sync, lag, ccf_matrix, lagSec, winSec, incSec, accelSec, weig
     attributes(x) = c(attributes(x), list(
       "MAwinSec"   = MAwin,
       "MAincSec"   = MAinc
+    ))
+  }
+  if(!missing(slopes)){
+    attributes(x) = c(attributes(x), list(
+      "slopes"   = TRUE
     ))
   }
   return(x)

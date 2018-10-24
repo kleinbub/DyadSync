@@ -170,18 +170,29 @@ lead0 = function(x, width = 2){
 }
 
 #' rangeRescale
-#' this extremely useful function rescales a numeric vector to a new range
+#' this extremely useful function rescales a numeric vector to a new range through linear interpolation
 #' @param x 
 #' @param rangeMin,rangeMax  il minimo e il massimo della nuova scala
 #' @param xmin,xmax  il minimo e il massimo della scala originale.
 #' If xmin or xmax are missing the min or max of x are used instead
+#' @param pres.sign logical. if TRUE the signs of the original data are preserved. rangeMin and rangeMax must be opposites (e.g. -1,1)
 #' @export
 #'
 #' @examples
-rangeRescale <- function(x, rangeMin, rangeMax, xmin =min(x, na.rm=T), xmax = max(x, na.rm=T)){
+rangeRescale <- function(x, rangeMin, rangeMax, xmin =min(x, na.rm=T), xmax = max(x, na.rm=T), pres.signs=FALSE){
   #rangeMin e rangeMax indicano il minimo e il massimo della nuova scala
   #
   #se xmin e xmax mancano, vengono usati il minimo e il massimo del campione
+  if(any(x>xmax) || any(x<xmin)) stop ("Value found outside xmax and ymin boundaries. xmax and xmin should be equal or larger than the data range.")
+  if(pres.signs){
+    # if((!missing(xmin) && !missing(xmax)) || (xmin!=-max(abs(x)) || xmax != max(abs(x)) ) )
+    #   stop("Either x")
+    if( rangeMin != -rangeMax )
+      stop("with pres.sign = TRUE, rangeMin and rangeMax should be opposites (e.g. -1 and 1")
+    mightyMax = max(abs(xmax),abs(xmin)) #così centra qualsiasi range?
+    xmin = -mightyMax
+    xmax = mightyMax
+  }
   (rangeMax-rangeMin) * (
     (x - xmin)  / (xmax - xmin )
   ) + rangeMin

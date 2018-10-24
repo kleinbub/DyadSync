@@ -3,10 +3,10 @@
 \name{rangeRescale}
 \alias{rangeRescale}
 \title{rangeRescale
-this extremely useful function rescales a numeric vector to a new range}
+this extremely useful function rescales a numeric vector to a new range through linear interpolation}
 \usage{
 rangeRescale(x, rangeMin, rangeMax, xmin = min(x, na.rm = T), xmax = max(x,
-  na.rm = T))
+  na.rm = T), pres.signs = FALSE)
 }
 \arguments{
 \item{x}{}
@@ -15,8 +15,10 @@ rangeRescale(x, rangeMin, rangeMax, xmin = min(x, na.rm = T), xmax = max(x,
 
 \item{xmin, xmax}{il minimo e il massimo della scala originale.
 If xmin or xmax are missing the min or max of x are used instead}
+
+\item{pres.sign}{logical. if TRUE the signs of the original data are preserved. rangeMin and rangeMax must be opposites (e.g. -1,1)}
 }
 \description{
 rangeRescale
-this extremely useful function rescales a numeric vector to a new range
+this extremely useful function rescales a numeric vector to a new range through linear interpolation
 }

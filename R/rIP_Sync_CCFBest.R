@@ -23,71 +23,71 @@
 #interpolate = if TRUE, the CCF is translated to the same sampling rate of the signal
 #simplify = if TRUE, only the ccf matrix will be reduced to discrete seconds of lag.
 
-
-
-#' Title
-#'
-#' @param x 
-#' @param signals 
-#' @param lagSec 
-#' @param winSec 
-#' @param incSec 
-#' @param accelSec 
-#' @param weight_type 
-#' @param simplify 
-#'
-#' @return
-#' @export
-#'
-#' @examples
-ccfBest = function(x, signals="all", lagSec,winSec,incSec,accelSec,weight_type=c("center","free","off"),simplify = T)
-{
-  UseMethod("ccfBest",x)
-}
-
-#' @export
-ccfBest.DyadExperiment = function(experiment, signals, lagSec,winSec,incSec,accelSec,weight_type,simplify){
-  cat("\r\nccfBest routine | moving windows cross-correlation with sync maximizing\r\nWith the chosen settings,
-      the best lag is able to change by +/-",
-      (accelSec)/(incSec),
-      "seconds each second of signal." )
-  cat(paste0("\r\nHigh Sync at positive lags implies that the ",s2Name(experiment[[1]]), " follows the ",
-             s1Name(experiment[[1]]),"\r\n"))
-  nSessions = length(experiment)
-  experiment2 = Map(function(session,iSession){
-    if(signals=="all") signals = names(session)
-    cat("\r\n",paste(dyadId(session),session(session)))
-    session[signals] = Map(function(signal,iSignal){
-      cat(" |",name(signal))
-      signal = ccfBest(signal, lagSec,winSec,incSec,accelSec,weight_type,simplify)
-      return(signal)
-    }, session[signals])
-    #prog(iSession,nSessions)
-    return(session)
-  },experiment,seq_along(experiment))
-  cat("\r\nDone ;)")
-  attributes(experiment2)=attributes(experiment)
-  return(experiment2)
-  if(lagSec > 5)  warning("SC latency from stimuli is between 1 and 5 sec. Bigger lags are robably wrong in a stimulus-response perspective")
-  
-}
-
-#' @export
-ccfBest.DyadSignal = function(signal, lagSec,winSec,incSec,accelSec,weight_type,simplify=T){
-  
-  signal$CCFBest = CCFBest(NULL,NULL,NULL, lagSec,winSec,incSec,accelSec,weight_type)
-  
-  signal = dyadCCF(signal,lagSec,winSec,incSec,simplify)
-  signal = vectorBestLag(signal,accelSec,weight_type)
-  # if(simplify)
-  #   signal = reduceCcfLags(signal)
-  # if(interpolate){
-  #   signal$ccf$ccfmat = winInter(list(signal$ccf$ccfmat), winSec = signal$ccf$settings$winSec, incSec = signal$ccf$settings$incSec, sampRate = signal$sampRate)[[1]]
-  #   colnames(signal$ccf$ccfmat) = gsub("[.]","-",colnames(signal$ccf$ccfmat))
-  #   signal$ccf$sampRate = signal$sampRate
-  #   }
-  signal
-}
+#' 
+#' 
+#' #' Title
+#' #'
+#' #' @param x 
+#' #' @param signals 
+#' #' @param lagSec 
+#' #' @param winSec 
+#' #' @param incSec 
+#' #' @param accelSec 
+#' #' @param weight_type 
+#' #' @param simplify 
+#' #'
+#' #' @return
+#' #' @export
+#' #'
+#' #' @examples
+#' ccfBest = function(x, signals="all", lagSec,winSec,incSec,accelSec,weight_type=c("center","free","off"),simplify = T)
+#' {
+#'   UseMethod("ccfBest",x)
+#' }
+#' 
+#' #' @export
+#' ccfBest.DyadExperiment = function(experiment, signals, lagSec,winSec,incSec,accelSec,weight_type,simplify){
+#'   cat("\r\nccfBest routine | moving windows cross-correlation with sync maximizing\r\nWith the chosen settings,
+#'       the best lag is able to change by +/-",
+#'       (accelSec)/(incSec),
+#'       "seconds each second of signal." )
+#'   cat(paste0("\r\nHigh Sync at positive lags implies that the ",s2Name(experiment[[1]]), " follows the ",
+#'              s1Name(experiment[[1]]),"\r\n"))
+#'   nSessions = length(experiment)
+#'   experiment2 = Map(function(session,iSession){
+#'     if(signals=="all") signals = names(session)
+#'     cat("\r\n",paste(dyadId(session),session(session)))
+#'     session[signals] = Map(function(signal,iSignal){
+#'       cat(" |",name(signal))
+#'       signal = ccfBest(signal, lagSec,winSec,incSec,accelSec,weight_type,simplify)
+#'       return(signal)
+#'     }, session[signals])
+#'     #prog(iSession,nSessions)
+#'     return(session)
+#'   },experiment,seq_along(experiment))
+#'   cat("\r\nDone ;)")
+#'   attributes(experiment2)=attributes(experiment)
+#'   return(experiment2)
+#'   if(lagSec > 5)  warning("SC latency from stimuli is between 1 and 5 sec. Bigger lags are robably wrong in a stimulus-response perspective")
+#'   
+#' }
+#' 
+#' #' @export
+#' ccfBest.DyadSignal = function(signal, lagSec,winSec,incSec,accelSec,weight_type,simplify=T){
+#'   
+#'   signal$CCFBest = CCFBest(NULL,NULL,NULL, lagSec,winSec,incSec,accelSec,weight_type)
+#'   
+#'   signal = dyadCCF(signal,lagSec,winSec,incSec,simplify)
+#'   signal = vectorBestLag(signal,accelSec,weight_type)
+#'   # if(simplify)
+#'   #   signal = reduceCcfLags(signal)
+#'   # if(interpolate){
+#'   #   signal$ccf$ccfmat = winInter(list(signal$ccf$ccfmat), winSec = signal$ccf$settings$winSec, incSec = signal$ccf$settings$incSec, sampRate = signal$sampRate)[[1]]
+#'   #   colnames(signal$ccf$ccfmat) = gsub("[.]","-",colnames(signal$ccf$ccfmat))
+#'   #   signal$ccf$sampRate = signal$sampRate
+#'   #   }
+#'   signal
+#' }
 
 
 dyadCCF = function(signal,lagSec,winSec,incSec, simplify, outputName = "CCFBest"){
@@ -132,6 +132,7 @@ dyadCCF = function(signal,lagSec,winSec,incSec, simplify, outputName = "CCFBest"
   colnames(signal[[outputName]]$table) = paste0("lag",ran)
   # signal$ccf$ccfmat[is.na(signal$ccf$ccfmat)] = 0
   xStart = c(start(signal)[1] +winSec/2,1)
+  cat("\r\n freq = ",1/incSec)
   signal[[outputName]]$zero =DyadStream(signal[[outputName]]$table[["lag0"]],"lagZeroSync","#A11F12",start=xStart,frequency=1/incSec )
   #dimostrazione che la CCF inizia a metà della finestra!
   # plot(rangeRescale(window(signal$s1,start=277,end=277+15),-1,1),type="l");abline(v=277+7.5,lty=3)
@@ -296,33 +297,33 @@ kleinbubIndex=function(a){ #KSI = kleinbub session index
 #' @param winSec 
 #' @param incSec 
 #' @param accelSec 
+#' @param slopes      if true, the first derivative of the signal is used to compute correlations 
+#' @param MA          vector of length 2, containing the window size and increments of the moving average filter
 #' @param weight_type 
 #' @param simplify 
-#'
-#' @return
+#' @param outputName 
 #' @export
-#'
-#' @examples
-ccfBestSlope = function(x, signals="all", lagSec,winSec,incSec,accelSec, MAwin, MAinc, weight_type=c("center","free","off"),simplify = T)
+ccfBest = function(x, signals="all", lagSec,winSec,incSec,accelSec, slopes=F, MA =c(NA,NA), weight_type=c("center","free","off"),simplify = T, outputName = "CCFBest")
 {
-  UseMethod("ccfBestSlope",x)
+  UseMethod("ccfBest",x)
 }
 
 #' @export
-ccfBestSlope.DyadExperiment = function(experiment, signals, lagSec,winSec,incSec,accelSec, MAwin, MAinc,weight_type,simplify){
-  cat("\r\nccfBestSlope routine | moving windows cross-correlation with sync maximizing\r\nWith the chosen settings,
+ccfBest.DyadExperiment = function(experiment, signals, lagSec,winSec,incSec,accelSec, slopes, MA, weight_type, simplify, outputName){
+  cat("\r\nccfBest routine | moving windows cross-correlation with sync maximizing\r\nWith the chosen settings,
       the best lag is able to change by +/-",
       (accelSec)/(incSec),
       "seconds each second of signal." )
   cat(paste0("\r\nHigh Sync at positive lags implies that the ",s2Name(experiment[[1]]), " follows the ",
              s1Name(experiment[[1]]),"\r\n"))
+  if(length(MA)!=2 || (!all(is.numeric(MA)) || !all(is.na(MA)) ) ) MA = c(NA,NA)
   nSessions = length(experiment)
   experiment2 = Map(function(session,iSession){
     if(signals=="all") signals = names(session)
     cat("\r\n",paste(dyadId(session),session(session)))
     session[signals] = Map(function(signal,iSignal){
       cat(" |",name(signal))
-      signal = ccfBestSlope(signal, lagSec,winSec,incSec,accelSec,MAwin,MAinc,weight_type,simplify)
+      signal = ccfBest(signal, lagSec,winSec,incSec,accelSec, slopes, MA, weight_type, simplify, outputName)
       return(signal)
     }, session[signals])
     #prog(iSession,nSessions)
@@ -336,16 +337,17 @@ ccfBestSlope.DyadExperiment = function(experiment, signals, lagSec,winSec,incSec
 }
 
 #' @export
-ccfBestSlope.DyadSignal = function(signal, lagSec,winSec,incSec,accelSec, MAwin, MAinc,weight_type,simplify=T){
-  signal$CCFBestSlope = CCFBest(NULL,NULL,NULL, lagSec,winSec,incSec,accelSec,weight_type, MAwin, MAinc)
+ccfBest.DyadSignal = function(signal, lagSec,winSec,incSec,accelSec, slopes, MA, weight_type, simplify, outputName){
+  signal[[outputName]] = CCFBest(NULL,NULL,NULL, lagSec,winSec,incSec,accelSec,weight_type, MA[1], MA[2],slopes)
   origs1 = signal$s1
   origs2 = signal$s2
-  signal = signalFilter(signal,diff)
-  if(MAwin>0){
-    signal = signalFilter(signal,movAv,MAwin,MAinc)
-  }
-  signal = dyadCCF(signal,lagSec,winSec,incSec,simplify,"CCFBestSlope")
-  signal = vectorBestLag(signal,accelSec,weight_type,"CCFBestSlope")
+  if(slopes)
+    signal = signalFilter(signal,diff)
+  if(length(MA)==2 && all(is.numeric(MA)))
+    signal = signalFilter(signal,movAv,MA[1],MA[2])
+  
+  signal = dyadCCF(signal,lagSec,winSec,incSec,simplify,outputName)
+  signal = vectorBestLag(signal,accelSec,weight_type,outputName)
   signal$s1 = origs1
   signal$s2 = origs2
   
@@ -353,7 +355,7 @@ ccfBestSlope.DyadSignal = function(signal, lagSec,winSec,incSec,accelSec, MAwin,
 }
 
 
-
+### old junk ###############
 #this function extracts a column from ccfmat of a given signal
 #the data is extracted as a DyadStream object with appropriate frequency
 #' Title

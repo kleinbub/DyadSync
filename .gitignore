@@ -3,3 +3,8 @@
 .RData
 .Ruserdata
 /dev_spam/*
+-DPA-PALMIERI02.Rhistory
+rip_bootstrap.RData
+rip_bootstrap_lag5_PMthres0.75_devF.RData
+rip_bootstrap_lag5_PMthres0.75_devT.RData
+rip_bootstrap_lag7_PMthres0.75_devF.RData

@@ -11,7 +11,7 @@
 #' @param x 
 #' @param FUN 
 #' @param signal 
-#' @param sync 
+#' @param sync either "none" or the name of a DyadSignal component, such as CCFBest or PMBest
 #' @param streamKey 
 #' @param category 
 #' @param column 
@@ -21,7 +21,7 @@
 #' @export
 #'
 #' @examples
-epochStreamApply = function(x, FUN, signal= "SC",sync = c("none",SYNC_CLASSES), streamKey=c("s1","s2","time","sync","lag","zero"),
+epochStreamApply = function(x, FUN, signal= "SC",sync = "none", streamKey=c("s1","s2","time","sync","lag","zero"),
                             category="PACS",... ){
   UseMethod("epochStreamApply", x)
 }
@@ -37,10 +37,10 @@ epochStreamApply.DyadExperiment = function(x, FUN, signal, sync, streamKey, cate
   res
 }
 #' @export
-epochStreamApply.DyadSession = function(x, FUN, signal, sync = c("none",SYNC_CLASSES), streamKey=c("s1","s2","time","sync","lag","zero"),
+epochStreamApply.DyadSession = function(x, FUN, signal, sync , streamKey,
                                         category, artefact.rm = T, ...  ){
-  sync = match.arg(sync)
-  streamKey = match.arg(streamKey)
+  if(!sync %in% names(x[[signal]])) stop ('sync should be one of:',names(x[[signal]]))
+  
   
   if(is.character(FUN))
     FUNname = FUN
@@ -48,11 +48,12 @@ epochStreamApply.DyadSession = function(x, FUN, signal, sync = c("none",SYNC_CLA
   FUN = match.fun(FUN)
   
   if(sync!="none"){
+    if(!streamKey %in% names(x[[signal]][[sync]])) stop ('sync should be one of:',names(x[[signal]][[sync]]))
     stream = x[[signal]][[sync]][[streamKey]]
-    
   } else {
     if(!streamKey %in% c("s1","s2","time")) stop ("sync none requires streamkey == s1 or s2 or time")
     stream = x[[signal]][[streamKey]]
+    
   }
   if( artefact.rm ){
     if(length(stream)!=length(x[[signal]]$valid)) stop("artefact.rm temporarily requires that stream has the same frequency of valid")
@@ -161,14 +162,11 @@ catExtract.DyadExperiment = function(experiment, category, by, FUN = mean, ...){
 #' @export
 #'
 #' @examples
-streamExtract<- function(experiment, signal, sync = c("none",SYNC_CLASSES), streamKey=c("s1","s2","time","sync","lag","zero"), FUN=mean, ...){
+streamExtract<- function(experiment, signal, sync = "none", streamKey=c("s1","s2","time","sync","lag","zero"), FUN=mean, ...){
   UseMethod("streamExtract", experiment)
 }
 #' @export
-streamExtract.DyadExperiment <- function(experiment, signal, sync = c("none",SYNC_CLASSES), streamKey=c("s1","s2","time","sync","lag","zero"), FUN=mean, ...){
-  sync = match.arg(sync)
-  streamKey = match.arg(streamKey)
-  
+streamExtract.DyadExperiment <- function(experiment, signal, sync, streamKey, FUN, ...){
   if(is.character(FUN))
     FUNname = FUN
   else FUNname = as.character(substitute(FUN))
@@ -177,6 +175,7 @@ streamExtract.DyadExperiment <- function(experiment, signal, sync = c("none",SYN
   rexp = Map(function(session,nsession){
     prog(nsession,length(experiment))
     if(sync!="none"){
+      if(!streamKey %in% names(session[[signal]][[sync]])) stop ('sync should be one of:',names(session[[signal]][[sync]]))
       stream = session[[signal]][[sync]][[streamKey]]
     } else {
       if(!streamKey %in% c("s1","s2","time")) stop ("sync none requires streamkey == s1 or s2 or time")
