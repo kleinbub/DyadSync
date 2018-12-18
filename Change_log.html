@@ -128,6 +128,28 @@ $(document).ready(function () {
 <div id="v.1.0.0.9001" class="section level2">
 <h2>v.1.0.0.9001</h2>
 <div id="section" class="section level4">
+<h4>2018/12/18</h4>
+<p>Questa versione è ad uno stato di sviluppo instabile.</p>
+<ul>
+<li>aggiunto rIP_extract_dev.R: instead of getting a summary(e.g. median) for each occurrence of an epoch (or category), first pastes together the stream correspoding to each epoch and THEN calculates the summarizing function.</li>
+<li>aggiunta una guida a rIP extract (readme.txt)</li>
+<li>setArtefacts adesso seleziona la seduta corretta e salva gli artefatti come tabella di epoche. Il dyadStream logico “valid” viene ancora salvato per compatibilità ma è deprecato.</li>
+<li>aggiunto argomento “na.rm” a cohend()</li>
+<li>aggiunta utility di case conversion totitle()</li>
+</ul>
+</div>
+<div id="section-1" class="section level4">
+<h4>2018/10/24</h4>
+<p>Questa versione è ad uno stato di sviluppo instabile, ma PMBest (lagSec=7,match_threshold=0.5,algorithm = “dev”) discrimina PS da non PS.</p>
+<ul>
+<li>unificati ccfBest e ccfBestSlope con parametro per slope e MA</li>
+<li>un sacco di immondizia su PMBest. ma fondamentale ritorno alle correlazioni sul segnale e non sulle slope!</li>
+<li>abilitate le funzioni di Extract ai diversi outputName e non solo PMBest e CCFBest</li>
+<li>dal momento che outputName: deprecata la var globale SYNC_CLASSES, eliminata hasSync</li>
+<li>aggiunto argomento pres.sign a rangeRescale. Quando la scala deve preservare i segni.</li>
+</ul>
+</div>
+<div id="section-2" class="section level4">
 <h4>2018/10/17</h4>
 <p>Questa versione è ad uno stato di sviluppo instabile, ma per avere un punto di backup.</p>
 <div id="sync_ccfbest.r" class="section level5">
@@ -178,13 +200,13 @@ $(document).ready(function () {
 <hr />
 </div>
 </div>
-<div id="section-1" class="section level4">
+<div id="section-3" class="section level4">
 <h4>2018/07/19</h4>
 <ul>
 <li>bugfixes in catExtract.DyadExperiment</li>
 </ul>
 </div>
-<div id="section-2" class="section level4">
+<div id="section-4" class="section level4">
 <h4>2018/07/15</h4>
 <ul>
 <li>catApply.DyadSession ora permette output multipli</li>
@@ -192,7 +214,7 @@ $(document).ready(function () {
 <li>bug fixes on catApply and timeMaster and IO functions</li>
 </ul>
 </div>
-<div id="section-3" class="section level4">
+<div id="section-5" class="section level4">
 <h4>2018/07/15</h4>
 <ul>
 <li>bugfixes a catApply()</li>
@@ -202,7 +224,7 @@ $(document).ready(function () {
 <li>Nuova funzione streamExtract()!!!</li>
 </ul>
 </div>
-<div id="section-4" class="section level4">
+<div id="section-6" class="section level4">
 <h4>2018/07/14</h4>
 <ul>
 <li>migliorie a PMBest: aggiunti un threshold minimo per i match, e una durata minima per le finestre di sincronizzazione.</li>
@@ -214,7 +236,7 @@ $(document).ready(function () {
 <li>migliorie a ‘classAttr&lt;-’ che ora non sovrascrive ‘tsp’ se presente anche nel oggetto di destinazione</li>
 </ul>
 </div>
-<div id="section-5" class="section level4">
+<div id="section-7" class="section level4">
 <h4>2018/07/11</h4>
 <ul>
 <li>NAartifacts renamed to setArtefacts</li>
@@ -223,7 +245,7 @@ $(document).ready(function () {
 <li>fixed aliases in rIP_get.R</li>
 </ul>
 </div>
-<div id="section-6" class="section level4">
+<div id="section-8" class="section level4">
 <h4>2018/07/10</h4>
 <ul>
 <li>flexMA è un metodo S3 generale</li>
@@ -231,7 +253,7 @@ $(document).ready(function () {
 <li>PMBest testato. Aggiunto un threshold per accettare i match p-p v-v. Un buon valore sembra 0.7</li>
 </ul>
 </div>
-<div id="section-7" class="section level4">
+<div id="section-9" class="section level4">
 <h4>2018/07/09 18:47</h4>
 <ul>
 <li>PMBest completamente compatibile con la v3</li>

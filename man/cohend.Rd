@@ -4,7 +4,7 @@
 \alias{cohend}
 \title{Title}
 \usage{
-cohend(a, b)
+cohend(a, b, na.rm = TRUE)
 }
 \arguments{
 \item{a}{}

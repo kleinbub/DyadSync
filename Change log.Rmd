@@ -9,6 +9,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## v.1.0.0.9001
 
+#### 2018/12/18
+Questa versione è ad uno stato di sviluppo instabile.
+
+  * aggiunto rIP_extract_dev.R: instead of getting a summary(e.g. median) for each occurrence of an epoch (or category), first pastes together the stream correspoding to each epoch and THEN calculates the summarizing function.
+  * aggiunta una guida a rIP extract (readme.txt)
+  * setArtefacts adesso seleziona la seduta corretta e salva gli artefatti come tabella di epoche. Il dyadStream logico "valid" viene ancora salvato per compatibilità ma è deprecato.
+  * aggiunto argomento "na.rm" a cohend()
+  * aggiunta utility di case conversion totitle()
+
 #### 2018/10/24
 Questa versione è ad uno stato di sviluppo instabile, ma PMBest (lagSec=7,match_threshold=0.5,algorithm = "dev") discrimina PS da non PS.
 

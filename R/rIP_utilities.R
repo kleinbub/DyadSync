@@ -122,7 +122,11 @@ selectSignals.DyadExperiment = function(experiment,signals) {
 #' @return
 #' @export
 
-cohend = function(a,b){
+cohend = function(a,b,na.rm = TRUE){
+  if(na.rm==T){
+    a = a[!is.na(a)]
+    b = b[!is.na(b)]
+  }
   pool = sqrt( (  (length(a)-1)*sd(a)^2 +  (length(b)-1)*sd(b)^2 )/(length(a)+ length(b)-2 ) )
   (mean(a)-mean(b))/pool
 }
@@ -160,6 +164,17 @@ pvalFormat= function(x){
 ############################################################################################################
 ############################################################################################################
 ## GLOBAL TOOLS
+
+#' Extends tolower toupper with title case translation
+#' @export
+totitle <- function(x) {
+  sapply(x, function(k){
+    s <- strsplit(k, " ")[[1]]
+    paste(toupper(substring(s, 1, 1)), tolower(substring(s, 2)),
+          sep = "", collapse = " ")
+  },USE.NAMES =F)
+
+}
 
 #' @export
 cat0 = function(...) {cat(..., sep="")}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/rIP_extract.R
 \name{catExtract}
 \alias{catExtract}
-\title{Extract summary data from categorial windows
+\title{Extracts summary data from categorial windows
 the function first extracts all occurrences of a given category, combines them in a
 single data.frame, then aggregates it according to specified rules.}
 \usage{
@@ -20,7 +20,7 @@ catExtract(experiment, category = "PACS", by, FUN = mean, ...)
 \item{...}{arguments passed to FUN}
 }
 \description{
-Extract summary data from categorial windows
+Extracts summary data from categorial windows
 the function first extracts all occurrences of a given category, combines them in a
 single data.frame, then aggregates it according to specified rules.
 }

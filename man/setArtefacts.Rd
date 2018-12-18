@@ -3,9 +3,10 @@
 \name{setArtefacts}
 \alias{setArtefacts}
 \title{setArtefacts
-setArtefacts legge una tabella o lista con le componenti chiamate esattamente: 'session', 'start' ed 'end'
-e mette ad NA tali sequenze nel segnale specificato.
-end può anche essere una stringa che contiene le parole 'fine' o 'end'}
+setArtefacts legge una tabella o lista con le componenti chiamate esattamente: 'dyad', 'session', 'start' ed 'end'
+salva le informazioni corrispondenti in una tabella $artefacts nell'oggetto DyadSignal e mette a FALSE le epoche
+corrispondenti nello stream 'valid' dell'oggetto.
+'end' può anche essere una stringa che contiene le parole 'fine' o 'end'}
 \usage{
 setArtefacts(x, startEnd, signal = "SC")
 }
@@ -18,7 +19,8 @@ setArtefacts(x, startEnd, signal = "SC")
 }
 \description{
 setArtefacts
-setArtefacts legge una tabella o lista con le componenti chiamate esattamente: 'session', 'start' ed 'end'
-e mette ad NA tali sequenze nel segnale specificato.
-end può anche essere una stringa che contiene le parole 'fine' o 'end'
+setArtefacts legge una tabella o lista con le componenti chiamate esattamente: 'dyad', 'session', 'start' ed 'end'
+salva le informazioni corrispondenti in una tabella $artefacts nell'oggetto DyadSignal e mette a FALSE le epoche
+corrispondenti nello stream 'valid' dell'oggetto.
+'end' può anche essere una stringa che contiene le parole 'fine' o 'end'
 }

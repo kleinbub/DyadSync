@@ -90,7 +90,7 @@ epochStreamApply.DyadSession = function(x, FUN, signal, sync , streamKey,
   x
 }
 
-#' Extract summary data from categorial windows
+#' Extracts summary data from categorial windows
 #' the function first extracts all occurrences of a given category, combines them in a
 #' single data.frame, then aggregates it according to specified rules.
 #'
@@ -149,14 +149,16 @@ catExtract.DyadExperiment = function(experiment, category, by, FUN = mean, ...){
 }
 
 
-#' Title
+#' Extract summary data from a stream
+#' The function iterates over each session of an experiment and applies a summarizing function on a given stream (e.g. mean).
+#' Multiple output are possible (eg. using the quantile function)
 #'
 #' @param experiment 
 #' @param sync 
 #' @param streamKey 
-#' @param by 
 #' @param FUN 
 #' @param ... 
+#' @param signal 
 #'
 #' @return
 #' @export

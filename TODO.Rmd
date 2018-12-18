@@ -30,11 +30,8 @@ knitr::opts_chunk$set(echo = TRUE)
   *NB i picchi potrebbero anche essere riutilizzati: A1 -> B1, ma B1 potrebbe causare A2! quindi B1 potrebbe dover essere considerato più volte. 
   
 ### high priority
-  0) implementare **meglio** NAartifact, in modo da renderlo universale
-    * **NB!!!!!** setArtefacts al momento non capisce i diversi dyadID!!!!
-    * salvare una timeseries "valid" fa cagare, ad esempio con filtri e altro, il riferimento deve essere sempre temporale.
-    * inoltre salvare un "valid" solo è problematico nella pseudosincronia (random)
-    * difficile usare valid con le ts con frequenza diversa tipo CCFBest. Quindi per ora limitati a PMBest, poi dovrai implementare un windowed assign: se invece di salvare valid salvi le epoche start-end degli artefatti poi puoi eliminarli così:
+  0) implementare **meglio** NAartifact usando la nuova tabella "artefacts"
+ Quindi per ora limitati a PMBest, poi dovrai implementare un windowed assign: se invece di salvare valid salvi le epoche start-end degli artefatti poi puoi eliminarli così:
     ```{r}
       asd = ts(1:101, frequency=10,start=0)
       #i campioni da rimuovere sono:
@@ -47,20 +44,7 @@ knitr::opts_chunk$set(echo = TRUE)
       asd2[matches] =NA
       asd2
     ```
-  0) Migliora PMBest() sync procedure ! il sitema attuale è strano e unreliable. Tra i difetti:
-          * se in una lunga sequenza c'è solo discesa, risulta alta sync
-          * non si capisce bene dove inizia e dove finisce ciascuna finestra
-          *ci sono valori sovrapposti e valori NA
-          * se subito dopo la fine della sequenza "short" inizia un altro picco, l'ingrandimento della finestra a "long" porta a confrontare fischi per fiaschi ed ovviamente la sync crolla
-        * un sistema migliore potrebbe essere di prendere sempre una sequenza v-p-v e stretchare le due
-  0) trova un modo agile di visualizzazione
-    * fixa il motore di plot
-    * implementa una preview con scroll
-  1) Questa cosa: attributes(experiment2)=attributes(experiment) è male perché sovrascrive anche l'attributo "names"  che invece deve essere tenuto free. Sostituisci con structure(experiment2, "asd"=attr(experiment2,"asd"))
-  1) Creare un mapply generico function(…, signals="", FUN, … ) che funzioni sia su experiments, sessions, signals o streams
-  1) **TESTA I METODI E COMPARALI CAZZO!)**
-    * Implementa zSync
-    * per PMBest miglior valore di threshold, minSizeSec, e weightMalus
+
     
 
 
@@ -68,7 +52,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 * catApply stop() se la sync/streamkey/valid/category/etc.. non esistono. al momento gira comunque e da errori strani
 #### DyadExperiment
-* in PMBest dif-dif prova a usare il quadrato di similarity, invece di un threshold molto alto. In questo modo si penalizzano i match mediocri e si potenziano quelli alti anche se più laggati.
 * quando crei experiment fai tutti i check di coerenza interna e magari salva esplicitamente il tipo di disegno, longitudinale, gruppi, misto
   * soprattutto gli stessi s1 e s2 names, altrimenti rischi di fare grossa confusione
 * trova un modo per implementare i bei plot di PMBest  

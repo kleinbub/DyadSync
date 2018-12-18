@@ -76,44 +76,55 @@ signalFilter.DyadSignal = function (x, FUN, ..., newAttributes=NULL, signals=NUL
 
 
 #' setArtefacts
-#' setArtefacts legge una tabella o lista con le componenti chiamate esattamente: 'session', 'start' ed 'end'
-#' e mette ad NA tali sequenze nel segnale specificato.
-#' end può anche essere una stringa che contiene le parole 'fine' o 'end'
+#' setArtefacts legge una tabella o lista con le componenti chiamate esattamente: 'dyad', 'session', 'start' ed 'end'
+#' salva le informazioni corrispondenti in una tabella $artefacts nell'oggetto DyadSignal e mette a FALSE le epoche
+#' corrispondenti nello stream 'valid' dell'oggetto.
+#' 'end' può anche essere una stringa che contiene le parole 'fine' o 'end'
 #' 
-#' @param x 
-#' @param startEnd 
-#' @param signal 
+#' @param x a Dyad... object
+#' @param startEnd a data.frame (or list) with the following components: 'dyad', 'session', 'start', 'end'.
+#' @param signal string specifying the name of the signal
 #'
 #' @return
 #' @export
 #'
 #' @examples
-setArtefacts <- function(x, startEnd, signal="SC"){
+setArtefacts <- function(x, startEnd, signal){
   names(startEnd) = tolower(names(startEnd))
   if("factor" %in% sapply(startEnd,class)) stop ("factors not supported in startEnd")
   UseMethod("setArtefacts",x)
 }
 
 #' @export
-setArtefacts.DyadExperiment <- function(x, startEnd, signal="SC") {
+setArtefacts.DyadExperiment <- function(x, startEnd, signal) {
   if(is.data.frame(startEnd)){
-    if(ncol(startEnd)!=3 || !all.equal(names(startEnd), c('session', 'start', 'end') ))
-      stop("startEnd must have 3 columns: 'session', 'start', 'end' of equal size")
+    if(ncol(startEnd)!=4 || !all.equal(names(startEnd), c('dyad','session', 'start', 'end') ))
+      stop("startEnd must have 4 columns: 'dyad', 'session', 'start', 'end' of equal size")
     sel = startEnd
   } else if(is.list(startEnd)) {
-    if(length(startEnd)!=3 || var(sapply(startEnd, length))!=0 )
+    if(length(startEnd)!=4 || var(sapply(startEnd, length))!=0 )
       stop("startEnd must have 3 vectors 'session', 'start', 'end' of equal size")
     sel = as.data.frame(startEnd,stringsAsFactors = F)
   } else stop("startEnd must be a list or dataframe")
   
-  for(i in unique(sel$session) ){
-    cat("\r\ncleaning session:",i,"\r\n")
-    miniSel = sel[sel$session == i, 2:3]
-    x[[i]][[signal]] = setArtefacts(x[[i]][[signal]],miniSel,signal)
-  }
+  for(j in unique(sel$dyad) ){
+    for(i in unique(sel$session) ){
+      listKey = which(sapply(x,sessionId)==i & sapply(x,dyadId)==j) #questo è importante per selezionare la seduta giusta
+      if(length(listKey)>1) stop("multiple matches found in session:",j,lead0(i))
+      if(length(listKey)==1){
+        cat("\r\ncleaning session:",j,lead0(i),"\r\n")
+        miniSel = sel[sel$dyad == j & sel$session == i, 3:4]
+        x[[listKey]][[signal]] = setArtefacts(x[[listKey]][[signal]],miniSel,signal)
+      }
+      }}
   x
 }
 
+#' @param x 
+#'
+#' @param startEnd 
+#' @param signal 
+#'
 #' @export
 setArtefacts.DyadSignal <- function(x, startEnd, signal="SC") {
   #1 controlla validità di startEnd
@@ -127,6 +138,9 @@ setArtefacts.DyadSignal <- function(x, startEnd, signal="SC") {
   duration = duration(x)
   print(sel)
   
+  x$artefacts = sel
+  
+  #questa roba è qui per compatibilità. Idealmente usa solo la tabella artefacts ##############
   for(i in 1:nrow(sel)){
     a = timeMaster(sel[i,1],out="sec") -  start(x)[1]
     if( grepl("end|fine",sel[i,2],ignore.case = T)  ) b = duration
@@ -139,11 +153,10 @@ setArtefacts.DyadSignal <- function(x, startEnd, signal="SC") {
     if(b == duration) sel[i,2] =  length(x$valid) #elminina tutto fino alla fine
     else  sel[i,2] = b * sampRate(x)
   }
-  
-  #3 sostituisci con NA i segmenti
-  for(i in 1:nrow(sel)){
+  for(i in 1:nrow(sel)){  #sostituisci con NA i segmenti
     x$valid[sel[i,1]:sel[i,2]] = FALSE
   }
+  ###############################
   
   #4 aggiorna i metadati
   attributes(x)["filter"] = paste0(attr(x,"filter"), "--> NAartifact")
@@ -242,7 +255,6 @@ winInter = function(windowsList, winSec, incSec, sampRate){
 #'
 #' @return
 #' @export
-#'
 
 movAv = function(x,win,inc,sampRate=frequency(x),remove=F){
   win2 = floor(win/2)
