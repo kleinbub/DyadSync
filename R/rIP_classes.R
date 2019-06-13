@@ -63,7 +63,8 @@
 ##        $DyadSignal "SC"      | <- signal è il contenitore di tutti i dati e analisi di un tipo di segnale fisio
 ##            $DyadStream s1    | <- i diversi dati sono in forma di stream, ossia serie temporali con 
 ##            $DyadStream s2    |    più metadati, tra cui elementi grafici che forse sono da eliminare
-##            $valid            | <- un array di logical, indicante le parti buone (TRUE) o artefatti (FALSE)
+##            $valid            | <- un array di logical, indicante le parti buone (TRUE) o artefatti (FALSE) [deprecato]
+##            $artefact         | <- un data.frame contenente le epoche (start end in secondi) da escludere
 ##            $CCFBest          | <- contenitore di analisi sincro basato sulle windowed x-cors
 ##              $sync           | <- il vecchio BestCCF
 ##              $lag            | <- il vecchio BestLag
@@ -170,8 +171,81 @@ is.DyadExperiment = function(x) inherits(x,"DyadExperiment") && length(x)
 #' @export
 c.DyadExperiment = function (...){
   l = list(...)
-  res = do.call(Map, c("f"=function(...){ c(...) }, l))
-  DyadExperiment(sapply(l,name),res)
+  
+  #######################
+   # l = list(mea,sc)
+  if(length(l)==1) return(l[[1]])
+  
+  
+  #c deve unire tra di loro i segnali che hanno lo stesso sessionId, Group, dyadID
+  #invece deve incollare uno dopo l'altro le diadi che non overlappano
+  #se per lo stesso ID ci sono due volte lo stesso segnale, stop.
+  
+  #1 check if any DyadSession must be merged
+  comp=lapply(l,sapply,function(session){paste(groupId(session),dyadId(session),sessionId(session),sep="_")})
+  comp = lapply(comp,tolower)
+  comp2 = comp
+  
+  
+  #sort by length
+  lengths = sapply(l, length)
+  nOrd = sort.list(lengths,decreasing = T)
+  comp = comp[nOrd]
+  l = l[nOrd]
+
+  
+  newEX = list()
+  joined = 0
+  compN = length(unlist(comp))
+  theorUnique = length(unique(unlist(comp)))
+  #######################
+
+  for(x in 1:(length(l))){ #per ciascun esperimento (dal più lungo) 
+    #aggiungi all'esperimento attuale (se non è l'ultimo) le sessioni uguali degli esperimenti successivi
+    if(x<length(l)){
+      for(y in (x+1):length(l)){ #per tutti gli esperimenti successivi
+        #to compare
+        a = l[[x]]
+        b = l[[y]]
+        warnS1 = F
+        warnS2 = F
+        toRemove = c()
+        for(s in 1:length(a)){#per ciascuna sessione dell'esperimento x-esimo
+          # print(s)
+          toJoin = which(comp[[y]] == comp[[x]][s])
+          if(length(toJoin) > 1) stop("experiment ", nOrd[[y]], " had more than one session of ",comp[[x]][s])
+          if(length(toJoin) ==1){ #if there was a match
+            # print(paste("match found in session",s,":", names(comp[[y]][toJoin])))
+            if(any(names(a[[s]]) %in% names(b[[toJoin]]) )) stop ("experiments ",nOrd[[x]]," and ",nOrd[[y]], "had the same signal")
+            if(!tolower(s1Name(a[[s]])) %in% tolower(s1Name(b[[toJoin]]))) warnF1 = T 
+            if(!tolower(s2Name(a[[s]])) %in% tolower(s2Name(b[[toJoin]]))) warnF2 = T
+            joined = joined +1
+            l[[x]][[s]] = c(a[[s]],b[[toJoin]]) #aggiungi all'exp originale
+            toRemove = c(toRemove,toJoin)
+          } #else print("NO MATCH")
+        }
+        l[[y]][toRemove] = NULL
+        # str(l[[y]],max=1)
+        if(warnS1) warning("experiments ",nOrd[[x]]," and ",nOrd[[y]], "had different s1Names")
+        if(warnS2) warning("experiments ",nOrd[[x]]," and ",nOrd[[y]], "had different s2Names")
+      }
+    }
+    newEX = c(newEX,l[[x]]) #aggiungi all'esperimento finale le sessioni aggiornate rimaste nell'esperimento attuale
+    message("adding to newEX the following:\r\n",paste(sapply(l[[x]], function(session){paste(groupId(session),dyadId(session),sessionId(session),sep="_")}),"\r\n" ))
+    
+  }
+  
+  if(sd( c(compN - joined, theorUnique,length(newEX) ) )  !=0) warning("the number of resulting DyadSession may be wrong. Check the result manually.")
+  
+  comp3 = c(comp2, list(sapply(newEX, function(session){paste(groupId(session),dyadId(session),sessionId(session),sep="_")})))
+  comp3 = lapply(comp3, sort)
+  res = do.call(unequalCbind,comp3)
+  colnames(res) = c(paste("exp", seq(1,length(l))), "res")
+  row.names(res) = NULL
+  print(res)
+  cat ("\r\nMerge successful.",joined,"session were joined. The final DyadExperiment consists of", length(newEX),"unique sessions.")
+  
+  DyadExperiment(sapply(l,name),newEX)
 }
 
 ### DYADSESSION ##############################################
@@ -259,7 +333,8 @@ DyadSignal = function(name="some signal",s1=NULL,s2=NULL,sampRate=NULL, s1Name, 
     s1 = DyadStream(stream = s1, name=s1Name, frequency = sampRate, col = "deeppink3",  lty=1, lwd=2),
     s2 = DyadStream(stream = s2, name=s2Name, frequency = sampRate, col = "dodgerblue3", lty=1, lwd=2),
     time = time(s1),
-    valid = DyadStream(stream = ts(rep(TRUE, length(s1)),start=start(s1),end= end(s1), frequency = frequency(s1) ), name="valid", sampRate = sampRate, col = "darkgrey", lty=1, lwd=2)
+    valid = DyadStream(stream = ts(rep(TRUE, length(s1)),start=start(s1),end= end(s1), frequency = frequency(s1) ), name="valid", sampRate = sampRate, col = "darkgrey", lty=1, lwd=2),
+    artefacts = data.frame("start"=c(),"end"=c())
   )
   attributes(x) = c(attributes(x),list(
     name = name,
@@ -301,7 +376,7 @@ DyadStream = function(stream, name, col=1, lty=1, lwd=1, ...){
     stream = ts(stream, ...)
     l = list(...)
     if(!all(c("start","frequency")%in%names(l)) )
-      warning( paste0("Stream '",name,"' was coerced to ts starting at ",
+      message( paste0("Stream '",name,"' was coerced to ts starting at ",
                 timeMaster(start(stream)[1],out = "hour"),", with sampRate of: ",
                 frequency(stream),"Hz, and duration of: ",timeMaster(end(stream)[1],out = "hour"),
                ".\r\n"),

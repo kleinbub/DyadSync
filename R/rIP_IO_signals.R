@@ -148,13 +148,14 @@ readDyadSignals = function(
   len <- lapply(lf, function(x) length(x[[1]]))
   #check if some file are shorter than 50% of the mean length and remove them 
   removeFile = unlist(lapply(seq_along(len), function(i){if(len[[i]] / mean(unlist(len)) <0.5) {
-      warning("File ",i,': ',shortNames[i]," is shorter (",timeMaster(round(len[[i]]/sampRate),out="m"),"s) than the 50% of the mean length and was removed", call. = F);return(i)}
+      warning("File ",i,': ',shortNames[i]," is shorter (",timeMaster(round(len[[i]]/sampRate),out="m"),
+              "s) than the 50% of the mean length", call. = F);return(i)}
     } ))
-  if(length(removeFile)>0){
-    lf[removeFile] = len[removeFile] = dyadIds[removeFile] = group[removeFile] = sess[removeFile] = NULL
-    filenames =filenames[-removeFile]; shortNames = shortNames[-removeFile]
-    
-  }
+  # if(length(removeFile)>0){
+  #   lf[removeFile] = len[removeFile] = dyadIds[removeFile] = group[removeFile] = sess[removeFile] = NULL
+  #   filenames =filenames[-removeFile]; shortNames = shortNames[-removeFile]
+  #   
+  # }
 
 
 
@@ -210,26 +211,32 @@ readDyadSignals = function(
   start = timeMaster(start,out="sec")
   if(any(start==1)) warning("start = 1 is usually wrong. Use default value of zero to read a series from the beginning.")
   if(length(start) == 1 && ndyads>1){
-    warning("start = ",start," was used for all ",ndyads," dyads")
+    message("start = ",start," was used for all ",ndyads," dyads")
     start=rep(start,ndyads)
   } else if(length(start) != ndyads){
     stop("start must be a single value or be provided for each ",ndyads ,"file. Only ",length(start)," values provided:\r\n",start)
   }
   
   #end checks
-  if(!is.null(end)){ #if end is NOT false
+  if(!is.null(end)){ #if end is NOT missing
     end = timeMaster(end,out="sec")
     duration = end - start
   }   
     
-  if(!is.null(duration)){ #if duration is NOT false
+  if(!is.null(duration)){ #if duration is NOT missing, or was set through 'end'
     duration = timeMaster(duration,out="sec")
     cat("\r\nTrimming files (samples)\r\n")
     
     if(length(duration) == 1 && ndyads>1) {
       duration=rep(duration,ndyads)
-      warning("duration was used for all ",ndyads," dyads")
+      message("duration was used for all ",ndyads," dyads")
     } else if(length(duration) !=ndyads) stop("end/duration must be provided for each file",length(duration) ,"!=",ndyads)
+    
+    #check if any duration is NA and replace it with the actual file duration
+    for(i in seq_along(lf)){
+      if(is.na(duration[i])) duration[i] = nrow(lf[[i]])
+    }
+
     
     print(data.frame("file"=shortNames, "original"=sapply(lf,nrow),"destination"=duration*sampRate,"NAs added"=sapply(seq_along(lf), function(i){
       if(nrow(lf[[i]])<duration[i]*sampRate) "*" else "-"
@@ -288,7 +295,7 @@ readDyadSignals = function(
 #   if(pairBind){
 #     names(experiment$sessions) = names(lf)
 #   } else {
-    names(experiment) = paste(dyadIds,sess,sep="_")
+    names(experiment) = paste(group,dyadIds,sess,sep="_")
 #   }
   
   #lr=lapply(lr, na.omit)

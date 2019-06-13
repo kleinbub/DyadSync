@@ -9,6 +9,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## v.1.0.0.9001
 
+#### 2019/06/13
+
+  * included 'c' function for Dyad Objects
+  * substituted many warnings with messages
+  * various bugfixes
+
+
 #### 2018/12/18
 Questa versione è ad uno stato di sviluppo instabile.
 

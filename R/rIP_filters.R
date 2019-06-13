@@ -136,10 +136,18 @@ setArtefacts.DyadSignal <- function(x, startEnd, signal="SC") {
   if(!all.equal(names(sel),c('start', 'end')) ) stop("startEnd names must be 'start','end'")
   ref = 0
   duration = duration(x)
-  print(sel)
+  for(i in 1:nrow(sel)){
+    sel[grepl("end|fine",sel[,2],ignore.case = T),2] = timeMaster(duration,"min")
+  }
+  # cat("\r\n ! - ",str(sel))
   
-  x$artefacts = sel
-  
+  # if(nrow(sel)==1)
+  x$artefacts = data.frame(numeric(nrow(sel)))
+  x$artefacts$start = timeMaster(sel[,1], out="s")
+  x$artefacts$end   = timeMaster(sel[,2], out="s")
+  x$artefacts[1] = NULL
+  # print(str(x$artefacts))
+
   #questa roba è qui per compatibilità. Idealmente usa solo la tabella artefacts ##############
   for(i in 1:nrow(sel)){
     a = timeMaster(sel[i,1],out="sec") -  start(x)[1]
@@ -255,18 +263,54 @@ winInter = function(windowsList, winSec, incSec, sampRate){
 #'
 #' @return
 #' @export
-
-movAv = function(x,win,inc,sampRate=frequency(x),remove=F){
-  win2 = floor(win/2)
-  len = length(x)
-  f = unlist(lapply(seq_along(x),function(t){
-    i1 = if(t <= win2) 1 else (t-win2) 
-    i2 = if(t+win2 >= len) len else (t+win2)
-    sum(x[i1:i2])/length(i1:i2)
+#' 
+#' 
+movAv = function(x,win,inc,sampRate=frequency(x)){
+  warning("this function may be broken. inc is not used")
+  n = winSec*sampRate
+  b = unlist(lapply(seq_along(a), function(t){
+    i1 = t-(n-1)/2; if(i1<1) i1=1;
+    i2 = t+(n-1)/2;
+    res = sum(a[i1:i2])/n
+    res[is.na(res)]=0
+    return(res)
   }))
-  if(remove){
-    x-f
-  }else  f
+  ts(b,start=start(a)[1]+winSec/2,frequency = sampRate)
+  
+}
+# movAv = function(x,win,inc,sampRate=frequency(x)){
+#   stop("this function is broken")
+#   win = win*sampRate
+#   inc = inc*sampRate
+#   win2 = floor(win/2)
+#   len = length(x)
+#   
+#   
+#   n_win = ceiling((length(x)-win+1)/inc)
+#   res = numeric(n_win)
+#  
+#   for(i in 1:n_win-1){
+#     a = (i*inc +1)
+#     b= (i*inc +win)
+#     res[i] = mean(x[a:b],na.rm=T)
+#     
+#   }
+#   ts(res,  start=c(floor(time(x)[win2]),cycle(x)[win2]), frequency = inc)
+# 
+# }
+
+movAvSlope = function(x,win,inc,sampRate=frequency(x)){
+  warning("this function may be broken")
+  win = win*sampRate
+  inc = inc*sampRate
+  n_win = ceiling((length(x)-win+1)/inc)
+  res = numeric(n_win)
+  for(i in 1:nwin-1){
+    a = (i*inc +1)
+    b= (i*inc +win)
+    res[i] = (x[b]-x[a])/win
+  }
+  ts(res, frequency = inc, start=start(x))
 }
 
 
@@ -281,7 +325,7 @@ movAv = function(x,win,inc,sampRate=frequency(x),remove=F){
 #' @examples
 znorm = function(a){
   if(is.DyadStream(a))
-    cloneDyadStream(ts(scale(a)[,1],frequency=frequency(a),start=start(a),end=end(a)),a)
+    cloneAttr(a,ts(scale(a)[,1],frequency=frequency(a),start=start(a),end=end(a)))
   else 
     ts(scale(a)[,1],frequency=frequency(a),start=start(a))
 }

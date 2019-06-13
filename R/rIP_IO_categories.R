@@ -40,7 +40,7 @@ readCategories = function(path,
   ndyads = imp$ndyads
   nFiles = imp$nFiles
   
-  if(length(removeSec)==1) {warning("removeSec = ",removeSec," was used for all files")
+  if(length(removeSec)==1) {message("removeSec = ",removeSec," was used for all files")
     removeSec = rep(removeSec, length(lf))
   }  else if(length(removeSec)!=length(lf)) stop("removeSec must be defined for every file (n=",length(lf),")")
 

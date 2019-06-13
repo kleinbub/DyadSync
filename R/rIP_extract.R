@@ -71,7 +71,7 @@ epochStreamApply.DyadSession = function(x, FUN, signal, sync , streamKey,
       lres[[i]] = NA
     } else { #if start is ok
       if(cate$end[i] > end(stream)[1] ){
-        warning("In session ", dyadId(x),"-",sessionId(x), ", end of window ",i,": was reduced to the stream end.", call.=F)
+        message("In session ", dyadId(x),"-",sessionId(x), ", end of window ",i,": was reduced to the stream end.", call.=F)
         cate$end[i]= end(stream)[1]
       }
       win = window(stream, start = cate$start[i], end = cate$end[i])
@@ -118,7 +118,7 @@ catExtract.DyadExperiment = function(experiment, category, by, FUN = mean, ...){
     if(!all(sapply(experiment,function(x){iname %in% colnames(x[[category]])})))
       keepNames = keepNames[keepNames!= iname]
   }
-  if(!all(checkNames %in% keepNames)) warning("'",paste(checkNames[!checkNames %in% keepNames], collapse="', '"),"' columns were not found in every session and were dropped")
+  if(!all(checkNames %in% keepNames)) message("'",paste(checkNames[!checkNames %in% keepNames], collapse="', '"),"' columns were not found in every session and were dropped")
   #rbind
   rexp = lapply(experiment, function(session){
     rses = session[[category]][,keepNames]
@@ -133,7 +133,7 @@ catExtract.DyadExperiment = function(experiment, category, by, FUN = mean, ...){
   if(missing(by)) by = NULL
   else if(!is.list(by)){
     by2 = match.arg(by, choices = c("session","dyad","group",keepNames), several.ok = T)
-    if(!all(by %in% by2))warning("'",paste(by[!by %in% by2], collapse="', '"),"' columns were not found and were ignored")
+    if(!all(by %in% by2))message("'",paste(by[!by %in% by2], collapse="', '"),"' columns were not found and were ignored")
     by = lapply(by2, function(x){res[,x]})
     names(by) = by2
   }

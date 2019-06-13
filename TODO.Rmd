@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## High alert:
   * in xbest di PMbest ci sono delle (rare) occorrenze in cui lo stesso picco viene usato 2 volte, che è grave.
+  * duration non deve essere salvato come attributo, ma sempre ricalcolato partendo da xsp!!!!!!
   
 ## Clean Up
   * cat --> epoch
@@ -30,19 +31,21 @@ knitr::opts_chunk$set(echo = TRUE)
   *NB i picchi potrebbero anche essere riutilizzati: A1 -> B1, ma B1 potrebbe causare A2! quindi B1 potrebbe dover essere considerato più volte. 
   
 ### high priority
-  0) implementare **meglio** NAartifact usando la nuova tabella "artefacts"
+  0) implementare NAartifact usando la nuova tabella "artefacts" in:
+    
+    * epochStream.DyadSession()
+    * plotting code
+    
  Quindi per ora limitati a PMBest, poi dovrai implementare un windowed assign: se invece di salvare valid salvi le epoche start-end degli artefatti poi puoi eliminarli così:
     ```{r}
       asd = ts(1:101, frequency=10,start=0)
-      #i campioni da rimuovere sono:
-      window(asd, start=5,end=6)
-      # in una ts con frequenza diversa
+      #i campioni da rimuovere sono dal secondo 5 al secondo 7
+      window(asd, start=5,end=7) <- NA
+      # funziona indipendentemente da frequency,
+      # es. in una ts con frequenza diversa:
       asd2 = ts(seq(1,101,by=10),frequency = 1,start=0)
-      window(asd2,start=5,end=6)
-      
-      matches = round(time(asd2),4) %in% round(time(window(asd2,start=5,end=6)),4) 
-      asd2[matches] =NA
-      asd2
+      window(asd2,start=5,end=7) <- NA
+
     ```
 
     

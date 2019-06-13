@@ -198,7 +198,7 @@ rangeRescale <- function(x, rangeMin, rangeMax, xmin =min(x, na.rm=T), xmax = ma
   #rangeMin e rangeMax indicano il minimo e il massimo della nuova scala
   #
   #se xmin e xmax mancano, vengono usati il minimo e il massimo del campione
-  if(any(x>xmax) || any(x<xmin)) stop ("Value found outside xmax and ymin boundaries. xmax and xmin should be equal or larger than the data range.")
+  if(any(x>xmax, na.rm=T) || any(x<xmin, na.rm=T)) stop ("Value found outside xmax and ymin boundaries. xmax and xmin should be equal or larger than the data range.")
   if(pres.signs){
     # if((!missing(xmin) && !missing(xmax)) || (xmin!=-max(abs(x)) || xmax != max(abs(x)) ) )
     #   stop("Either x")
@@ -242,10 +242,11 @@ unequalCbind = function(...) {
   #dots = list(my.orig,my.ccf)
   #
   dots = dots[!sapply(dots,is.null)]
-  #print(str(dots,max.level=2))
+  # print(str(dots,max.level=2))
   
   #print(str(dots))
   if(length(dots)>1){
+    dots = lapply(dots, function(x){if(!is.data.frame(x)) data.frame(x) else x })
     dotsNames = unlist(sapply(dots,colnames))
     #print(dotsNames)
     maxlen = max(sapply(dots, nrow))
@@ -294,7 +295,31 @@ timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseS
   }
   if(length(baseTime)>1)
   {
+    ## NB questa è la linea classica, funzionantissima, tranne nel caso di un data.frame di una riga.
+    SIMPLIFY = if(is.data.frame(baseTime)) FALSE else TRUE
     sapply(baseTime,timeMaster,out,add,baseSep,USE.NAMES = F)
+    
+    ## Questo è il nuovo approccio. Potrebbe sfasciare tutto
+    # res = baseTime
+    # for(i in seq_along(baseTime)){
+    #   res[[i]] <- timeMaster(baseTime[[i]],out,add,baseSep)  
+    #   print
+    # }
+    # res
+    
+    ## oppure
+    # if(is.list(baseTime)) res = vector("list", length(baseTime)) 
+    # else res = numeric(length(baseTime))
+    # for(i in seq_along(baseTime)){
+    #   res[[i]] <- timeMaster(baseTime[[i]],out,add,baseSep) 
+    #   # cat("\r\n",str(res))
+    # }
+    # names(res) = names(baseTime)
+    # # class(res) = class(baseTime)
+    # res
+    # 
+    ## elimina fino a qui in caso.
+    
   } else {
     #da qui baseTime è contenente un tempo singolo, non un vettore
     if(is.character(baseTime)){

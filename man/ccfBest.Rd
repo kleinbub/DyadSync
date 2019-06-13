@@ -4,6 +4,9 @@
 \alias{CCFBest}
 \title{SYNC_CLASSES = c("CCFBest","PMBest")}
 \usage{
-CCFBest(sync, lag, ccf_matrix, lagSec, winSec, incSec, accelSec, weight_type,
-  MAwin, MAinc, slopes)
+CCFBest(sync, lag, ccf_matrix, lagSec, winSec, incSec, accelSec,
+  weight_type, MAwin, MAinc, slopes)
+}
+\description{
+SYNC_CLASSES = c("CCFBest","PMBest")
 }

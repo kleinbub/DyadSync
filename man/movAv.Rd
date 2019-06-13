@@ -4,7 +4,7 @@
 \alias{movAv}
 \title{Title}
 \usage{
-movAv(x, win, inc, sampRate = frequency(x), remove = F)
+movAv(x, win, inc, sampRate = frequency(x))
 }
 \arguments{
 \item{x}{}

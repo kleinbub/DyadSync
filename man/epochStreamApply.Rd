@@ -6,8 +6,9 @@
 epochStreamApply cycles through all sessions in an experiment. For each session extracts a stream, then cuts it
 according to categories epochs, and applies a function to each epoch.}
 \usage{
-epochStreamApply(x, FUN, signal = "SC", sync = "none", streamKey = c("s1",
-  "s2", "time", "sync", "lag", "zero"), category = "PACS", ...)
+epochStreamApply(x, FUN, signal = "SC", sync = "none",
+  streamKey = c("s1", "s2", "time", "sync", "lag", "zero"),
+  category = "PACS", ...)
 }
 \arguments{
 \item{x}{}

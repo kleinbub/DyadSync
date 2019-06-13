@@ -4,9 +4,10 @@
 \alias{pmBest}
 \title{pmBest}
 \usage{
-pmBest(experiment, signals = "all", lagSec = 7, sgol_p = 2, sgol_n = 25,
-  weightMalus = 30, match_threshold = 0, minSizeSec = 5,
-  algorithm = c("classic", "dev", "sccf"), outputName = "PMBest")
+pmBest(experiment, signals = "all", lagSec = 7, sgol_p = 2,
+  sgol_n = 25, weightMalus = 30, match_threshold = 0,
+  minSizeSec = 5, algorithm = c("classic", "dev", "sccf"),
+  outputName = "PMBest")
 }
 \arguments{
 \item{experiment}{}

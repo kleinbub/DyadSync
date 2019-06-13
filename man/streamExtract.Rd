@@ -6,8 +6,8 @@
 The function iterates over each session of an experiment and applies a summarizing function on a given stream (e.g. mean).
 Multiple output are possible (eg. using the quantile function)}
 \usage{
-streamExtract(experiment, signal, sync = "none", streamKey = c("s1", "s2",
-  "time", "sync", "lag", "zero"), FUN = mean, ...)
+streamExtract(experiment, signal, sync = "none", streamKey = c("s1",
+  "s2", "time", "sync", "lag", "zero"), FUN = mean, ...)
 }
 \arguments{
 \item{experiment}{}

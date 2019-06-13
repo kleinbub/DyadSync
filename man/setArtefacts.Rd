@@ -8,14 +8,14 @@ salva le informazioni corrispondenti in una tabella $artefacts nell'oggetto Dyad
 corrispondenti nello stream 'valid' dell'oggetto.
 'end' può anche essere una stringa che contiene le parole 'fine' o 'end'}
 \usage{
-setArtefacts(x, startEnd, signal = "SC")
+setArtefacts(x, startEnd, signal)
 }
 \arguments{
-\item{x}{}
+\item{x}{a Dyad... object}
 
-\item{startEnd}{}
+\item{startEnd}{a data.frame (or list) with the following components: 'dyad', 'session', 'start', 'end'.}
 
-\item{signal}{}
+\item{signal}{string specifying the name of the signal}
 }
 \description{
 setArtefacts

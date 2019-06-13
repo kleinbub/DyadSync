@@ -29,9 +29,10 @@ dyadId = function(dyadSession){
 } 
 #' @export
 dyad = dyadId
+
 #' @export
 groupId = function(dyadSession){
-  attr(dyadSession,"dyadId")
+  attr(dyadSession,"groupId")
 } 
 #' @export
 group.DyadSession = groupId

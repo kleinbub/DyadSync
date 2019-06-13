@@ -5,7 +5,8 @@
 \title{Title}
 \usage{
 readCategories(path, startCol, endCol, catName, namefilt = NA,
-  removeSec = 0, idOrder = c("id", "session", "group"), idSep = "_", ...)
+  removeSec = 0, idOrder = c("id", "session", "group"), idSep = "_",
+  ...)
 }
 \arguments{
 \item{startCol}{}

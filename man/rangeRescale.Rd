@@ -5,8 +5,8 @@
 \title{rangeRescale
 this extremely useful function rescales a numeric vector to a new range through linear interpolation}
 \usage{
-rangeRescale(x, rangeMin, rangeMax, xmin = min(x, na.rm = T), xmax = max(x,
-  na.rm = T), pres.signs = FALSE)
+rangeRescale(x, rangeMin, rangeMax, xmin = min(x, na.rm = T),
+  xmax = max(x, na.rm = T), pres.signs = FALSE)
 }
 \arguments{
 \item{x}{}

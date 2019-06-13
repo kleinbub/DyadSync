@@ -4,8 +4,8 @@
 \alias{megaExpExport}
 \title{Title}
 \usage{
-megaExpExport(dirPath, experiment, signals = "all", CCF = T, onlyBest = F,
-  original = T)
+megaExpExport(dirPath, experiment, signals = "all", CCF = T,
+  onlyBest = F, original = T)
 }
 \arguments{
 \item{dirPath}{}

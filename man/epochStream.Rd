@@ -5,12 +5,13 @@
 \title{Extract stream chunks corresponding to epochs}
 \usage{
 epochStream(x, signal = "SC", sync = "PMBest", streamKey = "sync",
-  category, groupIndex, mergeEpochs = F, artefact.rm = "T")
+  category, groupIndex, mergeEpochs = FALSE, artefact.rm = TRUE,
+  shift_start = 0, shift_end = 0)
 }
 \arguments{
 \item{x}{}
 
-\item{signal}{}
+\item{signal}{asd}
 
 \item{sync}{}
 
@@ -20,7 +21,13 @@ epochStream(x, signal = "SC", sync = "PMBest", streamKey = "sync",
 
 \item{groupIndex}{}
 
+\item{mergeEpochs}{}
+
 \item{artefact.rm}{}
+
+\item{shift_start}{integer in seconds (e.g. -5 shifts all epoch starts by 5 seconds before )}
+
+\item{shift_end}{integer in seconds (e.g. 7 shifts all epoch end by 7 seconds later )}
 }
 \description{
 epochStream cycles through all sessions in an experiment.

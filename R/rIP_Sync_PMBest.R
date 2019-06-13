@@ -288,10 +288,11 @@ ppSync = function(signal,minSizeSec, outputName) {
   xbest$syncEnd   = rep(F,nrow(xbest))
   
   for(i in 1:(nrow(xbest)-1)){
-    ii = i
+    
     ab = list()
     ab[[1]] = xbest$s1[i]:xbest$s1[i+1]
     ab[[2]] = xbest$s2[i]:xbest$s2[i+1]
+    ii = i
     
     if(length(abCum)>0){ #se ci sono dei dati lasciati indietro aggiungili ad ab
       ab[[1]] = c(abCum[[1]],ab[[1]])
@@ -368,6 +369,11 @@ ppSync = function(signal,minSizeSec, outputName) {
   #qui salva l'output ############
   syncvec = ts(syncvec, start=start(d), frequency = sampRate)
   lagvec  = ts(lagvec,  start=start(d), frequency = sampRate)
+   # applica gli artefatti
+  for(i in seq_len(nrow(signal$artefacts))){
+    window(syncvec,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
+    window(lagvec,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
+  }
   signal[[outputName]]$xBest = xbest
   signal[[outputName]]$sync = DyadStream(syncvec, "PMBest_Sync", col=rgb(191,50,59,max=255))
   signal[[outputName]]$lag = DyadStream(lagvec, "PMBest_Lag", col=rgb(253,177,2,max=255))
@@ -532,6 +538,11 @@ ppSync_dev = function(signal,minSizeSec, outputName) {
   #qui salva l'output ############
   syncvec = ts(syncvec, start=start(d), frequency = sampRate)
   lagvec  = ts(lagvec,  start=start(d), frequency = sampRate)
+  # applica gli artefatti
+  for(i in seq_len(nrow(signal$artefacts)) ){ 
+    window(syncvec,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
+    window(lagvec,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
+  }
   signal[[outputName]]$xBest = xbest
   signal[[outputName]]$sync = DyadStream(syncvec, "PMBest_Sync", col=rgb(191,50,59,max=255))
   signal[[outputName]]$lag = DyadStream(lagvec, "PMBest_Lag", col=rgb(253,177,2,max=255))
@@ -610,8 +621,16 @@ ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
   #qui salva l'output ############
   signal[[outputName]]$xBest = xbest
   xStart = c(start(signal)[1] +round(winSec/2)+lagSec,start(signal)[2])
-  signal[[outputName]]$sync = DyadStream(lcc, "PMBest_Sync", col=rgb(191,50,59,max=255), start=xStart,frequency=1/incSec )
+
+  signal[[outputName]]$sync = DyadStream(lcc, "PMBest_Sync", col=rgb(191,50,59,max=255), start=xStart, frequency=1/incSec )
   signal[[outputName]]$lag = DyadStream(lagvec, "PMBest_Lag", col=rgb(253,177,2,max=255), start=start(signal),frequency=sampRate )
+  
+  # applica gli artefatti
+  warning("artefact removal in ppSync_sccf is untested. window.DyadStream '<-' behaviour is unknown")
+  for(i in seq_len(nrow(signal$artefacts))){
+    window(signal[[outputName]]$sync,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
+    window(signal[[outputName]]$lag,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
+  }
   return(signal)
   
 }
@@ -625,15 +644,13 @@ ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
 #' @param mode should the function return only 'peaks', 'valleys', or 'both'?
 #' @param correctionRangeSeconds the range in which the real maximum/minimum value should be searched, in seconds.
 #' around the derivative shift. Should be less then the periodicity of the signal.  0.5 is good for skin conductance.
-#' @param valid a logical vector of the same length of x. No peaks/valleys are found where valid is FALSE.
 #'
 #' @return a list of: "bool" a logical vector of the same length of x with TRUE value corresponding to a match;
 #' "samples" the index of matches in x;
 #' "seconds" the position in seconds of matches (if x is a ts object);
 #' and "type" a charachter vector defining for each "samples" value if its a 'p' peak or a 'v' valley.
 #' @export
-peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both"), correctionRangeSeconds = 0.5, valid){
-  if(missing(valid)) valid = rep(T,length(x))
+peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both"), correctionRangeSeconds = 0.5){
   sampRate = frequency(x)
   smooth_x = signal::sgolayfilt(x,  p =sgol_p, n = sgol_n, m=0)
   fdderiv1  = diff(smooth_x)
@@ -645,8 +662,6 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   else if(mode=="valleys")
     pikboo = c(s == -2, FALSE) #embed perde 1 sample, quindi aggiungi un FALSE alla fine
   else pikboo = c(abs(s) ==  2, FALSE)
-  
-  pikboo[valid==F] = FALSE #cancella i picchi nelle aree con artefatti
   
   piksam = which(pikboo) #in quali sample c'è un'inversione di segno della derivata?
   #correzione manuale: cerca il valore più alto nei dintorni del cambio di derivata

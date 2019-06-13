@@ -297,13 +297,13 @@ kleinbubIndex=function(a){ #KSI = kleinbub session index
 #' @param winSec 
 #' @param incSec 
 #' @param accelSec 
-#' @param slopes      if true, the first derivative of the signal is used to compute correlations 
-#' @param MA          vector of length 2, containing the window size and increments of the moving average filter
+#' @param slopes      vector of length 2, containing the window size and increments of a "average slope" filter, in seconds
+#' @param MA          vector of length 2, containing the window size and increments of the moving average filter, in seconds
 #' @param weight_type 
 #' @param simplify 
 #' @param outputName 
 #' @export
-ccfBest = function(x, signals="all", lagSec,winSec,incSec,accelSec, slopes=F, MA =c(NA,NA), weight_type=c("center","free","off"),simplify = T, outputName = "CCFBest")
+ccfBest = function(x, signals="all", lagSec,winSec,incSec,accelSec, slopes=c(NA,NA), MA=c(NA,NA), weight_type=c("center","free","off"),simplify = T, outputName = "CCFBest")
 {
   UseMethod("ccfBest",x)
 }
@@ -332,7 +332,7 @@ ccfBest.DyadExperiment = function(experiment, signals, lagSec,winSec,incSec,acce
   cat("\r\nDone ;)")
   attributes(experiment2)=attributes(experiment)
   return(experiment2)
-  if(lagSec > 5)  warning("SC latency from stimuli is between 1 and 5 sec. Bigger lags are robably wrong in a stimulus-response perspective")
+  if(lagSec > 5)  message("SC latency from stimuli is between 1 and 5 sec. Bigger lags are robably wrong in a stimulus-response perspective")
   
 }
 
@@ -341,8 +341,8 @@ ccfBest.DyadSignal = function(signal, lagSec,winSec,incSec,accelSec, slopes, MA,
   signal[[outputName]] = CCFBest(NULL,NULL,NULL, lagSec,winSec,incSec,accelSec,weight_type, MA[1], MA[2],slopes)
   origs1 = signal$s1
   origs2 = signal$s2
-  if(slopes)
-    signal = signalFilter(signal,diff)
+  if(length(slopes)==2 && all(is.numeric(slopes)))
+    signal = signalFilter(signal,movAvSlope,slopes[1],slopes[2])
   if(length(MA)==2 && all(is.numeric(MA)))
     signal = signalFilter(signal,movAv,MA[1],MA[2])
   

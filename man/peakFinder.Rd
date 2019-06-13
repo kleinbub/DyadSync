@@ -5,7 +5,7 @@
 \title{Title}
 \usage{
 peakFinder(x, sgol_p = 2, sgol_n = 25, mode = c("peaks", "valleys",
-  "both"), correctionRangeSeconds = 0.5, valid)
+  "both"), correctionRangeSeconds = 0.5)
 }
 \arguments{
 \item{x}{a ts object or a numeric vector.}
@@ -18,8 +18,6 @@ peakFinder(x, sgol_p = 2, sgol_n = 25, mode = c("peaks", "valleys",
 
 \item{correctionRangeSeconds}{the range in which the real maximum/minimum value should be searched, in seconds.
 around the derivative shift. Should be less then the periodicity of the signal.  0.5 is good for skin conductance.}
-
-\item{valid}{a logical vector of the same length of x. No peaks/valleys are found where valid is FALSE.}
 }
 \value{
 a list of: "bool" a logical vector of the same length of x with TRUE value corresponding to a match;

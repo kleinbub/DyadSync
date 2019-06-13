@@ -12,40 +12,46 @@
 #' according to categories epochs
 #'
 #' @param x 
-#' @param signal 
+#' @param signal  asd
 #' @param sync 
 #' @param streamKey 
 #' @param category 
 #' @param groupIndex 
 #' @param artefact.rm 
+#' @param mergeEpochs 
+#' @param shift_start integer in seconds (e.g. -5 shifts all epoch starts by 5 seconds before )
+#' @param shift_end integer in seconds (e.g. 7 shifts all epoch end by 7 seconds later )
 #'
 #' @return
 #' @export
 #'
 #' @examples
-epochStream = function(x, signal= "SC", sync="PMBest", streamKey="sync", category, groupIndex, mergeEpochs=F, artefact.rm="T"){
+epochStream = function(x, signal= "SC", sync="PMBest", streamKey="sync", category, groupIndex,
+                       mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0){
   UseMethod("epochStream", x)
 }
 
 #' @export
-epochStream.DyadExperiment = function(x, signal, sync, streamKey, category, groupIndex, mergeEpochs, artefact.rm){
+epochStream.DyadExperiment = function(x, signal= "SC", sync="PMBest", streamKey="sync", category, groupIndex,
+                                      mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0){
   res = Map(function(session, nSession){
     prog(nSession, length(x))
     print(nSession)
-    epochStream(session, signal, sync, streamKey, category, groupIndex,mergeEpochs, artefact.rm )
+    epochStream(session, signal, sync, streamKey, category, groupIndex,mergeEpochs, artefact.rm, shift_start, shift_end )
   },x, seq_along(x))
   classAttr(res) = classAttr(x)
   res
 }
 
 #' @export
-epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIndex, mergeEpochs, artefact.rm){
-  if(!sync %in% names(x[[signal]])) stop ('sync should be one of:',names(x[[signal]]))
-  resName = paste0(c(toupper(category),"_",totitle(c(sync,streamKey))),collapse = "")
+epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIndex, mergeEpochs, artefact.rm, shift_start, shift_end){
+  if(!sync %in% c("none",names(x[[signal]]))) stop ('sync was',sync,'and should be one of: none,',names(x[[signal]]))
+  resName = paste0(c(toupper(category),"_",totitle(c(if(sync=="none"){""}else{sync},streamKey))),collapse = "")
   
   #select stream according to sync and streamkey
   if(sync!="none"){
-    if(!streamKey %in% names(x[[signal]][[sync]])) stop ('sync should be one of:',names(x[[signal]][[sync]]))
+    if(length(names(x[[signal]][[sync]])) == 0) stop ("'sync' argument must point to a list containing 'streamKey'")
+    if(!streamKey %in% names(x[[signal]][[sync]])) stop ('streamKey should be one of:',names(x[[signal]][[sync]]))
     stream = x[[signal]][[sync]][[streamKey]]
   } else {
     if(!streamKey %in% c("s1","s2","time")) stop ("sync none requires streamkey == s1 or s2 or time")
@@ -57,6 +63,8 @@ epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIn
   }
   # seleziona il dataframe della categoria e crea un oggetto per ciascun livello
   cate = x[[category]]
+  cate$start = cate$start + shift_start
+  cate$end = cate$end + shift_end
   if(!is.factor(cate[[groupIndex]])) stop("groupIndex should be a factor column in the epoch table")
   resList = list()
   for(lev in levels(cate[[groupIndex]])){
@@ -74,26 +82,42 @@ epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIn
       if(cate$start[i]>=end(stream)[1]){
         warning("In session ", dyadId(x),"-",sessionId(x), ", start of window ",i,": was equal to or beyond the stream end.", call.=F)
         lres[[i]] = NA
-      } else { #if start is ok
+      } else { #if start is before the end of stream
+        
+        #if (by applying shift_start) cate$start is before the signal start, create a NA padding
+        if(cate$start[i]<start(stream)[1]){
+          padding = ts(start = cate$start[i],
+                     end = c(start(stream)[1],0), #-> since the real signal starts at c(start(stream)[1],1)
+                     frequency = frequency(stream))
+          cate$start[i] = start(stream[1])
+        } else padding = NULL
+        
+        
         if(cate$end[i] > end(stream)[1] ){
-          warning("In session ", dyadId(x),"-",sessionId(x), ", end of window ",i,": was reduced to the stream end.", call.=F)
+          message("In session ", dyadId(x),"-",sessionId(x), ", end of window ",i,": was reduced to the stream end.", call.=F)
           cate$end[i]= end(stream)[1]
         }
-        # rimuovi la finestra dal segnale residuo:
+        
+        # rimuovi la finestra dallo stream di segnale residuo remStream:
         window(remStream, start = cate$start[i], end = cate$end[i]) <- NA
         
         #aggiungi la finestra al vettore di resList corrispondente al livello di groupIndex
-        win = as.numeric(window(stream, start = cate$start[i], end = cate$end[i]))
+        win = window(stream, start = cate$start[i], end = cate$end[i])
         if(mergeEpochs)
-          resList[[cate[[groupIndex]][i]]] = c(resList[[cate[[groupIndex]][i]]], win)
+          resList[[cate[[groupIndex]][i]]] = c(resList[[cate[[groupIndex]][i]]], c(padding,win))
         else{
+          if(!is.null(padding)){ #se c'è da aggiungere il padding
+            win = ts(c(padding,win2),start=start(padding),end = end(win2),frequency = frequency(stream)) 
+          }
           resList[[cate[[groupIndex]][i]]] = c(resList[[cate[[groupIndex]][i]]], list(win))
           names(resList[[cate[[groupIndex]][i]]])[length(resList[[cate[[groupIndex]][i]]])] = paste0(dyadId(x),sessionId(x),"|",cate$start[i], "-",cate$end[i])
           }
       }
     }
   }
-  resList[["remaining"]] = na.omit(as.numeric(remStream))
+  if(mergeEpochs)
+    resList[["remaining"]] = na.omit(as.numeric(remStream))
+  else resList[["remaining"]] = list(remStream)
   
   #save object
   x[[signal]][[resName]] = resList 
