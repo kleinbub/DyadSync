@@ -36,7 +36,7 @@
 #' @examples
 pmBest = function(experiment, signals="all", lagSec=7,
                   sgol_p = 2, sgol_n = 25,  weightMalus = 30,
-                  match_threshold = 0.0,minSizeSec=5, algorithm=c("classic","dev","sccf"), outputName = "PMBest"){
+                  match_threshold = 0.0,minSizeSec=5, algorithm=c("classic","AMICo","sccf"), outputName = "PMBest"){
   algorithm=match.arg(algorithm)
   if(!is(experiment,"DyadExperiment")) stop("Only objects of class DyadExperiment can be processed by this function")
   cat(paste0("\r\nHigh Sync at positive lags implies that the ",s2Name(experiment[[1]]),
@@ -51,7 +51,7 @@ pmBest = function(experiment, signals="all", lagSec=7,
       signal = peakMatch(signal, lagSec=lagSec, sgol_p=sgol_p, sgol_n=sgol_n,
                          weightMalus=weightMalus, match_threshold=match_threshold, outputName=outputName)
       #the second calculates the actual sync values
-      if(algorithm == "dev")
+      if(algorithm == "AMICo")
         signal = ppSync_dev(signal,minSizeSec,outputName=outputName)
       else if(algorithm == "classic")
         signal = ppSync(signal,minSizeSec,outputName=outputName)
@@ -381,6 +381,7 @@ ppSync = function(signal,minSizeSec, outputName) {
   
 }
 
+#AMICo: Adaptive Matching Interpolated Correlation
 ppSync_dev = function(signal,minSizeSec, outputName) {
   ##questa è una versione di debug e sviluppo di ppSync di rIP
   # richiede dei dati generati con rIP in un oggetto chiamato lr
@@ -388,9 +389,9 @@ ppSync_dev = function(signal,minSizeSec, outputName) {
   #
   #la versione attuale (l'ultima su github ) è imperfetta:
   # 1. usare la finestra più lunga causa degli errori in caso di cambio di lag:
-  #  ^  ^
-  # / \/ \
-  #   ^^    <-qui anche se i due picchi sono uguali la cor viene bassa
+  #   ^  ^
+  # /  \/ \
+  #   ^ ^    <-qui anche se i due picchi sono uguali la cor viene bassa
   # meglio se ALMENO una finestra sia sufficientemente lunga e quella breve venga interpolata
   #
   # 2. aggregando finestre diverse per avere una lunghezza minima si sminchia l'appaiamento fra picchi
@@ -399,7 +400,7 @@ ppSync_dev = function(signal,minSizeSec, outputName) {
   ## idee: - pesare per la differenza di durata?
   ##       - pesare per la differenza di ampiezza (normalizzata sulla SD individuale?)
   
-  cat(" - dev version of ppSync")
+  cat(" - AMICo algorithm v.1.0")
   #please refer to ppSync dev.R in research folder of DyadClass
   
   # signal = lr$CC_1$SC
