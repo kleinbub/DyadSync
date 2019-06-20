@@ -6,6 +6,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+## v.1.0.0.9002
+  * package renamed to DyadSync
 
 ## v.1.0.0.9001
 
