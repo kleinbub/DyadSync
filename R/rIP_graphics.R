@@ -141,6 +141,52 @@ catBoxes = function(categ, column, cols=mycolz(length(levels(categ[[column]])),a
 }
 
 
+#' Plots a window of signal and the AMICo algorithm results
+#'
+#' @param signal object of class DyadSignal
+#' @param start start of plotting window. "mm:ss" or a number of seconds
+#' @param end end of plotting window. "mm:ss" or a number of seconds
+#'
+#'
+plotAMICo = function(signal, start, end, syncName = "AMICo"){
+  if()
+  rs1x = rangeRescale(signal$s1,0,1.5)-0.6
+  rs2x = rangeRescale(signal$s2,0,1.2)-0.25
+  
+  xStart = timeMaster(start,"s")
+  xEnd   = timeMaster(end,"s")
+  
+  rs1 =  window(rs1x,start=xStart,end=xEnd)
+  rs2 =  window(rs2x,start=xStart,end=xEnd)
+  k1 = min(rs1-mean(rs1))+mean(rs1)
+  k2 = min(rs2-mean(rs2))+mean(rs2)
+  rs1 = rs1-k1
+  rs2 = rs2-k2
+  
+  time = window(signal$time, start=xStart,end=xEnd)
+  valid = window(signal$valid, start=xStart,end=xEnd)
+  sync1 = rangeRescale(window(signal[[syncName]]$sync,start= xStart, end=xEnd), 0.6,0.8,-1,1)
+
+  plot(rs1, col=0, lty=3,xaxs="i",xaxt="n",yaxt="n",ylim=c(-0.05,0.81),xlab="",ylab="")
+  lines(time[valid], rs1[valid],col="#00A479",lwd=2)
+  lines(time[valid], rs2[valid],col="#3173BA",lwd=2,lty=1)
+  xbest2 = signal$AMICo$xBest[signal[[syncName]]$xBest$syncBound==T,]
+  segments(time(signal$s1)[xbest2$s1],rs1x[xbest2$s1]-k1,
+           time(signal$s2)[xbest2$s2],rs2x[xbest2$s2]-k2,col=1,lwd=2)
+  
+  lines(sync1,lty=1,col="#DCAA27",lwd=2) 
+
+  abline(h=c(0.6,0.8,0.70),lty=c(1,1,3))
+  tSteps = signal$time[seq(1, length(signal$time),by=100 )]
+  axis(1,at = tSteps, labels = timeMaster(tSteps+1,"min"),tick = T,las=1 )
+  axis(2, at=c(0.6,0.8,0.70),labels = c(-1,1,0),las=2)
+  mtext("Correlation",2,las=3,at = 0.70,line = 2,col=1)
+  mtext("Normalized\nskin conductance",2,las=3,at = 0.200,line = 0.5,col=1)
+  title(xlab="Time (mm:ss)")
+  
+}
+
+
 
 plotSignal = function (lineList, path="test.svg", boxList=NULL, connect=T, stacked=F, videoSec=0,
                        preview=T, preview_time=NULL, preview_length=60,
