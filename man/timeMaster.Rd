@@ -9,7 +9,7 @@ add amounts of time to baseTime expressed in different formats.
 This is verified. And useful. For reasons. :-D}
 \usage{
 timeMaster(baseTime, out = c("auto", "hour", "min", "sec"), add = 0,
-  baseSep = "[\\\\.,:,\\\\,',-,\\"]")
+  baseSep = "[\\\\.,:,;,\\\\,',\\",\\\\-]")
 }
 \arguments{
 \item{baseTime}{}

@@ -13,5 +13,5 @@ marciIndex(a)
 Marci's concordance index
 }
 \details{
-see Marci et al. (2007)
+see Marci et al. 2007
 }

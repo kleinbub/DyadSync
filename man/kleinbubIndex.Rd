@@ -2,13 +2,20 @@
 % Please edit documentation in R/rIP_Sync_CCFBest.R
 \name{kleinbubIndex}
 \alias{kleinbubIndex}
-\title{Title}
+\title{kleinbub session index
+A simple summarizing index of synchronization in a given session}
 \usage{
-kleinbubIndex(a)
+kleinbubIndex(a, threshold = 0)
 }
 \arguments{
 \item{a}{}
 }
 \description{
-Title
+kleinbub session index
+A simple summarizing index of synchronization in a given session
+}
+\details{
+the index calculates the median between high values and multiplies it
+by the ratio of high values in the time-series.
+By default, high values are values greater than 0.
 }
