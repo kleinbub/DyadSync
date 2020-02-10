@@ -53,6 +53,7 @@ ccfBest.DyadExperiment = function(experiment, signals="all", lagSec,winSec,incSe
   cat(paste0("\r\nHigh Sync at positive lags implies that the ",s2Name(experiment[[1]]), " follows the ",
              s1Name(experiment[[1]]),"\r\n"))
   if(length(MA)!=2 || (!all(is.numeric(MA)) || !all(is.na(MA)) ) ) MA = c(NA,NA)
+  if(winSec%%2==1) warning("Using odd 'winSec' values will cause slightly uncentered correlation windows, due to ts limitations")
   nSessions = length(experiment)
   experiment2 = Map(function(session,iSession){
     if(signals=="all") signals = names(session)
@@ -132,7 +133,7 @@ dyadCCF = function(signal,lagSec,winSec,incSec, simplify, outputName = "CCFBest"
   signal[[outputName]]$table = data.frame(matrix(unlist(lcc),ncol=length(ran), byrow = T, dimnames=list(paste0("w",seq_len(n_win)),paste0("lag",ran))))
   colnames(signal[[outputName]]$table) = paste0("lag",ran)
   # signal$ccf$ccfmat[is.na(signal$ccf$ccfmat)] = 0
-  xStart = c(start(signal)[1] +winSec/2,1)
+  xStart = c(start(signal)[1] +trunc(winSec/2),1)
   cat("\r\n freq = ",1/incSec)
   signal[[outputName]]$zero =DyadStream(signal[[outputName]]$table[["lag0"]],"lagZeroSync","#A11F12",start=xStart,frequency=1/incSec )
   #dimostrazione che la CCF inizia a metà della finestra!

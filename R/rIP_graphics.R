@@ -149,7 +149,7 @@ catBoxes = function(categ, column, cols=mycolz(length(levels(categ[[column]])),a
 #'
 #'
 plotAMICo = function(signal, start, end, syncName = "AMICo"){
-  if()
+  #if()
   rs1x = rangeRescale(signal$s1,0,1.5)-0.6
   rs2x = rangeRescale(signal$s2,0,1.2)-0.25
   

@@ -9,8 +9,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Development 
 
 ## High alert:
+  * window.ts è buggato per serie con frequenza < 1
   * in xbest di PMbest ci sono delle (rare) occorrenze in cui lo stesso picco viene usato 2 volte, che è grave.
   * duration non deve essere salvato come attributo, ma sempre ricalcolato partendo da xsp!!!!!!
+  * errori (rari) in PMBest (su diadi random): 
+    * In cor(rs1, rs2, use = "c") : la deviazione standard è zero
+    * In s2p\$bool + s2v\$bool :  longer object length is not a multiple of shorter object length
   
 ## Clean Up
   * cat --> epoch
@@ -20,6 +24,8 @@ knitr::opts_chunk$set(echo = TRUE)
   * signalDecimate deve diventare decimate() secondo la nuova filosofia dei filtri
 
 ## next steps
+  * Parallelize -> http://dept.stat.lsa.umich.edu/~jerrick/courses/stat701/notes/parallel.html
+  
 ### migliorie all'indice
   * implementare maxWinSize per evitare situazioni come queste:
   
@@ -28,6 +34,12 @@ knitr::opts_chunk$set(echo = TRUE)
   ![_error in PMBest - dev algorithm cc01 42:27 - 42:40_](dev_spam/dev_error2.PNG)
   
   *NB i picchi potrebbero anche essere riutilizzati: A1 -> B1, ma B1 potrebbe causare A2! quindi B1 potrebbe dover essere considerato più volte. 
+  
+  * aggiungere min e max s1 e s2 ai dati di ciascuna finestra, per far sì che la correlazione sia scalata. Ora invece in questi due casi la correlazione è identica:
+  ![_Rescaled correlation_](dev_spam/cor_rescale.png)
+  
+  ![_Possible solution_](dev_spam/cor_rescale2.png)
+
   
 ### high priority
   0) implementare NAartifact usando la nuova tabella "artefacts" in:

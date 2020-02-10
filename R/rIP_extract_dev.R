@@ -36,7 +36,7 @@ epochStream.DyadExperiment = function(x, signal= "SC", sync="PMBest", streamKey=
                                       mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0){
   res = Map(function(session, nSession){
     prog(nSession, length(x))
-    print(nSession)
+    cat("session:",nSession,"\r\n")
     epochStream(session, signal, sync, streamKey, category, groupIndex,mergeEpochs, artefact.rm, shift_start, shift_end )
   },x, seq_along(x))
   classAttr(res) = classAttr(x)
@@ -45,6 +45,17 @@ epochStream.DyadExperiment = function(x, signal= "SC", sync="PMBest", streamKey=
 
 #' @export
 epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIndex, mergeEpochs, artefact.rm, shift_start, shift_end){
+  ##DEBUG
+  # x = d$all_CC_5
+  # signal="SC"
+  # sync="CCFBest"
+  # streamKey = "sync"
+  # category="PIRS"
+  # groupIndex="codifica"
+  # mergeEpochs = F
+  # artefact.rm=F
+  ###
+  
   if(!sync %in% c("none",names(x[[signal]]))) stop ('sync was',sync,'and should be one of: none,',names(x[[signal]]))
   resName = paste0(c(toupper(category),"_",totitle(c(if(sync=="none"){""}else{sync},streamKey))),collapse = "")
   
@@ -67,6 +78,7 @@ epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIn
   cate$end = cate$end + shift_end
   if(!is.factor(cate[[groupIndex]])) stop("groupIndex should be a factor column in the epoch table")
   resList = list()
+  #istanzia i contenitori vouti per ciascun livello
   for(lev in levels(cate[[groupIndex]])){
     # dur = sum((cate[cate[[groupIndex]]==lev,"end"] - cate[cate[[groupIndex]]==lev,"start"] )*frequency(stream))
     if(mergeEpochs)
@@ -77,12 +89,13 @@ epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIn
   names(resList) = levels(cate[[groupIndex]])
 
   remStream = stream
-  for(i in 1:nrow(cate)){
+  for(i in 1:nrow(cate)){ #for each epoch
     if(!is.na(cate[[groupIndex]][i]) && !is.null(cate[[groupIndex]][i])) {
       if(cate$start[i]>=end(stream)[1]){
         warning("In session ", dyadId(x),"-",sessionId(x), ", start of window ",i,": was equal to or beyond the stream end.", call.=F)
-        lres[[i]] = NA
-      } else { #if start is before the end of stream
+        # lres[[i]] = NA
+      } else { #if start is before the end of stream, as it should...
+        print(i)
         
         #if (by applying shift_start) cate$start is before the signal start, create a NA padding
         if(cate$start[i]<start(stream)[1]){
@@ -92,14 +105,40 @@ epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIn
           cate$start[i] = start(stream[1])
         } else padding = NULL
         
-        
+        #if end goes beyond the stream duration...
         if(cate$end[i] > end(stream)[1] ){
           message("In session ", dyadId(x),"-",sessionId(x), ", end of window ",i,": was reduced to the stream end.", call.=F)
           cate$end[i]= end(stream)[1]
         }
         
         # rimuovi la finestra dallo stream di segnale residuo remStream:
-        window(remStream, start = cate$start[i], end = cate$end[i]) <- NA
+        window(remStream, start = cate$start[i], end = cate$end[i]) <- NA ## broken?
+        
+        # ###################### SHIT
+        # asd = as.numeric(remStream)
+        # asd = ts(runif(580), start = 162.5, end = 3057.5, frequency = 0.2)
+        # window(asd, start = 200, end = 300) <- NA
+        # 
+        # 
+        # x = remStream
+        # xtsp <- tsp(x)
+        # m <- match.call(window, call("window",remStream, start = cate$start[i], end = cate$end[i]),expand.dots = FALSE)
+        # m$value <- NULL
+        # m$extend <- TRUE
+        # m$x <- x
+        # m[[1L]] <- quote(stats::window)
+        # xx <- eval.parent(m)
+        # xxtsp <- tsp(xx)
+        # start <- xxtsp[1L]
+        # end <- xxtsp[2L]
+        # 
+        # 
+        # 
+        # asd = remStream
+        # asd = as.ts(asd);class(asd)
+        # window(asd, start = cate$start[i], end = cate$end[i]) <- NA
+        # 
+        # ####################### END
         
         #aggiungi la finestra al vettore di resList corrispondente al livello di groupIndex
         win = window(stream, start = cate$start[i], end = cate$end[i])

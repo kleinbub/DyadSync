@@ -54,17 +54,42 @@ readCategories = function(path,
     file = file[,colSums(is.na(file)) != nrow(file)]
     file[is.na(file)] = "NA" #use character NA to keep smooth subsequent analyses
     #convert shitty time formats to seconds
+    
+    for(i in 1:length(file[[startCol]])) {
+      result = tryCatch({
+        a = timeMaster(file[[startCol]][i],out = "sec",add = -removeSec[iFile])
+        b = timeMaster(file[[endCol]][i],out = "sec",add = -removeSec[iFile])
+        if(b-a <0 )
+          cat("--negative duration spotted at line:",i,"\r\n")
+        if(a<0 )
+          cat("--negative start time (after removeSec) spotted at line:",i,"\r\n")
+        if(b<0 )
+          cat("--negative end time (after removeSec) spotted at line:",i,"\r\n")
+        if(i>1){ #check if start is after the previous end. Epochs should NOT overlap
+          if(a<timeMaster(file[[endCol]][i-1],out = "sec",add = -removeSec[iFile]))
+            cat("--overlapping epochs spotted at line:",i,"\r\n")
+          }
+        
+      }, error = function(e) {
+        cat("--invalid time value found at line:",i,"\r\n")
+      }, finally = {
+      })
+    }
+    
+    
+    
     file[[startCol]] = timeMaster(file[[startCol]],out = "sec",add = -removeSec[iFile])
     file[[endCol]]   = timeMaster(file[[endCol]],out="sec",add = -removeSec[iFile])
+
     if(any(is.na(file[[startCol]]))) stop("NA was found in startCol on line ", which(is.na(file[[startCol]])))
     if(any(is.na(file[[endCol]])))   stop("NA was found in startCol on line ", which(is.na(file[[endCol]])))
     
     deltaSec = file[[endCol]] - file[[startCol]]
     deltaSec[deltaSec==0] =1
-    if(any(file[[endCol]]<0))   stop("After removeSec negative times were found in 'end' column in file "  ,shortNames[iFile])
-    if(any(file[[startCol]]<0)) stop("After removeSec negative times were found in 'start' column in file ",shortNames[iFile])
+    # if(any(file[[endCol]]<0))   stop("After removeSec negative times were found in 'end' column in file "  ,shortNames[iFile])
+    # if(any(file[[startCol]]<0)) stop("After removeSec negative times were found in 'start' column in file ",shortNames[iFile])
     
-    if(length(deltaSec[deltaSec<0])>0) warning("negative durations spotted in file ",shortNames[iFile])
+    #if(length(deltaSec[deltaSec<0])>0) warning("negative durations spotted in file ",shortNames[iFile],"\r\n",which(deltaSec[deltaSec<0],arr.ind = T))
     
     
     

@@ -285,7 +285,7 @@ unequalCbind = function(...) {
 #' @export
 #'
 #' @examples
-timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseSep = "[\\.,:,\\,',-,\"]"){
+timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseSep = "[\\.,:,;,\\,',\",\\-]"){
   #baseTime and add can either be  integers of seconds or a time string in the format h:m:s, m:s, or s, with or without leading zeroes
   #output forces the sum to be reported either as string h:m:s or m:s or as a integer of seconds. auto keeps the 'baseTime' format.
   out = match.arg(out)

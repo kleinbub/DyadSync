@@ -91,7 +91,7 @@ dyadComb = function(x,...) {UseMethod("dyadComb")}
 
 #' @export
 dyadComb.DyadExperiment = function(exper, n, signals="all", verbose=F){
-
+  
   #Questa funzione accetta in ingresso un esperimento, e genera un nuovo esperimento con n "sedute"
   #random, in cui vengono scombinati gli appaiamenti paziente/terapeuta
   
@@ -101,16 +101,18 @@ dyadComb.DyadExperiment = function(exper, n, signals="all", verbose=F){
   # n =10
   # signals="all"
   # verbose = T
-
+  
   if(sum(signals == "all")){
     signals = names(exper[[1]])
-    nSignals = length(exper[[1]])
+    nSignals = length(signals)
   } else {
     if(is.vector(signals)) {
       nSignals = length(signals)
       exper = selectSignals(exper,signals)
     } else stop("signals is not well specified")
   }
+  if(sum(vapply(exper[[1]],is.DyadSignal,c(T))) != nSignals) stop ("Not all specified signals are DyadSignal objects")
+  
   
   ncom = nCombo(length(exper),n)
   
@@ -128,32 +130,39 @@ dyadComb.DyadExperiment = function(exper, n, signals="all", verbose=F){
     #cat("\r\n genero la seduta posticcia ",i)
     signalList = list()
     for(j in 1:nSignals){
-
-      #### new approach
-      #estraggo lo stream raw per la sessione ed il ruolo identificati in combolist
-      jSampRate = sampRate(exper[[1]][[signals[j]]])
-      olds1name = s1Name(exper[[ comboList[[j]][i,"ranx_session"] ]])
-      olds2name = s2Name(exper[[ comboList[[j]][i,"ranx_session"] ]])
+      if(is.DyadSignal(exper[[1]][[signals[j]]])){
+        #estraggo lo stream raw per la sessione ed il ruolo identificati in combolist
+        jSampRate = sampRate(exper[[1]][[signals[j]]])
+        olds1name = s1Name(exper[[ comboList[[j]][i,"ranx_session"] ]])
+        olds2name = s2Name(exper[[ comboList[[j]][i,"ranx_session"] ]])
+        
+        s1raw = as.numeric(exper[[ comboList[[j]][i,"ranx_session"] ]][[signals[j]]][[comboList[[j]][i,"ranx_role"]]])
+        s2raw = as.numeric(exper[[ comboList[[j]][i,"rany_session"] ]][[signals[j]]][[comboList[[j]][i,"rany_role"]]])
+        # tieni la lunghezza del più corto
+        s1raw = ts(s1raw[1:min(length(s1raw),length(s2raw))], frequency = jSampRate)
+        s2raw = ts(s2raw[1:min(length(s1raw),length(s2raw))], frequency = jSampRate)
+        #ricostruisci il dyadsignal
+        newSignal = DyadSignal(name= signals[j],s1 = s1raw, s2 = s2raw, sampRate = jSampRate,
+                               s1Name= paste0(comboList[[j]][i,"ranx_session"], if(comboList[[j]][i,"ranx_role"] =="s1") olds1name else olds2name ),
+                               s2Name =paste0(comboList[[j]][i,"rany_session"], if(comboList[[j]][i,"rany_role"] =="s1") olds1name else olds2name ))
+        signalList[[j]] = newSignal
+        
+      } else if(is.DyadCategory(exper[[1]][[signals[j]]])) {
+        ##code for dyadcategories
+        
+      } else {
+        warning("Unrecognized object was skipped in session",i, "at index", j)
+        
+      }
       
-      s1raw = as.numeric(exper[[ comboList[[j]][i,"ranx_session"] ]][[signals[j]]][[comboList[[j]][i,"ranx_role"]]])
-      s2raw = as.numeric(exper[[ comboList[[j]][i,"rany_session"] ]][[signals[j]]][[comboList[[j]][i,"rany_role"]]])
-      # tieni la lunghezza del più corto
-      s1raw = ts(s1raw[1:min(length(s1raw),length(s2raw))], frequency = jSampRate)
-      s2raw = ts(s2raw[1:min(length(s1raw),length(s2raw))], frequency = jSampRate)
-      #ricostruisci il dyadsignal
-      newSignal = DyadSignal(name= signals[j],s1 = s1raw, s2 = s2raw, sampRate = jSampRate,
-                             s1Name= paste0(comboList[[j]][i,"ranx_session"], if(comboList[[j]][i,"ranx_role"] =="s1") olds1name else olds2name ),
-                             s2Name =paste0(comboList[[j]][i,"rany_session"], if(comboList[[j]][i,"rany_role"] =="s1") olds1name else olds2name ))
-      signalList[[j]] = newSignal
-
     }
     names(signalList) = signals
     
     sessionList[[i]] = DyadSession(
-                                  groupId = "randomGroup",
-                                  sessionId = paste0("randomSession_",i),
-                                  dyadId = "randomDyad",
-                                  signalList = signalList, s1Name ="random", s2Name = "random",fileName = "random")
+      groupId = "randomGroup",
+      sessionId = paste0("randomSession_",i),
+      dyadId = "randomDyad",
+      signalList = signalList, s1Name ="random", s2Name = "random",fileName = "random")
   }
   names(sessionList) = paste0("shuffle_",1:ncom)
   nexp = DyadExperiment(paste0(n,"_combinations"),sessionList)
