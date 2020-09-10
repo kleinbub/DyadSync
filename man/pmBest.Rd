@@ -4,10 +4,18 @@
 \alias{pmBest}
 \title{pmBest}
 \usage{
-pmBest(experiment, signals = "all", lagSec = 7, sgol_p = 2,
-  sgol_n = 25, weightMalus = 30, match_threshold = 0,
-  minSizeSec = 5, algorithm = c("classic", "AMICo", "sccf"),
-  outputName = "PMBest")
+pmBest(
+  experiment,
+  signals = "all",
+  lagSec = 7,
+  sgol_p = 2,
+  sgol_n = 25,
+  weightMalus = 30,
+  match_threshold = 0,
+  minSizeSec = 5,
+  algorithm = c("classic", "AMICo", "sccf"),
+  outputName = "PMBest"
+)
 }
 \arguments{
 \item{experiment}{}
@@ -25,6 +33,9 @@ pmBest(experiment, signals = "all", lagSec = 7, sgol_p = 2,
 \item{match_threshold}{a value between 0 and 1, specifying the similarity threshold to assign a peak-peak match.}
 
 \item{minSizeSec}{the smallest allowed window size. very small windows may artificially inflate synchrony.}
+}
+\value{
+
 }
 \description{
 pmBest

@@ -4,8 +4,7 @@
 \alias{movAv}
 \title{Moving average filter}
 \usage{
-movAv(x, winSec, incSec = NA, remove = FALSE,
-  sampRate = frequency(x))
+movAv(x, winSec, incSec = NA, remove = FALSE, sampRate = frequency(x))
 }
 \arguments{
 \item{x}{A time-series or numeric vector}

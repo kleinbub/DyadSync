@@ -8,8 +8,12 @@ transform time from different formats to different formats.
 add amounts of time to baseTime expressed in different formats.
 This is verified. And useful. For reasons. :-D}
 \usage{
-timeMaster(baseTime, out = c("auto", "hour", "min", "sec"), add = 0,
-  baseSep = "[\\\\.,:,;,\\\\,',\\",\\\\-]")
+timeMaster(
+  baseTime,
+  out = c("auto", "hour", "min", "sec"),
+  add = 0,
+  baseSep = "[\\\\.,:,;,\\\\,',\\",\\\\-]"
+)
 }
 \arguments{
 \item{baseTime}{}
@@ -19,6 +23,9 @@ timeMaster(baseTime, out = c("auto", "hour", "min", "sec"), add = 0,
 \item{add}{}
 
 \item{baseSep}{}
+}
+\value{
+
 }
 \description{
 timeMaster

@@ -4,8 +4,7 @@
 \alias{plot.DyadSignal}
 \title{Plot a DyadSignal object}
 \usage{
-\method{plot}{DyadSignal}(x, sync = NA, rescale = c("none", "win",
-  "fixed"), ...)
+\method{plot}{DyadSignal}(x, sync = NA, rescale = c("none", "win", "fixed"), ...)
 }
 \arguments{
 \item{x}{a DyadSignal object}

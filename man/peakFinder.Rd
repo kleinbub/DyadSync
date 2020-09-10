@@ -4,8 +4,13 @@
 \alias{peakFinder}
 \title{Title}
 \usage{
-peakFinder(x, sgol_p = 2, sgol_n = 25, mode = c("peaks", "valleys",
-  "both"), correctionRangeSeconds = 0.5)
+peakFinder(
+  x,
+  sgol_p = 2,
+  sgol_n = 25,
+  mode = c("peaks", "valleys", "both"),
+  correctionRangeSeconds = 0.5
+)
 }
 \arguments{
 \item{x}{a ts object or a numeric vector.}

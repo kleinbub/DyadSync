@@ -7,8 +7,14 @@
  a simple list.
  In future the 'by' argument will be used to split the data by experimental group, participant, or any other relevant condition.}
 \usage{
-catExtractLong(experiment, signal = "SC",
-  epochStreamName = "IM_PmdevSync", by, FUN = mean, ...)
+catExtractLong(
+  experiment,
+  signal = "SC",
+  epochStreamName = "IM_PmdevSync",
+  by,
+  FUN = mean,
+  ...
+)
 }
 \description{
 extract epochs in a simple list

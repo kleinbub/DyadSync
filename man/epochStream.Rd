@@ -4,9 +4,18 @@
 \alias{epochStream}
 \title{Extract stream chunks corresponding to epochs}
 \usage{
-epochStream(x, signal = "SC", sync = "PMBest", streamKey = "sync",
-  category, groupIndex, mergeEpochs = FALSE, artefact.rm = TRUE,
-  shift_start = 0, shift_end = 0)
+epochStream(
+  x,
+  signal = "SC",
+  sync = "PMBest",
+  streamKey = "sync",
+  category,
+  groupIndex,
+  mergeEpochs = FALSE,
+  artefact.rm = TRUE,
+  shift_start = 0,
+  shift_end = 0
+)
 }
 \arguments{
 \item{x}{}
@@ -28,6 +37,9 @@ epochStream(x, signal = "SC", sync = "PMBest", streamKey = "sync",
 \item{shift_start}{integer in seconds (e.g. -5 shifts all epoch starts by 5 seconds before )}
 
 \item{shift_end}{integer in seconds (e.g. 7 shifts all epoch end by 7 seconds later )}
+}
+\value{
+
 }
 \description{
 epochStream cycles through all sessions in an experiment.

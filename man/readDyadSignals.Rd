@@ -4,10 +4,24 @@
 \alias{readDyadSignals}
 \title{Title}
 \usage{
-readDyadSignals(path, s1Col, s2Col, s1Name, s2Name, signalNames, sampRate,
-  start, end, duration, pairBind = F, winTerpolate = list(winSec =
-  NULL, incSec = NULL), namefilt = NA, idOrder = c(), idSep = "_",
-  ...)
+readDyadSignals(
+  path,
+  s1Col,
+  s2Col,
+  s1Name,
+  s2Name,
+  signalNames,
+  sampRate,
+  start,
+  end,
+  duration,
+  pairBind = F,
+  winTerpolate = list(winSec = NULL, incSec = NULL),
+  namefilt = NA,
+  idOrder = c(),
+  idSep = "_",
+  ...
+)
 }
 \arguments{
 \item{path}{}
@@ -52,6 +66,9 @@ If idOrder is not NA, this will be used as separator to split the filenameas and
 informations.}
 
 \item{...}{additional options to be passed to read.table (es: skip, header, etc)}
+}
+\value{
+
 }
 \description{
 Title

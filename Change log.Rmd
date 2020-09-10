@@ -9,7 +9,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## v.1.0.0.9003
 #### 2020/06/10
-  * 
+  * Improved documentation
+  * improved SignalFilter 
+  * DyadSignal constructor no more includes a time and valid object in view of specifying artefacts with start-end files
+  * new functions: window.DyadSignal
 
 
 ## v.1.0.0.9002

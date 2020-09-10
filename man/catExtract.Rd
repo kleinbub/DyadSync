@@ -19,6 +19,9 @@ catExtract(experiment, category = "PACS", by, FUN = mean, ...)
 
 \item{...}{arguments passed to FUN}
 }
+\value{
+
+}
 \description{
 Extracts summary data from categorial windows
 the function first extracts all occurrences of a given category, combines them in a

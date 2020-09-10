@@ -4,9 +4,19 @@
 \alias{ccfBest}
 \title{improved ccfBest function with MA and slope filters, to mimic Marci et al 2007 procedure.}
 \usage{
-ccfBest(x, signals = "all", lagSec, winSec, incSec, accelSec,
-  slopes = c(NA, NA), MA = c(NA, NA), weight_type = c("center",
-  "free", "off"), simplify = T, outputName = "CCFBest")
+ccfBest(
+  x,
+  signals = "all",
+  lagSec,
+  winSec,
+  incSec,
+  accelSec,
+  slopes = c(NA, NA),
+  MA = c(NA, NA),
+  weight_type = c("center", "free", "off"),
+  simplify = T,
+  outputName = "CCFBest"
+)
 }
 \arguments{
 \item{slopes}{vector of length 2, containing the window size and increments of a "average slope" filter, in seconds}

@@ -10,6 +10,9 @@ kleinbubIndex(a, threshold = 0)
 \arguments{
 \item{a}{}
 }
+\value{
+
+}
 \description{
 kleinbub session index
 A simple summarizing index of synchronization in a given session

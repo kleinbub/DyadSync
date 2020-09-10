@@ -17,6 +17,9 @@ setArtefacts(x, startEnd, signal)
 
 \item{signal}{string specifying the name of the signal}
 }
+\value{
+
+}
 \description{
 setArtefacts
 setArtefacts legge una tabella o lista con le componenti chiamate esattamente: 'dyad', 'session', 'start' ed 'end'

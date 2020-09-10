@@ -4,9 +4,17 @@
 \alias{readCategories}
 \title{Title}
 \usage{
-readCategories(path, startCol, endCol, catName, namefilt = NA,
-  removeSec = 0, idOrder = c("id", "session", "group"), idSep = "_",
-  ...)
+readCategories(
+  path,
+  startCol,
+  endCol,
+  catName,
+  namefilt = NA,
+  removeSec = 0,
+  idOrder = c("id", "session", "group"),
+  idSep = "_",
+  ...
+)
 }
 \arguments{
 \item{startCol}{}
@@ -26,6 +34,9 @@ readCategories(path, startCol, endCol, catName, namefilt = NA,
 \item{...}{}
 
 \item{dirPath}{}
+}
+\value{
+
 }
 \description{
 Title
