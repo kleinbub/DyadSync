@@ -1,37 +1,8 @@
-# this is deprecated since outputName allows for multiple and custom sync functions 
-#' SYNC_CLASSES = c("CCFBest","PMBest")
-#' 
-#' #' hasSync
-#' #' Recursive function which checks if any of the nested object(s) (typically a DyadSignal)
-#' #' contains at least one children of a class defined in the global constant SYNC_CLASSES
-#' #' @param x 
-#' #' @export
-#' hasSync = function(x){
-#'   res = unique(rapply(x,class))
-#'   if(any(res%in%SYNC_CLASSES)){
-#'     which(res%in%SYNC_CLASSES)
-#'   } else FALSE
-#' }
-
-# JUST WHY?!?
-# #' settings
-# #'
-# #' @param x 
-# #' @param which 
-# #'
-# #' @return
-# #' @export
-
-# settings = function (x, which)
-# {
-#   if(missing(which)){
-#     attr(x,"settings")
-#   } else attr(x,"settings")[[which]]
-# }
-
-
 
 #COSTRUTTORI DI CLASSE per oggetti contenenti analisi
+is.sync = function(x){
+  (inherits(x,"CCFBest")||inherits(x,"PMBest") )&& length(x)
+}
 
 CCFBest = function(sync, lag, ccf_matrix, lagSec, winSec, incSec, accelSec, weight_type, MAwin, MAinc,slopes)
 {

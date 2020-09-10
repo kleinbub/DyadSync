@@ -332,8 +332,8 @@ DyadSignal = function(name="some signal",s1=NULL,s2=NULL,sampRate=NULL, s1Name, 
   x = list(
     s1 = DyadStream(stream = s1, name=s1Name, frequency = sampRate, col = "deeppink3",  lty=1, lwd=2),
     s2 = DyadStream(stream = s2, name=s2Name, frequency = sampRate, col = "dodgerblue3", lty=1, lwd=2),
-    time = time(s1),
-    valid = DyadStream(stream = ts(rep(TRUE, length(s1)),start=start(s1),end= end(s1), frequency = frequency(s1) ), name="valid", sampRate = sampRate, col = "darkgrey", lty=1, lwd=2),
+    # time = time(s1), #[deprecato]
+    # valid = DyadStream(stream = ts(rep(TRUE, length(s1)),start=start(s1),end= end(s1), frequency = frequency(s1) ), name="valid", sampRate = sampRate, col = "darkgrey", lty=1, lwd=2),
     artefacts = data.frame("start"=c(),"end"=c())
   )
   attributes(x) = c(attributes(x),list(
@@ -351,6 +351,48 @@ DyadSignal = function(name="some signal",s1=NULL,s2=NULL,sampRate=NULL, s1Name, 
 } 
 #' @export
 is.DyadSignal = function(x) inherits(x,"DyadSignal") && length(x)
+
+#' Time Windows
+#'
+#' @param x 
+#' @param duration an alternative specification to end
+#' @param ... 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+window.DyadSignal = function(x, duration, ...){
+  if(missing(duration)) duration = NULL
+  l = list(...)
+  l = setArg("start",attr(x,"start"),l)
+  if(!is.null(duration)){
+    xend =  c(l[["start"]][1] + duration-1, frequency(x)) 
+  } else xend = attr(x,"end")
+  l = setArg("end",xend,l)
+  #1. find all time series in x and nested objects (ts)
+  #2. window them all
+  #3. recreate meta-data
+  tss = which(unlist(lapply(x,is.ts)))
+  tss = c(tss,which(unlist(lapply(x,is.sync))))
+  res = x
+  for(i in tss){
+    if(is.ts  (res[[i]])) res[[i]] = do.call("window",c(list(res[[i]]),l))
+    if(is.sync(res[[i]])){
+      tss2 = which(unlist(lapply(res[[i]],is.ts)))
+      for(j in tss2){
+        res[[i]][[j]] = do.call("window",c(list(res[[i]][[j]]),l))
+      }
+    }
+  }
+  
+  classAttr(res) = classAttr(x)
+  attr(res,"duration") = length(res)/frequency(res)
+  attr(res,"start") = start(res)
+  attr(res,"end") = end(res)
+  res
+}
+
 
 ### DYADSTREAM ###########################################
 ## time-serie ts() with additional attributes:
@@ -385,7 +427,7 @@ DyadStream = function(stream, name, col=1, lty=1, lwd=1, ...){
   attributes(stream) = c(attributes(stream),
                          list(
                             name = name,
-                            duration = trunc(length(stream)/frequency(stream)),
+                            duration = length(stream)/frequency(stream),
                             col=col,
                             lty=lty,
                             lwd = lwd
@@ -459,6 +501,7 @@ window.DyadStream = function(x, duration, ...){
   }
   res = NextMethod("window",x,start= xstart, end = xend)
   classAttr(res) = classAttr(x)
+  attr(res,"duration") = length(res)/frequency(res)
   res
 }
 

@@ -5,18 +5,18 @@
 \title{rangeRescale
 this extremely useful function rescales a numeric vector to a new range through linear interpolation}
 \usage{
-rangeRescale(x, rangeMin, rangeMax, xmin = min(x, na.rm = T),
-  xmax = max(x, na.rm = T), pres.signs = FALSE)
+rangeRescale(x, newA, newB, oldA = min(x, na.rm = T), oldB = max(x,
+  na.rm = T), pres.signs = FALSE)
 }
 \arguments{
 \item{x}{}
 
-\item{rangeMin, rangeMax}{il minimo e il massimo della nuova scala}
+\item{newA, newB}{Any two points (typically min and max) of the new scale}
 
-\item{xmin, xmax}{il minimo e il massimo della scala originale.
-If xmin or xmax are missing the min or max of x are used instead}
+\item{oldA, oldB}{The corresponding two points of the original scale.
+If oldA or oldB are missing the min or max of x are used instead}
 
-\item{pres.sign}{logical. if TRUE the signs of the original data are preserved. rangeMin and rangeMax must be opposites (e.g. -1,1)}
+\item{pres.sign}{logical. if TRUE the signs of the original data are preserved. newA and newB must be opposites (e.g. -1,1)}
 }
 \description{
 rangeRescale

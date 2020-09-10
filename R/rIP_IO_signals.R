@@ -62,7 +62,7 @@
 #'   are selected for a subject (e.g. because of multiple regions of interest per subject), their MEA values will be summed.
 #' @param s1Name,s2Name the label describing each participant. (e.g. Right/Left, or Patient/Therapist, etc).
 #' @param signalNames a vector of string defining the name of the signals (same order as s1Col, s2Col)
-#' @param sampRate 
+#' @param sampRate the frequency (i.e. samples per second) of the signals to be imported
 #' @param start an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the first observation of each file.
 #' Note that by default time series will be set with start = 0, which is different from the default value of \code{\link[stats]{ts}}.
 #' @param end an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the last observation of each file.
@@ -71,18 +71,20 @@
 #'  FALSE, keeps the original length of the signal
 #' @param duration an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the duration of each file.
 #' If the data is longer or shorter, remove tail or pads with zeroes. Only one between end or duration should be specified.
-#' @param pairBind 
-#' @param winTerpolate 
-#' @param namefilt 
-#' @param idOrder either NA or a character vector that contains one or more of the three strings: "id",
-#'   "session","group" in a given order. These are used to interpret the
-#'   filenames and correctly label the cases. The strings can be abbreviated.
-#'   If the filenames contains other data the character "x" can be used to skip a position.
-#'   If NA, no attempt to identify cases will be done.
+#' @param pairBind if true, every two consequent files in path get matched to a single DyadSession, useful if the data of participant
+#'                 1 and 2 are stored in separate files.
+#' @param winTerpolate a list containing two numeric values, winSec and incSec. If the data to be read has been generated through a moving
+#'                     window filter, it can be reversed to the given sampRate by setting the size (in seconds) of the window and its increment.
+#' @param namefilt a string used to select only specific files in a given path
+#' @param idOrder either NA or a character vector. idOrder is used to interpret the filenames to correctly identify and label the cases. 
+#'   If NA, no attempt to identify cases will be done. The character vector may contain one or more of the following strings in any given order: "id" (unique identifier of a dyad),
+#'   "session" (session number if the same dyad has multiple sessions),"group" (if the data must be devided across groups or experimental conditions),
+#'   "role" (if pairBind = TRUE, to assign the role of different files), or "x" (a placeholder to skip irrelevant information in filenames)
+#'   The strings can be abbreviated.
 #' @param idSep character vector (or object which can be coerced to such) containing regular expression(s).
 #'   If idOrder is not NA, this will be used as separator to split the filenameas and identify "id", "session", and "group"
 #'   informations.
-#' @param ... 
+#' @param ... additional options to be passed to read.table (es: skip, header, etc)
 #'
 #' @return
 #' @export
@@ -102,7 +104,7 @@ readDyadSignals = function(
                       winTerpolate = list(winSec=NULL,incSec=NULL), #if data comes from a moving windows analysis it should be
                                                                     #restored to the original data sampling rate
                       namefilt = NA,
-                      idOrder= c(), # c("id","session","group","role"), #the order of identifiers in the filenames. role is for pairbind = T
+                      idOrder= c(), # c("id","session","group","role"), #the order of identifiers in the filenames. role is only used with pairbind = T
                       idSep = "_", #the separator of identifiers in the filename
                       ... #additional options to be passed to read.table (es: skip, header, etc)
                       ){

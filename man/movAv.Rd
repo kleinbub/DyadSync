@@ -2,21 +2,35 @@
 % Please edit documentation in R/rIP_filters.R
 \name{movAv}
 \alias{movAv}
-\title{Title}
+\title{Moving average filter}
 \usage{
-movAv(x, win, inc, sampRate = frequency(x))
+movAv(x, winSec, incSec = NA, remove = FALSE,
+  sampRate = frequency(x))
 }
 \arguments{
-\item{x}{}
+\item{x}{A time-series or numeric vector}
 
-\item{win}{}
+\item{winSec}{Size of the moving window, in seconds}
 
-\item{inc}{}
+\item{incSec}{Size of each window increment, in seconds. If NA a new window is
+calculated for every sample.}
 
-\item{sampRate}{}
+\item{remove}{If true, the function subtracts the rolling average from the
+the original signal, acting as a high-pass filter.}
 
-\item{remove}{}
+\item{sampRate}{The frequency of x, i.e. samples per second}
+}
+\value{
+A time-series or numeric vector of the same length of x.
 }
 \description{
-Title
+Moving average filter
+}
+\details{
+The burn-in sequence has length of winSec/2 while the burn-out sequence might
+be longer as not all combinations of winSec and incSec may perfectly cover any arbitrary x size. 
+The burn-in and burn-out sequences are obtained through linear interpolation from their average value
+to the first or last values of the moving average series.
+The exact number of windows is given by ceiling((length(x)-win+1)/inc) where win and inc are
+respectively the window and increment sizes in samples.
 }

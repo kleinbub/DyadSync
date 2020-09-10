@@ -56,6 +56,7 @@ epochStreamApply.DyadSession = function(x, FUN, signal, sync , streamKey,
     
   }
   if( artefact.rm ){
+    stop("artefact.rm must be implemented with the new artefact data.frame architecture (in rIP_extract.R")
     if(length(stream)!=length(x[[signal]]$valid)) stop("artefact.rm temporarily requires that stream has the same frequency of valid")
     stream[!x[[signal]]$valid]=NA
   }

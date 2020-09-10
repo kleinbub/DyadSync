@@ -1,6 +1,9 @@
 # This new (old) approach, instead of getting a summary(e.g. median) for each occurrence of an epoch (or category),
 # first pastes together the stream correspoding to each epoch and THEN calculates the summarizing function
 # no results on IM
+#This approach may actually flatten up the results as given synchrony high variability,
+# the median of a long segment tends to be the same, independently on how much synchrony was observed.
+# a better summarizing metric with this approach could be % of time synchrony is above a given threshold
 
 
 
@@ -36,7 +39,7 @@ epochStream.DyadExperiment = function(x, signal= "SC", sync="PMBest", streamKey=
                                       mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0){
   res = Map(function(session, nSession){
     prog(nSession, length(x))
-    cat("session:",nSession,"\r\n")
+    cat("session:", attr(session,"dyadId"),"-", attr(session,"sessionId"),"\r\n")
     epochStream(session, signal, sync, streamKey, category, groupIndex,mergeEpochs, artefact.rm, shift_start, shift_end )
   },x, seq_along(x))
   classAttr(res) = classAttr(x)
@@ -95,8 +98,7 @@ epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIn
         warning("In session ", dyadId(x),"-",sessionId(x), ", start of window ",i,": was equal to or beyond the stream end.", call.=F)
         # lres[[i]] = NA
       } else { #if start is before the end of stream, as it should...
-        print(i)
-        
+
         #if (by applying shift_start) cate$start is before the signal start, create a NA padding
         if(cate$start[i]<start(stream)[1]){
           padding = ts(start = cate$start[i],
@@ -168,6 +170,10 @@ epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIn
 
 #### rinomina in "extractEpochs"
 #### cambia epochStreamName in sync="PMBest", streamKey="sync", category="PACS/IM"
+#' @title extract epochs in a simple list
+#'  This function extracts the selected epochs from every session of a "DyadExperiment" object and puts them in
+#'  a simple list.
+#'  In future the 'by' argument will be used to split the data by experimental group, participant, or any other relevant condition.
 #' @export
 #'
 catExtractLong = function(experiment, signal="SC", epochStreamName="IM_PmdevSync", by, FUN = mean, ...){

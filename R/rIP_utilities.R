@@ -187,30 +187,31 @@ lead0 = function(x, width = 2){
 #' rangeRescale
 #' this extremely useful function rescales a numeric vector to a new range through linear interpolation
 #' @param x 
-#' @param rangeMin,rangeMax  il minimo e il massimo della nuova scala
-#' @param xmin,xmax  il minimo e il massimo della scala originale.
-#' If xmin or xmax are missing the min or max of x are used instead
-#' @param pres.sign logical. if TRUE the signs of the original data are preserved. rangeMin and rangeMax must be opposites (e.g. -1,1)
+#' @param newA,newB  Any two points (typically min and max) of the new scale
+#' @param oldA,oldB  The corresponding two points of the original scale.
+#' If oldA or oldB are missing the min or max of x are used instead
+#' @param pres.sign logical. if TRUE the signs of the original data are preserved. newA and newB must be opposites (e.g. -1,1)
+#' @details 
 #' @export
 #'
 #' @examples
-rangeRescale <- function(x, rangeMin, rangeMax, xmin =min(x, na.rm=T), xmax = max(x, na.rm=T), pres.signs=FALSE){
-  #rangeMin e rangeMax indicano il minimo e il massimo della nuova scala
+rangeRescale <- function(x, newA, newB, oldA =min(x, na.rm=T), oldB = max(x, na.rm=T), pres.signs=FALSE){
+  #newA e newB indicano il minimo e il massimo della nuova scala
   #
-  #se xmin e xmax mancano, vengono usati il minimo e il massimo del campione
-  if(any(x>xmax, na.rm=T) || any(x<xmin, na.rm=T)) stop ("Value found outside xmax and ymin boundaries. xmax and xmin should be equal or larger than the data range.")
+  #se oldA e oldB mancano, vengono usati il minimo e il massimo del campione
+  # if(any(x>oldB, na.rm=T) || any(x<oldA, na.rm=T)) stop ("Value found outside oldB and ymin boundaries. oldB and oldA should be equal or larger than the data range.")
   if(pres.signs){
-    # if((!missing(xmin) && !missing(xmax)) || (xmin!=-max(abs(x)) || xmax != max(abs(x)) ) )
+    # if((!missing(oldA) && !missing(oldB)) || (oldA!=-max(abs(x)) || oldB != max(abs(x)) ) )
     #   stop("Either x")
-    if( rangeMin != -rangeMax )
-      stop("with pres.sign = TRUE, rangeMin and rangeMax should be opposites (e.g. -1 and 1")
-    mightyMax = max(abs(xmax),abs(xmin)) #così centra qualsiasi range?
-    xmin = -mightyMax
-    xmax = mightyMax
+    if( newA != -newB )
+      stop("with pres.sign = TRUE, newA and newB should be opposites (e.g. -1 and 1")
+    mightyMax = max(abs(oldB),abs(oldA)) #così centra qualsiasi range?
+    oldA = -mightyMax
+    oldB = mightyMax
   }
-  (rangeMax-rangeMin) * (
-    (x - xmin)  / (xmax - xmin )
-  ) + rangeMin
+  (newB-newA) * (
+    (x - oldA)  / (oldB - oldA )
+  ) + newA
 }
 
 

@@ -20,7 +20,7 @@ are selected for a subject (e.g. because of multiple regions of interest per sub
 
 \item{signalNames}{a vector of string defining the name of the signals (same order as s1Col, s2Col)}
 
-\item{sampRate}{}
+\item{sampRate}{the frequency (i.e. samples per second) of the signals to be imported}
 
 \item{start}{an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the first observation of each file.
 Note that by default time series will be set with start = 0, which is different from the default value of \code{\link[stats]{ts}}.}
@@ -33,23 +33,25 @@ If the data is longer or shorter, remove tail
 \item{duration}{an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the duration of each file.
 If the data is longer or shorter, remove tail or pads with zeroes. Only one between end or duration should be specified.}
 
-\item{pairBind}{}
+\item{pairBind}{if true, every two consequent files in path get matched to a single DyadSession, useful if the data of participant
+1 and 2 are stored in separate files.}
 
-\item{winTerpolate}{}
+\item{winTerpolate}{a list containing two numeric values, winSec and incSec. If the data to be read has been generated through a moving
+window filter, it can be reversed to the given sampRate by setting the size (in seconds) of the window and its increment.}
 
-\item{namefilt}{}
+\item{namefilt}{a string used to select only specific files in a given path}
 
-\item{idOrder}{either NA or a character vector that contains one or more of the three strings: "id",
-"session","group" in a given order. These are used to interpret the
-filenames and correctly label the cases. The strings can be abbreviated.
-If the filenames contains other data the character "x" can be used to skip a position.
-If NA, no attempt to identify cases will be done.}
+\item{idOrder}{either NA or a character vector. idOrder is used to interpret the filenames to correctly identify and label the cases. 
+If NA, no attempt to identify cases will be done. The character vector may contain one or more of the following strings in any given order: "id" (unique identifier of a dyad),
+"session" (session number if the same dyad has multiple sessions),"group" (if the data must be devided across groups or experimental conditions),
+"role" (if pairBind = TRUE, to assign the role of different files), or "x" (a placeholder to skip irrelevant information in filenames)
+The strings can be abbreviated.}
 
 \item{idSep}{character vector (or object which can be coerced to such) containing regular expression(s).
 If idOrder is not NA, this will be used as separator to split the filenameas and identify "id", "session", and "group"
 informations.}
 
-\item{...}{}
+\item{...}{additional options to be passed to read.table (es: skip, header, etc)}
 }
 \description{
 Title

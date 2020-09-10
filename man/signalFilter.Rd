@@ -2,22 +2,24 @@
 % Please edit documentation in R/rIP_filters.R
 \name{signalFilter}
 \alias{signalFilter}
-\title{apply a function on each dyad's member signal}
+\title{applies a function on the s1 and s2 objects of a DyadSignal object}
 \usage{
-signalFilter(x, FUN, ..., newAttributes = NULL, signals = "all")
+signalFilter(x, FUN, newAttributes = NULL, signals = "all", ...)
 }
 \arguments{
+\item{x}{a DyadExperiment, DyadSession, or DyadSignal Object}
+
 \item{FUN}{}
 
-\item{...}{additional parameters of FUN}
+\item{newAttributes}{named list of attributes to be set on the resulting object. "filter" attributes will be added instead.}
 
-\item{newAttributes}{named list of attributes to be added or replaced}
+\item{signals}{a vector of strings defining the names of the signals on which to run the filter}
 
-\item{signal}{DyadSignal Object}
+\item{...}{additional arguments of FUN}
+}
+\value{
+a DyadExperiment, DyadSession, or DyadSignal Object with the filtered signals
 }
 \description{
-apply a function on each dyad's member signal
-}
-\examples{
-
+applies a function on the s1 and s2 objects of a DyadSignal object
 }

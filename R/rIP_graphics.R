@@ -28,9 +28,53 @@
 
 ##Main TS plotting tool
 
-# usage:
-# creare lista di segnali
-# estrarre i CCF con getCCF()
+#' @export
+#'
+plot.DyadExperiment =function(x, signal, ...){
+  print("plot.DyadExperiment")
+  if(missing(signal)){
+    res = unique(unlist(lapply(x,names)))
+    if (length(res)>1) stop ("multiple signals detected, please specify which you want to print")
+    else signal = res
+  }
+  for(i in seq_along(x)){
+    plot(x[[i]][[signal]])
+  }
+}
+
+#' @export
+#'
+basicPlot = function(x, signal, ...){
+  UseMethod("basicPlot",x)
+}
+#' @export
+#'
+basicPlot.DyadExperiment =function(x, signal, ...){
+  print("plot.DyadExperiment")
+  if(missing(signal)){
+    res = unique(unlist(lapply(x,names)))
+    if (length(res)>1) stop ("multiple signals detected, please specify which you want to print")
+    else signal = res
+  }
+  for(i in seq_along(x)){
+    basicPlot(x[[i]][[signal]], main=paste(dyadId(x[[i]]),"-",signal ))
+  }
+}
+#' @export
+#'
+basicPlot.DyadSignal = function(x, ...) {
+  print("plot.DyadSignal")
+  par(mfrow=c(2,1), mar=c(0,2.5,2.5,0), cex = 0.8)
+  plot((x$s1),xaxt="n" ,ylab="uS", ...)
+  par(mar=c(3.5,2.5,0,0))
+  plot(time(x$s2),x$s2,col="red",xaxt="n",t="l",xlab="", cex.main = 0.001, ...)
+  tSteps = round(time(x$s2)[seq(1, length(time(x$s2)),by=sampRate(x)*60 )])
+  axis(1,at = tSteps, labels = timeMaster(tSteps,"min"),tick = T,las=2 )
+}
+
+
+
+
 
 
 #generate as different as possible colors
@@ -499,4 +543,122 @@ ppBestPlot = function (signal,savePath){
 
     dev.off()
   }
+}
+
+rescaleByWin = function(x, winSec, rangeMin, rangeMax){
+  win = winSec*frequency(x)
+  win2 = trunc(win/2)
+  len = length(x)
+  x2 = x
+  for(i in seq_along(x2)){
+    
+    a = max(1,i-win2)
+    b = min(i+win2, len)
+    if(i<=win2) pos = i else pos = win2
+    
+    x2[i] = rangeRescale(x[a:b], rangeMin, rangeMax)[pos]
+  }
+  x2
+}
+
+setArg = function(arg, value, argList){
+  if(is.null(argList[[arg]])) argList[[arg]] = value
+  argList
+}
+
+#' Plot a DyadSignal object
+#'
+#' @param x a DyadSignal object
+#' @param sync Either NA or a string pointing to the name of a PMBest or CCFBest object
+#' @param ... 
+#'
+#' @export
+#'
+plot.DyadSignal = function(x, sync=NA, rescale = c("none","win", "fixed"), ...) {
+  if(missing(sync)) sync = NA
+  if(missing(rescale)) rescale = "fixed"
+  
+  dots = list(...)
+  rescale = match.arg(rescale, c("none","win", "fixed") )
+  if(rescale=="none"){
+    rs1=x$s1
+    rs2=x$s2
+    myYlim = c(min(c(rs1,rs2),na.rm = T), max(c(rs1,rs2),na.rm = T))
+    
+  } else if(rescale == "win"){
+    rs1= rescaleByWin(x$s1, winSec = 60*5,rangeMin = 0,rangeMax = 1) #experimental amplification
+    rs2= rescaleByWin(x$s2, winSec = 60*5,rangeMin = 0,rangeMax = 1)
+    myYlim = c(0,1)
+  } else if(rescale == "fixed"){
+    rs1 = rangeRescale(x$s1,0,1, quantile(x$s1,0.025),quantile(x$s1,0.975))
+    rs2 = rangeRescale(x$s2,0,1, quantile(x$s2,0.025),quantile(x$s2,0.975))
+    myYlim = c(0,1)
+    
+  }else {
+    
+  } 
+  
+  if(!missing(sync) && !is.na(sync)){
+    myYlim[2] = myYlim[2] * 1.7
+  } else  myYlim[2] = myYlim[2] * 1.1
+
+  dots = setArg("ylim",myYlim, dots)
+  dots = setArg("lty", 3, dots)
+  dots = setArg("xaxs","i", dots)
+  dots = setArg("xaxt","n", dots)
+  dots = setArg("ylab",name(x), dots)
+
+
+  do.call("plot.ts",c(list("x"=rs1),dots))
+  # plot(rs1,t="l")
+  lines(rs2,lty=3)
+  x$time = as.numeric(time(x$s1))
+  
+  #colorize the good x
+  lines(x$time, rs1,col=attr(x$s1,"col"))
+  lines(x$time, rs2,col=attr(x$s2,"col"))
+  
+  tSteps = round(x$time[seq(1, length(x$time),by=sampRate(x) )])
+  axis(1,at = tSteps, labels = timeMaster(tSteps,"min"),tick = T,las=2 )
+  
+  if(!missing(sync) && !is.na(sync)){
+    if(class(x[[sync]]) == "PMBest"){
+      #draw peak matching connections
+      segments(time(x$s1)[x$PMdev$xBest$s1],rs1[x$PMdev$xBest$s1],
+               time(x$s2)[x$PMdev$xBest$s2],rs2[x$PMdev$xBest$s2],lty=3)
+      xbest2 = x$PMdev$xBest[x$PMdev$xBest$syncBound==T,]
+      segments(time(x$s1)[xbest2$s1],rs1[xbest2$s1],
+               time(x$s2)[xbest2$s2],rs2[xbest2$s2])
+    }
+
+    
+    sync = x$PMdev$xBest[x$PMdev$xBest$syncEnd !=0,]
+    sync$sync = rangeRescale(sync$sync,0,2,-1,1)
+    sync$sync = sync$sync^2
+    sync$sync = rangeRescale(sync$sync,1.1,1.6,0,4)
+    
+    colors= c("#f70c3f","#c16107", "#878787","#878787","#878787", "#86a817", "#23c647")
+    colfunc <- grDevices::colorRampPalette(colors=colors, bias=1)
+    legendSteps =20
+    colz = colfunc(legendSteps)
+    colz = c(colz,"#aaaaaa") #colore degli NA
+    
+    bins = seq(0.5/legendSteps,0.5, by=0.5/legendSteps)+1.1
+    
+    iCol = sapply(sync$sync,function(x) sum(x>bins)+1)
+    iFill = iCol
+    iCol[is.na(iCol)]=length(colz)
+    iFill[!is.na(iFill)] = NA
+    iFill[is.na(iFill)] = 40
+    abline(h=quantile(sync$sync))
+    abline(h=median(sync$sync),lwd=2)
+    rect(round(time(x$s1)[sync$syncStart]),1.1,round(time(x$s1)[sync$syncEnd]),sync$sync,col=colz[iCol])
+    
+    text(start(rs1)[1]+3,y=median(sync$sync)+0.02,labels = "median sync")
+    text(start(rs1)[1]+3,y=quantile(sync$sync,0.25)+0.02,labels = "25%")
+    text(start(rs1)[1]+3,y=quantile(sync$sync,0.75)+0.02,labels = "75%")
+    
+    abline(h=quantile(sync$sync),lty=3)
+  }
+  
 }

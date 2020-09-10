@@ -22,40 +22,45 @@
 ############################################################################################################ 
 
 
-#' apply a function on each dyad's member signal
+#' applies a function on the s1 and s2 objects of a DyadSignal object
 #'
-#' @param signal DyadSignal Object 
+#' @param x a DyadExperiment, DyadSession, or DyadSignal Object 
 #' @param FUN 
-#' @param ... additional parameters of FUN
-#' @param newAttributes named list of attributes to be added or replaced
-#'
-#' @return
+#' @param newAttributes named list of attributes to be set on the resulting object. "filter" attributes will be added instead.
+#' @param signals a vector of strings defining the names of the signals on which to run the filter
+#' @param ... additional arguments of FUN
+#' @return a DyadExperiment, DyadSession, or DyadSignal Object with the filtered signals
 #' @export
 #'
-#' @examples
-#' 
-signalFilter = function (x, FUN, ..., newAttributes=NULL, signals="all") {
+
+signalFilter = function (x, FUN, newAttributes=NULL, signals="all", ...) {
   UseMethod("signalFilter",x)
 }
 #' @export
-signalFilter.DyadExperiment = function (x, FUN, ..., newAttributes=NULL, signals="all") {
+signalFilter.DyadExperiment = function (x, FUN, newAttributes=NULL, signals="all", ...) {
   #for each session
   experiment2 = Map(function (session,nSession){
-    #find signal names
-    if(length(signals)==1 && signals=="all") {
-      sigs = names(session)[sapply(session,is.DyadSignal)]
-    } else sigs = signals
-    #apply signalFilter on each DyadSignal object
-    session[names(session) %in% sigs] = lapply(session[names(session) %in% sigs],  signalFilter, FUN, ..., newAttributes, signals=NULL)
+    session = signalFilter(session, FUN=FUN, newAttributes=newAttributes, signals=signals, ...)
     prog(nSession,length(x))
     return(session)
   },x,seq_along(x))
   experiment2 = cloneAttr(x,experiment2)
   return(experiment2)
 }
+
 #' @export
-signalFilter.DyadSignal = function (x, FUN, ..., newAttributes=NULL, signals=NULL) {
-  if(!is(x,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
+signalFilter.DyadSession = function (x, FUN, newAttributes=NULL, signals="all", ...) {
+  #find signal names
+  if(length(signals)==1 && signals=="all") {
+    sigs = names(x)[sapply(x,is.DyadSignal)]
+  } else sigs = signals
+  #apply signalFilter on each DyadSignal object
+  x[names(x) %in% sigs] = lapply(x[names(x) %in% sigs], function(x){signalFilter(x, FUN=FUN, newAttributes=newAttributes, ...)})
+  x
+}
+
+#' @export
+signalFilter.DyadSignal = function (x, FUN, newAttributes=NULL, signals=NULL, ...) {
   FUN = match.fun(FUN)
   ress1 = FUN(x$s1, ...)
   ress2 = FUN(x$s2, ...)
@@ -64,7 +69,13 @@ signalFilter.DyadSignal = function (x, FUN, ..., newAttributes=NULL, signals=NUL
   
   x$s1 = cloneAttr(x$s1, ress1)
   x$s2 = cloneAttr(x$s2, ress2)
-  x$time = time(x$s1)
+  # x$time = time(x$s1)
+  
+  attr(x,"start") = start(x$s1)
+  attr(x,"end")   = end(x$s1)
+  attr(x,"duration") = trunc(length(x$s1)/frequency(x$s1))
+  attr(x,"sampRate") = frequency(x$s1)
+
   if(!is.null(newAttributes)){
     if("filter"%in%names(newAttributes)){
       newAttributes[["filter"]] = paste0(attributes(x)[["filter"]]," -> ",newAttributes[["filter"]])
@@ -148,23 +159,23 @@ setArtefacts.DyadSignal <- function(x, startEnd, signal="SC") {
   x$artefacts[1] = NULL
   # print(str(x$artefacts))
 
-  #questa roba è qui per compatibilità. Idealmente usa solo la tabella artefacts ##############
-  for(i in 1:nrow(sel)){
-    a = timeMaster(sel[i,1],out="sec") -  start(x)[1]
-    if( grepl("end|fine",sel[i,2],ignore.case = T)  ) b = duration
-    else b = timeMaster(sel[i,2],out="sec") -  start(x)[1]
-    if(a>duration || b > duration) stop ("one start or end were bigger than the signal length")
-    if(b<a) stop ("'start' cannot be greater than 'end' ")
-    if(a < ref || b < ref) stop("all start and end definition must be progressively increasing and greater than signal start value")
-    ref = b
-    sel[i,1] = a * sampRate(x)
-    if(b == duration) sel[i,2] =  length(x$valid) #elminina tutto fino alla fine
-    else  sel[i,2] = b * sampRate(x)
-  }
-  for(i in 1:nrow(sel)){  #sostituisci con NA i segmenti
-    x$valid[sel[i,1]:sel[i,2]] = FALSE
-  }
-  ###############################
+  # #questa roba è qui per compatibilità. Idealmente usa solo la tabella artefacts ##############
+  # for(i in 1:nrow(sel)){
+  #   a = timeMaster(sel[i,1],out="sec") -  start(x)[1]
+  #   if( grepl("end|fine",sel[i,2],ignore.case = T)  ) b = duration
+  #   else b = timeMaster(sel[i,2],out="sec") -  start(x)[1]
+  #   if(a>duration || b > duration) stop ("one start or end were bigger than the signal length")
+  #   if(b<a) stop ("'start' cannot be greater than 'end' ")
+  #   if(a < ref || b < ref) stop("all start and end definition must be progressively increasing and greater than signal start value")
+  #   ref = b
+  #   sel[i,1] = a * sampRate(x)
+  #   if(b == duration) sel[i,2] =  length(x$valid) #elminina tutto fino alla fine
+  #   else  sel[i,2] = b * sampRate(x)
+  # }
+  # for(i in 1:nrow(sel)){  #sostituisci con NA i segmenti
+  #   x$valid[sel[i,1]:sel[i,2]] = FALSE
+  # }
+  # ###############################
   
   #4 aggiorna i metadati
   attributes(x)["filter"] = paste0(attr(x,"filter"), "--> NAartifact")
@@ -176,51 +187,30 @@ setArtefacts.DyadSignal <- function(x, startEnd, signal="SC") {
 ############################################################################################################
 ############################################################################################################
 ############################################################################################################
-## Decimation and interpolation functions
 
-#' signalDecimate
-#' Takes an objects of class DyadSignal and downsamples it by taking a sample each oldSampRate / newSampRate
+#' @export
+ signalDecimate = function (signal, newSampRate) {stop("this function has been deprecated. Use resample and signalFilter instead")}
+
+
+#' resample
+#' A simple wrapper for approx, used to decimate or upsample (by linear interpolation) a time series
 #'
-#' @param signal 
-#' @param newSampRate 
+#' @param x A time-series object
+#' @param newSampRate the new frequency
+#' @param ... further options to be passed to approx
 #'
-#' @return
+#' @return a resampled time-series with the same start of the original time series.
 #' @export
 #'
 #' @examples
-signalDecimate = function (signal, newSampRate) {
-  if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
-  if (sampRate(signal) <= newSampRate) 
-    stop("decimate only downsamples! newSampRate:",newSampRate," old:",sampRate(signal),call. = F)
-  if (sampRate(signal) %% newSampRate != 0) 
-    stop("newSampRate must be an integer divisor of old sampRate ! newSampRate:",newSampRate," old:",sampRate,call. = F)
-  q = floor(sampRate(signal) / newSampRate)  
-  ress1 = ts(signal$s1[seq(1,   length(signal$s1)  , by = q)], start=start(signal$s1),   frequency=newSampRate)
-  ress2 = ts(signal$s2[seq(1, length(signal$s2), by = q)], start=start(signal$s2), frequency=newSampRate)
-  resVal = ts(signal$valid[seq(1, length(signal$valid), by = q)], start=start(signal$valid), frequency=newSampRate)
-  
-  signal$s1 = cloneAttr(signal$s1, ress1)
-  signal$s2 = cloneAttr(signal$s2, ress2)
-  signal$valid = resVal
-  signal$time = time(signal$s1)
-  attr(signal,"sampRate") = newSampRate
-  return(signal)
+
+resample = function (x, newSampRate, ...) {
+  if(newSampRate == frequency(x)) stop("newSampRate and original signal frequency are identical.")
+  if(newSampRate == 12) warning("by default, ts() assumes frequency Values of 4 and 12 to imply a quarterly and monthly series respectively (e.g.) in print methods.")
+  q = frequency(x) / newSampRate  #ratio of old vs new sr
+  ts(approx(seq_along(x),x, xout= seq(1,length(x),by=q), ... )$y, start=start(x), frequency=newSampRate)
 }
-
-
-
-
-### onlyy used one in connect area of graphic library. maybe delete, maybe integrate
-# streamDecimate = function (x, newSampRate) {
-#   if(!is(x,"DyadStream")) stop("Only objects of class DyadStream can be processed by this function")
-#   if (frequency(x) <= newSampRate) 
-#     stop("decimate only downsamples! newSampRate:",newSampRate," old:",frequency(x),call. = F)
-#   if (frequency(x) %% newSampRate != 0) 
-#     stop("newSampRate must be an integer divisor of old sampRate ! newSampRate:",newSampRate," old:",frequency(x),call. = F)
-#   q = floor(frequency(x) / newSampRate)  
-#   res = ts(x[seq(1, length(x), by = q)], start=start(x), frequency=newSampRate)
-#   cloneDyadStream(res, x)
-# }
+  
 
 #Interpolate windowed data to original samplerate. 
 #useful to overlay computed indexes on original timeseries
@@ -251,53 +241,81 @@ winInter = function(windowsList, winSec, incSec, sampRate){
 #movAv has improved managing of burn-in and burn-out sequences
 #if in doubt use this.
 
-
-
-#' Title
+#' Moving average filter
 #'
-#' @param x 
-#' @param win 
-#' @param inc 
-#' @param sampRate 
-#' @param remove 
+#' @param x A time-series or numeric vector
+#' @param winSec Size of the moving window, in seconds
+#' @param incSec Size of each window increment, in seconds. If NA a new window is
+#' calculated for every sample.
+#' @param remove If true, the function subtracts the rolling average from the
+#' the original signal, acting as a high-pass filter. 
+#' @param sampRate The frequency of x, i.e. samples per second
 #'
-#' @return
+#' @return A time-series or numeric vector of the same length of x.
+#' @details The burn-in sequence has length of winSec/2 while the burn-out sequence might
+#' be longer as not all combinations of winSec and incSec may perfectly cover any arbitrary x size. 
+#' The burn-in and burn-out sequences are obtained through linear interpolation from their average value
+#' to the first or last values of the moving average series.
+#' The exact number of windows is given by ceiling((length(x)-win+1)/inc) where win and inc are
+#' respectively the window and increment sizes in samples.
 #' @export
-#' 
-#' 
-movAv = function(x,win,inc,sampRate=frequency(x)){
-  warning("this function may be broken. inc is not used")
-  n = winSec*sampRate
-  b = unlist(lapply(seq_along(a), function(t){
-    i1 = t-(n-1)/2; if(i1<1) i1=1;
-    i2 = t+(n-1)/2;
-    res = sum(a[i1:i2])/n
-    res[is.na(res)]=0
-    return(res)
-  }))
-  ts(b,start=start(a)[1]+winSec/2,frequency = sampRate)
+
+movAv <- function(x, winSec, incSec = NA, remove=FALSE, sampRate=frequency(x) ) {
+
+  win = winSec*sampRate
+  win2 = round(win/2)
+  inc = if(is.na(incSec)) 1 else incSec*sampRate
+  len = length(x)
+  n_win = ceiling((len-win+1)/inc)
+  winssamp = seq(1,by = inc, length.out = n_win)
+  res = numeric(n_win)
+  a = seq(1,by = inc, length.out = n_win)
+  b = seq(0,by = inc, length.out = n_win) + win
+  for(i in 1:n_win) {
+    res[i] = sum(x[a[i]:b[i]], na.rm=T) /win
+  }
+  # if inc == 1 any window size will cover exactly all samples
+  # because the last window will be (len-win+1):len
+  # also, the resulting series has naturally the same sampling rate of the 
+  # original series.
+
+  # instead if inc is different than 1 the resulting series sampling rate
+  # is equal to inc. The length of the resulting series is roughly len/inc
+  # and needs to be interpolated back to the original sampling rate 
   
+  if(inc>1){
+    max_x = (n_win-1)*inc +1                    #starting value of the last window
+    res = approx(x    = seq(1, max_x, by=inc), #starting sample of each window
+                  y    = res,                    #average value of each window
+                  xout = seq(1,max_x)            #x values of new series
+    )$y
+
+  }
+  
+  # Independently from inc, he resulting series will be (win-1) samples shorter than the original,
+  # so it should be padded by win2 at the start and win2-1 end (plus eventual other missing samples
+  # in the case of inc not multiple of len)
+  # In this implementation the padding is a straight line from the mean of the starting and
+  # ending parts of the original signal to the first/last calculated moving average point
+  
+  #pad initial half window
+  res = c(seq(mean(x[1:win2],na.rm=T),res[1],length.out = win2 ), res)
+  #how many samples could not be estimated?
+  miss = len - length(res) 
+  #fill them with good values
+  res = c(res,  seq(res[length(res)], mean(x[(len-win2):len],na.rm=T), length.out = miss))
+  
+  #all this done, x and res should ALWAYS have the same length
+  if(length(res) != length(x)) warning("the original series and the moving average are of different lenghts, which is a bug")
+  
+  if(remove){
+    res = x-res
+  }
+  
+  if(is.ts(x)) res = ts(res,start=start(x),frequency = sampRate)
+  else res
 }
-# movAv = function(x,win,inc,sampRate=frequency(x)){
-#   stop("this function is broken")
-#   win = win*sampRate
-#   inc = inc*sampRate
-#   win2 = floor(win/2)
-#   len = length(x)
-#   
-#   
-#   n_win = ceiling((length(x)-win+1)/inc)
-#   res = numeric(n_win)
-#  
-#   for(i in 1:n_win-1){
-#     a = (i*inc +1)
-#     b= (i*inc +win)
-#     res[i] = mean(x[a:b],na.rm=T)
-#     
-#   }
-#   ts(res,  start=c(floor(time(x)[win2]),cycle(x)[win2]), frequency = inc)
-# 
-# }
+
 
 movAvSlope = function(x,win,inc,sampRate=frequency(x)){
   warning("this function may be broken")
@@ -332,22 +350,22 @@ znorm = function(a){
 
 ## this function removes the moving average of a signal, but using nonoverlapping windows.
 ## this is useful to plot in a horizontal panel a signal with huge trends.
-stepCenter = function(a, winSec=60){
-  if(is.DyadStream(a)) x=a
-  
-  freq = frequency(a)
-  winSam = winSec*freq
-  n_win = ceiling((length(a)-winSam+1)/winSam)
-  resid = length(a)-n_win*winSam
-  for(i in 0:(n_win-1)){
-    al = (i*winSam +1)
-    bl = (i*winSam +winSam)
-    a[al:bl] = a[al:bl] - mean(a[al:bl])
-  }
-  if (length(resid)>0)
-    a[(length(a)-resid+1):length(a)] = a[(length(a)-resid+1):length(a)] - mean(a[(length(a)-resid+1):length(a)])
-  ifelse(is.DyadStream(x), cloneDyadStream(a,x) , a )
-}
+# stepCenter = function(a, winSec=60){
+#   if(is.DyadStream(a)) x=a
+#   
+#   freq = frequency(a)
+#   winSam = winSec*freq
+#   n_win = ceiling((length(a)-winSam+1)/winSam)
+#   resid = length(a)-n_win*winSam
+#   for(i in 0:(n_win-1)){
+#     al = (i*winSam +1)
+#     bl = (i*winSam +winSam)
+#     a[al:bl] = a[al:bl] - mean(a[al:bl])
+#   }
+#   if (length(resid)>0)
+#     a[(length(a)-resid+1):length(a)] = a[(length(a)-resid+1):length(a)] - mean(a[(length(a)-resid+1):length(a)])
+#   ifelse(is.DyadStream(x), cloneDyadStream(a,x) , a )
+# }
 
 
 

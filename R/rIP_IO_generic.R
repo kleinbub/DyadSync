@@ -32,9 +32,9 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F, ...){
     })
   
   #then build lists of groups, sessions, and id for each file
-  #session
   idOrder = tolower(idOrder) #lowercase
-  if(any(substr(idOrder,1,1)=="i",na.rm=T)){
+  #id
+  if(any(substr(idOrder,1,1)=="i",na.rm=T)){ #i is for ID
     dyadIds = lapply(seq_along(shortNames), function(i) {
       unlist(strsplit(tools::file_path_sans_ext(shortNames[i]), idSep))[which(substr(idOrder,1,1)=="i")]
     })
@@ -47,7 +47,7 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F, ...){
   } else group = as.list(rep("all",nFiles))
   #role
   if(any(substr(idOrder,1,1)=="r",na.rm=T)){
-    if(!pairBind) stop("Role identifier was specified, but pairBind is false.")
+    if(!pairBind) stop("Role identifier was specified, but pairBind is FALSE")
     role = lapply(seq_along(shortNames), function(i) {
       unlist(strsplit(tools::file_path_sans_ext(shortNames[i]), idSep))[which(substr(idOrder,1,1)=="r")]
     })
