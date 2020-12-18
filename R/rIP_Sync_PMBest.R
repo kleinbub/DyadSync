@@ -72,47 +72,46 @@ pmBest = function(experiment, signals="all", lagSec=7,
 peakMatch = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30,match_threshold=0.0, outputName) {
   if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
   
-  # signal = loncc$CC_1$SC
+  # signal = lr10$CC_1$SC
+  # signal = lr10$all_CC_1$SC
+  #pacs best settings
+  ## lr = pmBest(d,signals = "all",lagSec=4,match_threshold=0.25,
+  #             minSizeSec=5,weightMalus = 35 ,algorithm = "AMICo",outputName = "PMdev")
   
   d = signal$s1
   d2  = signal$s2
   sampRate = frequency(signal)
   ransamp = lagSec * sampRate
   
-  sd1 = c(0,rangeRescale(diff(d),-0.5,0.5,-max(abs(diff(d))),max(abs(diff(d))) ))
-  sd2 = c(0,rangeRescale(diff(d2),-0.5,0.5,-max(abs(diff(d2))),max(abs(diff(d2))) ))
   
   ### peaks-valleys detection ########
-  s1p = peakFinder(d,  sgol_p, sgol_n, mode = "p", 0.5)
-  s1v = peakFinder(d,  sgol_p, sgol_n, mode = "v", 0.5)
-  s2p = peakFinder(d2, sgol_p, sgol_n, mode = "p", 0.5)
-  s2v = peakFinder(d2, sgol_p, sgol_n, mode = "v", 0.5)
-  allpik1 = sort(c(s1p$samples,s1v$samples))       #the sample positions containing a peak or valley in d
-  allpik2 = sort(c(s2p$samples,s2v$samples))    #the same in d2
-  allBool2 = (s2p$bool + s2v$bool) != 0 #the same in d2
-  allSec1 = time(d)[allpik1]
-  allSec2 = time(d2)[allpik2]
+  s1b = peakFinder(d,  sgol_p, sgol_n, mode = "b", 0.5) 
+  s2b = peakFinder(d2, sgol_p, sgol_n, mode = "b", 0.5)
+
+  allSec1 = time(d)[s1b$samples]
+  allSec2 = time(d2)[s2b$samples]
   
   #full matrix with all matches values
-  M = matrix(NA ,nrow=length(allpik1),ncol=length(allpik2))
+  M = matrix(NA ,nrow=length(s1b$samples),ncol=length(s2b$samples))
   
-  for(i in 1:length(allpik1)){
-    ipik = allpik1[i] 
+  for(i in 1:length(s1b$samples)){
+    ipik = s1b$samples[i] 
     #trova il range attorno al picco i in cui cercare la lag
     ###NB nella v1.1 questo avviene da valle a valle, per la versione fissa guarda v1.0c
     search_range = (ipik-ransamp):(ipik+ransamp)
+    
     ## seleziona il range di confronto va dal picco/valle precedente a quello successivo di ipik
     #se non ci sono picchi/valli prima, parti dall'inizio del segnale
-    a = ifelse(any(allpik1<ipik),  max(allpik1[allpik1<ipik]), 1)
+    a = ifelse(any(s1b$samples<ipik),  max(s1b$samples[s1b$samples<ipik]), 1)
     #se non ci sono picchi/valli dopo, usa la fine del segnale
-    b = ifelse(any(allpik1>ipik),  min(allpik1[allpik1>ipik]), length(d))
+    b = ifelse(any(s1b$samples>ipik),  min(s1b$samples[s1b$samples>ipik]), length(d))
     ab = a:b
     
-    search_range[search_range<=0] = NA
-    ab[ab<=0] = NA
-    matches = which(allBool2[search_range]) # trova picchi in d2 nell'intorno di ipik (su d)
+    search_range[search_range<=0] = NA #this should not be needed...
+    ab[ab<=0] = NA #this should not be needed...
+    matches = which(s2p$bool[search_range]) # trova picchi in d2 nell'intorno di ipik (su d)
     matches = matches + (ipik-ransamp) -1     # passa da posizione relativa a search_range a posizione assoluta su d2
-    matches_i = which(allpik2 %in% matches)   
+    matches_i = which(s2b$samples %in% matches)   
     nMatch = length(matches)
     
     if(nMatch>0) {
@@ -122,8 +121,8 @@ peakMatch = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30,
         lagv = matches[f] - ipik #distanza fra i due picchi, in samples. Valori negativi indicano giallo anticipa blu
         
         #trova il range valle-valle o picco-picco del segno matchato
-        a2 = ifelse(any(allpik2<ipik2),  max(allpik2[allpik2<ipik2]), 1)
-        b2 = ifelse(any(allpik2>ipik2),  min(allpik2[allpik2>ipik2]), length(d2))
+        a2 = ifelse(any(s2b$samples<ipik2),  max(s2b$samples[s2b$samples<ipik2]), 1)
+        b2 = ifelse(any(s2b$samples>ipik2),  min(s2b$samples[s2b$samples>ipik2]), length(d2))
         ab2= a2:b2
         
         ## MODE:2 
@@ -246,9 +245,9 @@ peakMatch = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30,
   xbest = data.frame(best)
   xbest = xbest[order(xbest$row),]
   xbest = xbest[xbest$col!=0 & xbest$row !=0,]
-  xbest$lag =   allpik2[xbest$col]-allpik1[xbest$row]
-  xbest$s1 = allpik1[xbest$row]
-  xbest$s2 = allpik2[xbest$col]
+  xbest$lag =   s2b$samples[xbest$col]-s1b$samples[xbest$row]
+  xbest$s1 = s1b$samples[xbest$row]
+  xbest$s2 = s2b$samples[xbest$col]
   #instantiate new sync class object
   signal[[outputName]] = PMBest(NULL,NULL,xbest,lagSec,sgol_p,sgol_n,weightMalus)
   signal
@@ -658,25 +657,25 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   mode = match.arg(mode)
   pik = sign(embed(fdderiv1,2)) #embed appaia al segnale il segnale laggato di 1 samp
   s = pik[,2] - pik[,1] #that's where the magic happens
-  if(mode=="peaks")
+
+  if(mode=="peaks") {
     pikboo = c(s ==  2, FALSE) #embed perde 1 sample, quindi aggiungi un FALSE alla fine
-  else if(mode=="valleys")
-    pikboo = c(s == -2, FALSE) #embed perde 1 sample, quindi aggiungi un FALSE alla fine
-  else pikboo = c(abs(s) ==  2, FALSE)
-  
-  piksam = which(pikboo) #in quali sample c'è un'inversione di segno della derivata?
-  #correzione manuale: cerca il valore più alto nei dintorni del cambio di derivata
-  if(mode=="peaks")
+    piksam = which(pikboo) #in quali sample c'è un'inversione di segno della derivata?
     pv = rep("p",length(piksam))
-  else if(mode=="valleys")
+  } else if(mode=="valleys") {
+    pikboo = c(s == -2, FALSE) 
+    piksam = which(pikboo) 
     pv = rep("v",length(piksam))
-  else {
+  } else if(mode=="both") {
+    pikboo = c(abs(s) ==  2, FALSE)
+    piksam = which(pikboo) 
     s = s[s!=0]
     pv = s
     pv[s>0] = "p"
     pv[s<0] = "v"
   }
   
+  #correzione manuale: cerca il valore più alto nei dintorni del cambio di derivata
   for(v in seq_along(piksam)){
     #individua il range con 0.5s prima e dopo la valle della derivata (esclusi gli estremi inzio e fine ts)
     search_interval = x[
