@@ -44,7 +44,8 @@
 # start ed end ragionano come se fossero mesi. quindi start(a) == 0 1, significa il "primo mese dell'anno zero". L'idea è che la
 # frequenza abbia un significato, es 1 mese, 1 osservazione, quindi end 29 2 significa la seconda osservazione del 29 ciclo.
 # siccome il mio ciclo sono i secondi, usare come frequenza 10 o 100 rappresenta decimi e centesimi di secondo, che è sensato.
-# usare frequenza 5 significa 
+# 
+# 
 # 
 ############################################################################################################ 
 ## Credits
@@ -63,7 +64,6 @@
 ##        $DyadSignal "SC"      | <- signal è il contenitore di tutti i dati e analisi di un tipo di segnale fisio
 ##            $DyadStream s1    | <- i diversi dati sono in forma di stream, ossia serie temporali con 
 ##            $DyadStream s2    |    più metadati, tra cui elementi grafici che forse sono da eliminare
-##            $valid            | <- un array di logical, indicante le parti buone (TRUE) o artefatti (FALSE) [deprecato]
 ##            $artefact         | <- un data.frame contenente le epoche (start end in secondi) da escludere
 ##            $CCFBest          | <- contenitore di analisi sincro basato sulle windowed x-cors
 ##              $sync           | <- il vecchio BestCCF
@@ -139,7 +139,7 @@ classAttr = function(x){
 }
 LOCK_ATTR = c("names", "dim", "dimnames", "row.names")
 
-#' Title
+#' c
 #'
 #' @param from 
 #' @param to 
@@ -330,10 +330,8 @@ is.DyadCategory = function(x) inherits(x,"DyadCategory") && length(x)
 ##   -class: list DyadSession
 DyadSignal = function(name="some signal",s1=NULL,s2=NULL,sampRate=NULL, s1Name, s2Name){
   x = list(
-    s1 = DyadStream(stream = s1, name=s1Name, frequency = sampRate, col = "deeppink3",  lty=1, lwd=2),
-    s2 = DyadStream(stream = s2, name=s2Name, frequency = sampRate, col = "dodgerblue3", lty=1, lwd=2),
-    # time = time(s1), #[deprecato]
-    # valid = DyadStream(stream = ts(rep(TRUE, length(s1)),start=start(s1),end= end(s1), frequency = frequency(s1) ), name="valid", sampRate = sampRate, col = "darkgrey", lty=1, lwd=2),
+    s1 = DyadStream(stream = s1, name=s1Name, frequency = sampRate),
+    s2 = DyadStream(stream = s2, name=s2Name, frequency = sampRate),
     artefacts = data.frame("start"=c(),"end"=c())
   )
   attributes(x) = c(attributes(x),list(
@@ -343,8 +341,7 @@ DyadSignal = function(name="some signal",s1=NULL,s2=NULL,sampRate=NULL, s1Name, 
     s1Name = s1Name,
     s2Name = s2Name,
     start = start(s1), #start-end-duration of s1 and s2 are the same by design
-    end = end(s1),
-    duration = trunc(length(s1)/sampRate)
+    end = end(s1)
   ))
   class(x) = append(class(x),"DyadSignal")
   return(x)
@@ -387,7 +384,7 @@ window.DyadSignal = function(x, duration, ...){
   }
   
   classAttr(res) = classAttr(x)
-  attr(res,"duration") = length(res)/frequency(res)
+  # attr(res,"duration") = length(res)/frequency(res)
   attr(res,"start") = start(res)
   attr(res,"end") = end(res)
   res
@@ -398,22 +395,18 @@ window.DyadSignal = function(x, duration, ...){
 ## time-serie ts() with additional attributes:
 ##   -name
 ##   -settings 
-##   -col 
-##   -lty
-##   -lwd
 ##   -tsp (inherited by ts)
 ##   -class: list DyadSession
 #' DyadStream
 #' 
 #' @param stream a ts object or numeric vector
 #' @param name 
-#' @param col,lty,lwd graphical parameters for plotting
 #' @param ... arguments passed to ts(), typicaly frequency and start. Only used if stream is NOT a ts object.
 ## Note to self: I know that presentation and content should be separated,
 ## yet storing some basic graphical information in the class, allows for consistency
 ## and simplicity in the upcoming plotting routines.
 #' @export
-DyadStream = function(stream, name, col=1, lty=1, lwd=1, ...){
+DyadStream = function(stream, name, ...){
   if(!is.ts(stream)){
     stream = ts(stream, ...)
     l = list(...)
@@ -427,10 +420,10 @@ DyadStream = function(stream, name, col=1, lty=1, lwd=1, ...){
   attributes(stream) = c(attributes(stream),
                          list(
                             name = name,
-                            duration = length(stream)/frequency(stream),
-                            col=col,
-                            lty=lty,
-                            lwd = lwd
+                            duration = length(stream)/frequency(stream)
+                            # col=col,
+                            # lty=lty,
+                            # lwd = lwd
                         ))
   class(stream) = append("DyadStream",class(stream))
   return(stream)
@@ -440,6 +433,7 @@ is.DyadStream = function(x){ inherits(x,"DyadStream") && length(x)
 }
 
 
+#' @export
 print.DyadStream = function (x, ...) {
   #x <- as.ts(x)
   Tsp <- tsp(x)
@@ -456,29 +450,20 @@ print.DyadStream = function (x, ...) {
   }
   fr.x <- frequency(x)
   if (fr.x != 1) 
-    cat0("DyadStream '",attr(x,"name"),"':\nStart: ", start(x)[1]+((start(x)[2]-1)/frequency(x)), " seconds =",deparse(start(x)),
-        "\nEnd =", end(x)[1]+(end(x)[2]/frequency(x)), " seconds =",deparse(end(x)) ,
-        "\nFrequency = ", deparse(fr.x), 
-        "\n")
+    cat0("DyadStream '",attr(x,"name"),
+         "':\nStart: ", tsp(x)[1], " [",deparse(start(x)),"]",
+         "\nEnd: ",      tsp(x)[2], " [",deparse(end(x)),  "]",
+         "\nFrequency: ", deparse(fr.x), 
+         "\n")
   else cat0("DyadStream '",attr(x,"name"),"':\nStart: ", format(tsp(x)[1L]), 
-           "\nEnd: ", format(tsp(x)[2L]), "\nFrequency: ", deparse(fr.x), 
-           "\n")
-  cat0("Duration: ",length(x), " samples\n")
-  cat0("start: ",start(x)[1],"[",start(x)[2],"] end: ",end(x)[1],"[",end(x)[2],"] freq:",frequency(x)," duration: ",length(x), " samples\r\n")
-  for(i in 0:(floor(length(x)/frequency(x))-1) ){
-    cat(start(x)[1]+i, "\t", paste(formatC(x[(i*frequency(x)+1): (i*frequency(x)+frequency(x))],width=3,flag="0"), sep="\t\t" ),"\r\n")
-  }
-  if((length(x)/frequency(x))-floor(length(x)/frequency(x)) != 0){
-    i=i+1
-    cat(start(x)[1]+i, "\t", paste(formatC(x[(i*frequency(x)+1): length(x)],width=2,flag="0"), sep="\t\t" ),"\r\n")
-  }
-  invisible(x)
+            "\nEnd: ", format(tsp(x)[2L]), "\nFrequency: ", deparse(fr.x), 
+            "\n")
+  cat0("Duration: ",length(x), " samples, ",length(x)/frequency(x), " seconds\n\n")
+  cat(x[1:100], sep = "\t")
+  cat("\n...\n")
+  cat(x[(length(x)-100):length(x)], sep = "\t") 
+  
 }
-# cloneDyadStream = function(x, stream){
-#   if(!"ts"%in%class(x) & !"DyadStream" %in% class(stream)) stop ("a ts object must be cloned with a DyadStream object")
-#   attributes(x) = c(attributes(x)["tsp"],attributes(stream)[!names(attributes(stream))%in% "tsp"])
-#   x
-# }
 
 #' Time Windows
 #'

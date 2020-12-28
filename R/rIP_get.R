@@ -8,7 +8,7 @@ start.DyadSignal <- function (x) {attr(x,"start")}
 #' @export
 end.DyadSignal <- function (x) {attr(x,"end")}
 #' @export
-duration <- function(x) {attr(x,"duration")}
+
 #' @export
 s1Name <- function(x) {attr(x,"s1Name")}
 #' @export
@@ -87,15 +87,3 @@ sampRate <-function(x) {
 #' @export
 frequency.DyadSignal = function(x){attr(x,"sampRate")}
 
-#' @export
-color <-function(x){
-  attr(x,"col")
-}
-#' @export
-lty <-function(x){
-  attr(x,"lty")
-}
-#' @export
-lwd <-function(x){
-  # attr(x,"lwd")
-}

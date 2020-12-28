@@ -7,8 +7,21 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## v.1.0.0.9004
+#### 2020/12/28
+  * implemented new artefacts system, any trace of "valid" and "time" has been purged
+  * removed duration attributes
+  * new xstart, xend, xduration, functions which report correct start and end in time units
+  * catExtractLong renamed in extractEpochs
+  * removed graphical information from dyadstream
+
+## v.1.0.0.9004
+#### 2020/12/18
+  * pmBest refactor, more elegant code
+  * groupId get functions
+
 ## v.1.0.0.9003
-#### 2020/06/10
+#### 2020/09/10
   * Improved documentation
   * improved SignalFilter 
   * DyadSignal constructor no more includes a time and valid object in view of specifying artefacts with start-end files

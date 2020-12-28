@@ -9,22 +9,22 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Development 
 
 ## High alert:
-  * diverse funzioni fanno uso di $valid per gli artefatti e sono attualmente buggate!!!!
-  * window.ts è buggato per serie con frequenza < 1 [RISOLTO CON R >=4]
+  * implementa DyadExperiment.[]
   * in xbest di PMbest ci sono delle (rare) occorrenze in cui lo stesso picco viene usato 2 volte, che è grave.
-  * duration non deve essere salvato come attributo, ma sempre ricalcolato partendo da xsp!!!!!!
+  * tutte le approssimazioni start()[1] end()[1] sono inaccettabili. controlla se e dove sostituire con xstart, xend
   * errori (rari) in PMBest (su diadi random): 
     * In cor(rs1, rs2, use = "c") : la deviazione standard è zero
     * In s2p\$bool + s2v\$bool :  longer object length is not a multiple of shorter object length
+
   
 ## Clean Up
-  * naming: cat --> epoch
+  * c.DyadExperiment, works fine but final report is messy
   * sampRate() diventa frequency()
   * sccf sarebbe meglio wccs "window cross corr of slopes"
   * aggiungi '...' a PMBest e CCFBest, per accomodare i parametri di eventuali altri algoritmi di calcolo.
   * signalDecimate deve diventare decimate() secondo la nuova filosofia dei filtri
-  * rimuovi lwd, col, lty da DyadStream. Function e presentation separate.
   * metti attribute "SEssionName" o simile dentro a DyadSignal e DyadStream per tnere traccia
+  * in extractEpochs espandi 'epochStreamName' in 3 argomenti seperati sync="PMBest", streamKey="sync", category="PACS/IM" come nel resto del pacchetto
 
 ## next steps
   * Parallelize -> http://dept.stat.lsa.umich.edu/~jerrick/courses/stat701/notes/parallel.html
@@ -45,30 +45,14 @@ knitr::opts_chunk$set(echo = TRUE)
   ![_Possible solution_](dev_spam/cor_rescale2.png)
 
   
-### high priority
-  0) implementare NAartifact usando la nuova tabella "artefacts" in:
-    
-    * epochStream.DyadSession()
-    * plotting code
-    
- Quindi per ora limitati a PMBest, poi dovrai implementare un windowed assign: se invece di salvare valid salvi le epoche start-end degli artefatti poi puoi eliminarli così:
-    ```{r}
-      asd = ts(1:101, frequency=10,start=0)
-      #i campioni da rimuovere sono dal secondo 5 al secondo 7
-      window(asd, start=5,end=7) <- NA
-      # funziona indipendentemente da frequency,
-      # es. in una ts con frequenza diversa:
-      asd2 = ts(seq(1,101,by=10),frequency = 1,start=0)
-      window(asd2,start=5,end=7) <- NA
+## safety checks
+  * window.ts è buggato per serie con frequenza < 1 [RISOLTO CON R >=4?]
 
-    ```
 
     
 
 
 ### low priority
-
-* catApply stop() se la sync/streamkey/valid/category/etc.. non esistono. al momento gira comunque e da errori strani
 #### DyadExperiment
 * quando crei experiment fai tutti i check di coerenza interna e magari salva esplicitamente il tipo di disegno, longitudinale, gruppi, misto
   * soprattutto gli stessi s1 e s2 names, altrimenti rischi di fare grossa confusione
@@ -76,28 +60,4 @@ knitr::opts_chunk$set(echo = TRUE)
 * controlla che dyadComb.DyadExperiment funzioni dopo la rimozione di $signals
 * rotating or 0-100 progress bar in nested funcstions
 * '[.DyadExperiment' e session, signal e stream, copiano anche gli attributi
-
-#### DyadSession
 * controlla che tutti i segnali abbiano lo stesso dyadID e s1 s2 names
-
-#### Class structure
-
-
-
-<!-- This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>. -->
-
-<!-- When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this: -->
-
-<!-- ```{r cars} -->
-<!-- summary(cars) -->
-<!-- ``` -->
-
-<!-- ## Including Plots -->
-
-<!-- You can also embed plots, for example: -->
-
-<!-- ```{r pressure, echo=FALSE} -->
-<!-- plot(pressure) -->
-<!-- ``` -->
-
-<!-- Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot. -->

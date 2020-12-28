@@ -26,7 +26,14 @@
 # Contact: johann.kleinbub@gmail.com
 ############################################################################################################ 
 
+# NB the traditional colors of the lines are:
+## deeppink3
+## dodgerblue3
+
+
 ##Main TS plotting tool
+
+
 
 #' @export
 #'
@@ -208,7 +215,11 @@ plotAMICo = function(signal, start, end, syncName = "AMICo"){
   rs2 = rs2-k2
   
   time = window(signal$time, start=xStart,end=xEnd)
-  valid = window(signal$valid, start=xStart,end=xEnd)
+  valid = ts(rep(T, length(res1) ), frequency = frequency(rs1),start=start(rs1))
+  for(i in 1:nrow(signal$artefacts)){
+    window(valid, start=signal$artefacts$start[i],end=signal$artefacts$end[i]) <- F
+  }
+  
   sync1 = rangeRescale(window(signal[[syncName]]$sync,start= xStart, end=xEnd), 0.6,0.8,-1,1)
 
   plot(rs1, col=0, lty=3,xaxs="i",xaxt="n",yaxt="n",ylim=c(-0.05,0.81),xlab="",ylab="")

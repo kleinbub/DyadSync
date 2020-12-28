@@ -2,7 +2,7 @@
 % Please edit documentation in R/rIP_classes.R
 \name{cloneAttr}
 \alias{cloneAttr}
-\title{Title}
+\title{c}
 \usage{
 cloneAttr(from, to)
 }
@@ -15,5 +15,5 @@ cloneAttr(from, to)
 
 }
 \description{
-Title
+c
 }

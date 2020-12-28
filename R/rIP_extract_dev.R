@@ -49,14 +49,16 @@ epochStream.DyadExperiment = function(x, signal= "SC", sync="PMBest", streamKey=
 #' @export
 epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIndex, mergeEpochs, artefact.rm, shift_start, shift_end){
   ##DEBUG
-  # x = d$all_CC_5
+  # x = d$all_CC_4
   # signal="SC"
-  # sync="CCFBest"
+  # x$SC$artefacts = rbind(data.frame(start=c(160,300), end=c(200,400)),x[[signal]]$artefacts)
+  # 
+  # sync="PMdev"
   # streamKey = "sync"
-  # category="PIRS"
-  # groupIndex="codifica"
+  # category="PACS"
+  # groupIndex="PACS"
   # mergeEpochs = F
-  # artefact.rm=F
+  # artefact.rm=T
   ###
   
   if(!sync %in% c("none",names(x[[signal]]))) stop ('sync was',sync,'and should be one of: none,',names(x[[signal]]))
@@ -72,7 +74,21 @@ epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIn
     stream = x[[signal]][[streamKey]]
   }
   if( artefact.rm ){
-    if(length(stream)!=length(x[[signal]]$valid)) stop("artefact.rm temporarily requires that stream has the same frequency of valid")
+    # if(length(stream)!=length(x[[signal]]$valid)) stop("artefact.rm temporarily requires that stream has the same frequency of valid")
+    ## remove Artefacts windows from stream
+    for(i in 1:nrow(x[[signal]]$artefacts)){
+      # asd = ts(1:101, frequency=10,start=0)
+      # #i campioni da rimuovere sono dal secondo 5 al secondo 7
+      # window(asd, start=5,end=7) <- NA
+      # # funziona indipendentemente da frequency,
+      # # es. in una ts con frequenza diversa:
+      # asd2 = ts(seq(1,101,by=10),frequency = 1,start=0)
+      # window(asd2,start=5,end=7) <- NA
+      
+      cat("\r\n",x[[signal]]$artefacts$start[i], " ", x[[signal]]$artefacts$end[i])
+      window(stream, start=x[[signal]]$artefacts$start[i],end=x[[signal]]$artefacts$end[i]) <- NA
+    }
+    
     stream[!x[[signal]]$valid]=NA
   }
   # seleziona il dataframe della categoria e crea un oggetto per ciascun livello
@@ -167,21 +183,24 @@ epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIn
 
 
 
-
-#### rinomina in "extractEpochs"
 #### cambia epochStreamName in sync="PMBest", streamKey="sync", category="PACS/IM"
 #' @title extract epochs in a simple list
 #'  This function extracts the selected epochs from every session of a "DyadExperiment" object and puts them in
 #'  a simple list.
 #'  In future the 'by' argument will be used to split the data by experimental group, participant, or any other relevant condition.
 #' @export
-#'
-catExtractLong = function(experiment, signal="SC", epochStreamName="IM_PmdevSync", by, FUN = mean, ...){
+#' @aliases catExtractLong
+extractEpochs = function(experiment, signal="SC", epochStreamName="IM_PmdevSync", by, FUN = mean, ...){
   if(!missing("by")) stop("by is not implemented yet.")
-  UseMethod("catExtractLong",experiment) 
+  UseMethod("extractEpochs",experiment) 
 }
+
+#' @rdname extractEpochs
 #' @export
-catExtractLong.DyadExperiment = function(experiment, signal, epochStreamName, by, FUN, ...){
+catExtractLong = extractEpochs
+
+#' @export
+extractEpochs.DyadExperiment = function(experiment, signal, epochStreamName, by, FUN, ...){
   #check names
   keepNames = unique(unlist(lapply (experiment, function(session){
     names(session[[signal]][[epochStreamName]])

@@ -223,9 +223,10 @@ readDyadSignals = function(
   if(!is.null(end)){ #if end is NOT missing
     end = timeMaster(end,out="sec")
     duration = end - start
-  }   
-    
-  if(!is.null(duration)){ #if duration is NOT missing, or was set through 'end'
+  }  
+
+  #if duration is NOT missing, or was set through 'end' procede to trim files 
+  if(!is.null(duration)){ 
     duration = timeMaster(duration,out="sec")
     cat("\r\nTrimming files (samples)\r\n")
     
@@ -262,7 +263,7 @@ readDyadSignals = function(
     "dyad" = unlist(dyadIds),
     "session" = unlist(sess),
     "group" = unlist(group),
-    "start" = timeMaster(start,out="min"),
+    "start" = timeMaster(round(start),out="min"),
     "duration" = timeMaster(floor(unlist(len)/sampRate), out="min"),
     #"max length" = timeMaster(end, out="min"),
     # "Filename" = unlist(shortNames),
@@ -279,7 +280,7 @@ readDyadSignals = function(
   #Populates the objects
 
   experiment = DyadExperiment(path,
-                              Map(function(session,nSession){
+    Map(function(session,nSession){
     #for each type of signal, add a new DyadSignal to the present DyadSession
     #These are defined as s1Col paTer pairs.
     signalList = lapply(seq_along(s1Col), function(i) {

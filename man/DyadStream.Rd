@@ -4,14 +4,12 @@
 \alias{DyadStream}
 \title{DyadStream}
 \usage{
-DyadStream(stream, name, col = 1, lty = 1, lwd = 1, ...)
+DyadStream(stream, name, ...)
 }
 \arguments{
 \item{stream}{a ts object or numeric vector}
 
 \item{name}{}
-
-\item{col, lty, lwd}{graphical parameters for plotting}
 
 \item{...}{arguments passed to ts(), typicaly frequency and start. Only used if stream is NOT a ts object.}
 }

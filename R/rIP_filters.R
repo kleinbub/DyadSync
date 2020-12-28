@@ -73,7 +73,6 @@ signalFilter.DyadSignal = function (x, FUN, newAttributes=NULL, signals=NULL, ..
   
   attr(x,"start") = start(x$s1)
   attr(x,"end")   = end(x$s1)
-  attr(x,"duration") = trunc(length(x$s1)/frequency(x$s1))
   attr(x,"sampRate") = frequency(x$s1)
 
   if(!is.null(newAttributes)){
@@ -108,15 +107,19 @@ setArtefacts <- function(x, startEnd, signal){
 
 #' @export
 setArtefacts.DyadExperiment <- function(x, startEnd, signal) {
+  #1 controlla validità di startEnd
+  names(startEnd) = tolower(names(startEnd))
+  if("factor" %in% sapply(startEnd,class)) stop ("factors not supported in startEnd")
   if(is.data.frame(startEnd)){
     if(ncol(startEnd)!=4 || !all.equal(names(startEnd), c('dyad','session', 'start', 'end') ))
-      stop("startEnd must have 4 columns: 'dyad', 'session', 'start', 'end' of equal size")
+      stop("startEnd must have 4 columns: 'dyad', 'session', 'start', 'end' of equal length")
     sel = startEnd
   } else if(is.list(startEnd)) {
     if(length(startEnd)!=4 || var(sapply(startEnd, length))!=0 )
-      stop("startEnd must have 3 vectors 'session', 'start', 'end' of equal size")
+      stop("startEnd must have 3 vectors 'session', 'start', 'end' of equal length")
     sel = as.data.frame(startEnd,stringsAsFactors = F)
   } else stop("startEnd must be a list or dataframe")
+
   
   for(j in unique(sel$dyad) ){
     for(i in unique(sel$session) ){
@@ -124,8 +127,8 @@ setArtefacts.DyadExperiment <- function(x, startEnd, signal) {
       if(length(listKey)>1) stop("multiple matches found in session:",j,lead0(i))
       if(length(listKey)==1){
         cat("\r\ncleaning session:",j,lead0(i),"\r\n")
-        miniSel = sel[sel$dyad == j & sel$session == i, 3:4]
-        x[[listKey]][[signal]] = setArtefacts(x[[listKey]][[signal]],miniSel,signal)
+        miniSel = sel[sel$dyad == j & sel$session == i, ]
+        x[[listKey]][[signal]] = setArtefacts(x[[listKey]][[signal]],miniSel)
       }
       }}
   x
@@ -134,51 +137,46 @@ setArtefacts.DyadExperiment <- function(x, startEnd, signal) {
 #' @param x 
 #'
 #' @param startEnd 
-#' @param signal 
 #'
 #' @export
-setArtefacts.DyadSignal <- function(x, startEnd, signal="SC") {
+setArtefacts.DyadSignal <- function(x, startEnd) {
+  
   #1 controlla validità di startEnd
-  if(!is.data.frame(startEnd)){
-    if(length(startEnd)!=2 || length(startEnd[[1]])!=length(startEnd[[2]]))
-      stop("startEnd must have 2 vectors 'start', 'end' of equal size")
+  names(startEnd) = tolower(names(startEnd))
+  if("factor" %in% sapply(startEnd,class)) stop ("factors not supported in startEnd")
+  if(is.data.frame(startEnd)){
+    if(ncol(startEnd)!=4 || !all.equal(names(startEnd), c('dyad','session', 'start', 'end') ))
+      stop("startEnd must have 4 columns: 'dyad', 'session', 'start', 'end' of equal length")
+    sel = startEnd
+  } else if(is.list(startEnd)) {
+    if(length(startEnd)!=4 || var(sapply(startEnd, length))!=0 )
+      stop("startEnd must have 3 vectors 'session', 'start', 'end' of equal length")
     sel = as.data.frame(startEnd,stringsAsFactors = F)
-  } else sel = startEnd
-  if(!all.equal(names(sel),c('start', 'end')) ) stop("startEnd names must be 'start','end'")
+  } else stop("startEnd must be a list or dataframe")
+  
+  
+  # if(!all.equal(names(sel),c('start', 'end')) ) stop("startEnd names must be 'start','end'")
   ref = 0
-  duration = duration(x)
-  for(i in 1:nrow(sel)){
-    sel[grepl("end|fine",sel[,2],ignore.case = T),2] = timeMaster(duration,"min")
-  }
-  # cat("\r\n ! - ",str(sel))
+  sel[grepl("end|fine",sel[,4],ignore.case = T),4] = end(x)[1]+end(x)[2]/frequency(x)
   
-  # if(nrow(sel)==1)
-  x$artefacts = data.frame(numeric(nrow(sel)))
-  x$artefacts$start = timeMaster(sel[,1], out="s")
-  x$artefacts$end   = timeMaster(sel[,2], out="s")
-  x$artefacts[1] = NULL
-  # print(str(x$artefacts))
+  sel$start = timeMaster(sel$start, out="s")
+  sel$end   = timeMaster(sel$end,   out="s")
 
-  # #questa roba è qui per compatibilità. Idealmente usa solo la tabella artefacts ##############
-  # for(i in 1:nrow(sel)){
-  #   a = timeMaster(sel[i,1],out="sec") -  start(x)[1]
-  #   if( grepl("end|fine",sel[i,2],ignore.case = T)  ) b = duration
-  #   else b = timeMaster(sel[i,2],out="sec") -  start(x)[1]
-  #   if(a>duration || b > duration) stop ("one start or end were bigger than the signal length")
-  #   if(b<a) stop ("'start' cannot be greater than 'end' ")
-  #   if(a < ref || b < ref) stop("all start and end definition must be progressively increasing and greater than signal start value")
-  #   ref = b
-  #   sel[i,1] = a * sampRate(x)
-  #   if(b == duration) sel[i,2] =  length(x$valid) #elminina tutto fino alla fine
-  #   else  sel[i,2] = b * sampRate(x)
-  # }
-  # for(i in 1:nrow(sel)){  #sostituisci con NA i segmenti
-  #   x$valid[sel[i,1]:sel[i,2]] = FALSE
-  # }
-  # ###############################
+  #check for artefact start lower than signal start
+  if(any(sel$start < xstart(x))){
+    warning("artefacts times beginning before signal's start time were trimmed")
+    sel[sel$start < xstart(x),] = start(x)[1]
+  }
+  #check for artefact end greater than signal end
+  if(any(sel$end > xend(x))){
+    warning("artefacts times ending after signal's end time were trimmed")
+    sel[sel$end > xend(x),] = tsp(x)[2]
+  }
   
-  #4 aggiorna i metadati
-  attributes(x)["filter"] = paste0(attr(x,"filter"), "--> NAartifact")
+
+  x$artefacts = sel[,c("start","end")]
+
+  attributes(x)["filter"] = paste0(attr(x,"filter"), "--> artifacts set")
   x
 }
 
