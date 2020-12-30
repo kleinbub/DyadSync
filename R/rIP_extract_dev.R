@@ -189,15 +189,15 @@ epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIn
 #'  a simple list.
 #'  In future the 'by' argument will be used to split the data by experimental group, participant, or any other relevant condition.
 #' @export
-#' @aliases catExtractLong
 extractEpochs = function(experiment, signal="SC", epochStreamName="IM_PmdevSync", by, FUN = mean, ...){
   if(!missing("by")) stop("by is not implemented yet.")
   UseMethod("extractEpochs",experiment) 
 }
 
+
 #' @rdname extractEpochs
 #' @export
-catExtractLong = extractEpochs
+catExtractLong = function(){stop("this function has been renamed to extractEpochs ")}
 
 #' @export
 extractEpochs.DyadExperiment = function(experiment, signal, epochStreamName, by, FUN, ...){

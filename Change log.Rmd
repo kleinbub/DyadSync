@@ -6,8 +6,11 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+## v.1.0.0.9006
+#### 2020/12/30
+  * bug fixes
 
-## v.1.0.0.9004
+## v.1.0.0.9005
 #### 2020/12/28
   * implemented new artefacts system, any trace of "valid" and "time" has been purged
   * removed duration attributes

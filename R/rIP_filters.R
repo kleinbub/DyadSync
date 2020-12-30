@@ -120,7 +120,7 @@ setArtefacts.DyadExperiment <- function(x, startEnd, signal) {
     sel = as.data.frame(startEnd,stringsAsFactors = F)
   } else stop("startEnd must be a list or dataframe")
 
-  
+  nClean = 0  
   for(j in unique(sel$dyad) ){
     for(i in unique(sel$session) ){
       listKey = which(sapply(x,sessionId)==i & sapply(x,dyadId)==j) #questo è importante per selezionare la seduta giusta
@@ -129,8 +129,10 @@ setArtefacts.DyadExperiment <- function(x, startEnd, signal) {
         cat("\r\ncleaning session:",j,lead0(i),"\r\n")
         miniSel = sel[sel$dyad == j & sel$session == i, ]
         x[[listKey]][[signal]] = setArtefacts(x[[listKey]][[signal]],miniSel)
+        nClean = nClean +1
       }
-      }}
+    }}
+  if(nClean == 0) warning("no sessions were affected. Maybe check dyadId and sessionId in both DyadExperiment object and startEnd dataset")
   x
 }
 

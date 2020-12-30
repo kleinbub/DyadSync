@@ -109,7 +109,7 @@ peakMatch = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30,
     
     search_range[search_range<=0] = NA #this should not be needed...
     ab[ab<=0] = NA #this should not be needed...
-    matches = which(s2p$bool[search_range]) # trova picchi in d2 nell'intorno di ipik (su d)
+    matches = which(s2b$bool[search_range]) # trova picchi in d2 nell'intorno di ipik (su d)
     matches = matches + (ipik-ransamp) -1     # passa da posizione relativa a search_range a posizione assoluta su d2
     matches_i = which(s2b$samples %in% matches)   
     nMatch = length(matches)
