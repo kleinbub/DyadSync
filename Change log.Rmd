@@ -6,6 +6,10 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+## v.1.0.0.9007
+#### 2021/03/23
+  * modified peakFinder() function to avoid detecting micro-peaks in generally flat areas. This vastly improves the AMICo performance (less false positives)
+
 ## v.1.0.0.9006
 #### 2020/12/30
   * bug fixes

@@ -69,11 +69,12 @@ pmBest = function(experiment, signals="all", lagSec=7,
 
 
 ## peak picking best lag
-peakMatch = function(signal,lagSec=8, sgol_p = 2, sgol_n = 25, weightMalus = 30,match_threshold=0.0, outputName) {
+peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,match_threshold=0.0, outputName) {
   if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
   
   # signal = lr10$CC_1$SC
   # signal = lr10$all_CC_1$SC
+  # signal = lr10f$all_02_1$SC
   #pacs best settings
   ## lr = pmBest(d,signals = "all",lagSec=4,match_threshold=0.25,
   #             minSizeSec=5,weightMalus = 35 ,algorithm = "AMICo",outputName = "PMdev")
@@ -659,10 +660,12 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   s = pik[,2] - pik[,1] #that's where the magic happens
 
   if(mode=="peaks") {
+    warning("with mode=p the flat correction is not active")
     pikboo = c(s ==  2, FALSE) #embed perde 1 sample, quindi aggiungi un FALSE alla fine
     piksam = which(pikboo) #in quali sample c'è un'inversione di segno della derivata?
     pv = rep("p",length(piksam))
   } else if(mode=="valleys") {
+    warning("with mode=v the flat correction is not active")
     pikboo = c(s == -2, FALSE) 
     piksam = which(pikboo) 
     pv = rep("v",length(piksam))
@@ -676,6 +679,7 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   }
   
   #correzione manuale: cerca il valore più alto nei dintorni del cambio di derivata
+  
   for(v in seq_along(piksam)){
     #individua il range con 0.5s prima e dopo la valle della derivata (esclusi gli estremi inzio e fine ts)
     search_interval = x[
@@ -691,10 +695,67 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
     
     piksam[v] = min(piksam[v], length(x))
   }
-  #ricrea pikmboo dai sample corretti
+
+  #trova picchi con sd più bassa di tot, sono solo rumore in un segnale essenzialmente piatto
+  #idee: fisso a IQR(x)/20 ma magari si può trovare un valore più sensato
+  #     -fisso a 0.05uS da onset a picco
+  toDelete=c()
+  for(v in 2:(length(piksam)-1)){
+      if(pv[v]=="p"){
+        search_interval = x[piksam[v-1]:piksam[v+1]]
+        # plot(c(10,16,search_interval),t="l",main=paste(v," - sd:",round(sd(search_interval,na.rm=T),2)))
+        if((max(search_interval)-search_interval[1])<0.03 ){#delta dall'onset al picco almeno 0.05uS
+        # if(sd(search_interval)<IQR(x)/20){
+          #se alcuni picchi vanno rimossi perché sono essenzialmente flat
+          #non ci possono essere 2 valley di seguito, quindi elimina quella col valore più alto
+          
+          fakeValley = c(v-1,v+1)[which.max(c(x[piksam[v-1]] ,x[piksam[v+1]]))]
+          #elimina sia il picco 'v' che la fake valley
+          toDelete = c(toDelete, v,fakeValley)
+        }
+      }
+  }
+  if(length(toDelete)>1){
+    piksam = piksam[-toDelete]
+    piks = piks[-toDelete]
+    pv = pv[-toDelete]}
+  
+  #se ci sono tante valley, togli intanto tutte le v che hanno v sia a destra che sinistra
+  toDelete=c()
+  for(v in 2:(length(pv)-1)){
+    # lel = pv=="v"
+    # lele = embed(lel,2)
+    # err = which(lele[,2] + lele[,1]>1)
+    if(pv[v]=="v" && pv[v-1]=="v" && pv[v+1]=="v"){
+      toDelete = c(toDelete, v)
+    }
+  }
+  if(length(toDelete)>1){
+    piksam = piksam[-toDelete]
+    piks = piks[-toDelete]
+    pv = pv[-toDelete]}
+  
+  #ora ci saranno al massimo dei casi p--v--v--p
+  #eliminale solo se poco distanti
+  toDelete = c()
+  for(v in 1:(length(pv)-1)){
+    if(pv[v]=="v" && pv[v+1] =="v"){
+      # print((piksam[v+1]-piksam[v])/sampRate)
+      if ((piksam[v+1]-piksam[v]) < 5*sampRate  ){
+        toDelete = c(toDelete, c(v+1,v)[which.max(c(x[piksam[v+1]],x[piksam[v]]))])
+      }
+    }
+  }
+  if(length(toDelete)>1){
+  piksam = piksam[-toDelete]
+  piks = piks[-toDelete]
+  pv = pv[-toDelete]}
+  
+  #ricrea pikboo & piks dai sample corretti
   pikboo = rep(F,length(pikboo))
   pikboo[piksam] = T
   piks = time(x)[piksam]
+  
   list("bool" = pikboo,
        "samples" = piksam,
        "seconds" = piks,

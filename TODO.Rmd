@@ -18,6 +18,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
   
 ## Clean Up
+  * peakFinder micropeaks nos is set to 0.03 which is good for SC but should become a parameter
+  * in epochstream() artefact remove è obsoleto perché setArtefacts toglie già i valori dallo stream sync (e lag?)
   * c.DyadExperiment, works fine but final report is messy
   * sampRate() diventa frequency()
   * sccf sarebbe meglio wccs "window cross corr of slopes"
