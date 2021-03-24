@@ -74,22 +74,23 @@ epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIn
     stream = x[[signal]][[streamKey]]
   }
   if( artefact.rm ){
-    # if(length(stream)!=length(x[[signal]]$valid)) stop("artefact.rm temporarily requires that stream has the same frequency of valid")
-    ## remove Artefacts windows from stream
-    for(i in 1:nrow(x[[signal]]$artefacts)){
-      # asd = ts(1:101, frequency=10,start=0)
-      # #i campioni da rimuovere sono dal secondo 5 al secondo 7
-      # window(asd, start=5,end=7) <- NA
-      # # funziona indipendentemente da frequency,
-      # # es. in una ts con frequenza diversa:
-      # asd2 = ts(seq(1,101,by=10),frequency = 1,start=0)
-      # window(asd2,start=5,end=7) <- NA
-      
-      cat("\r\n",x[[signal]]$artefacts$start[i], " ", x[[signal]]$artefacts$end[i])
-      window(stream, start=x[[signal]]$artefacts$start[i],end=x[[signal]]$artefacts$end[i]) <- NA
-    }
-    
-    stream[!x[[signal]]$valid]=NA
+    warning("Currently artefact.rm=TRUE does nothing. pmBest() $sync and $lag streams are already cleaned")
+    # # if(length(stream)!=length(x[[signal]]$valid)) stop("artefact.rm temporarily requires that stream has the same frequency of valid")
+    # ## remove Artefacts windows from stream
+    # for(i in 1:nrow(x[[signal]]$artefacts)){
+    #   # asd = ts(1:101, frequency=10,start=0)
+    #   # #i campioni da rimuovere sono dal secondo 5 al secondo 7
+    #   # window(asd, start=5,end=7) <- NA
+    #   # # funziona indipendentemente da frequency,
+    #   # # es. in una ts con frequenza diversa:
+    #   # asd2 = ts(seq(1,101,by=10),frequency = 1,start=0)
+    #   # window(asd2,start=5,end=7) <- NA
+    #   
+    #   cat("\r\n",x[[signal]]$artefacts$start[i], " ", x[[signal]]$artefacts$end[i])
+    #   window(stream, start=x[[signal]]$artefacts$start[i],end=x[[signal]]$artefacts$end[i]) <- NA
+    # }
+    # 
+    # stream[!x[[signal]]$valid]=NA
   }
   # seleziona il dataframe della categoria e crea un oggetto per ciascun livello
   cate = x[[category]]
@@ -197,7 +198,7 @@ extractEpochs = function(experiment, signal="SC", epochStreamName="IM_PmdevSync"
 
 #' @rdname extractEpochs
 #' @export
-catExtractLong = function(){stop("this function has been renamed to extractEpochs ")}
+catExtractLong = function(x, signal="", epochStream="",by="",FUN=""){stop("this function has been renamed to extractEpochs ")}
 
 #' @export
 extractEpochs.DyadExperiment = function(experiment, signal, epochStreamName, by, FUN, ...){

@@ -420,6 +420,7 @@ summary {
 <div id="high-alert" class="section level2">
 <h2>High alert:</h2>
 <ul>
+<li>ts continua a dare problemi. Ad es window(x, xstart(x),xend(x)) è un sample più lungo di x. Scrivi la tua classe e abbandona sta merda. ho iniziato a segnare con <span class="citation">@TSBUG</span> i punti dove ci sono le bestemmie</li>
 <li>implementa DyadExperiment.[]</li>
 <li>in xbest di PMbest ci sono delle (rare) occorrenze in cui lo stesso picco viene usato 2 volte, che è grave.</li>
 <li>tutte le approssimazioni start()[1] end()[1] sono inaccettabili. controlla se e dove sostituire con xstart, xend</li>
@@ -433,6 +434,8 @@ summary {
 <div id="clean-up" class="section level2">
 <h2>Clean Up</h2>
 <ul>
+<li>peakFinder micropeaks now is set to 0.03 which is good for SC but should become a parameter</li>
+<li>in epochstream() artefact remove è obsoleto perché setArtefacts toglie già i valori dallo stream sync (e lag?)</li>
 <li>c.DyadExperiment, works fine but final report is messy</li>
 <li>sampRate() diventa frequency()</li>
 <li>sccf sarebbe meglio wccs “window cross corr of slopes”</li>

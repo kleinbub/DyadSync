@@ -414,9 +414,36 @@ summary {
 </div>
 
 
-<div id="v.1.0.0.9004" class="section level2">
-<h2>v.1.0.0.9004</h2>
+<div id="v.1.0.0.9008" class="section level2">
+<h2>v.1.0.0.9008</h2>
 <div id="section" class="section level4">
+<h4>2021/03/24</h4>
+<ul>
+<li>bugfixes</li>
+</ul>
+</div>
+</div>
+<div id="v.1.0.0.9007" class="section level2">
+<h2>v.1.0.0.9007</h2>
+<div id="section-1" class="section level4">
+<h4>2021/03/23</h4>
+<ul>
+<li>modified peakFinder() function to avoid detecting micro-peaks in generally flat areas. This vastly improves the AMICo performance (less false positives). This sets a change to AMICo version v1.1</li>
+</ul>
+</div>
+</div>
+<div id="v.1.0.0.9006" class="section level2">
+<h2>v.1.0.0.9006</h2>
+<div id="section-2" class="section level4">
+<h4>2020/12/30</h4>
+<ul>
+<li>bug fixes</li>
+</ul>
+</div>
+</div>
+<div id="v.1.0.0.9005" class="section level2">
+<h2>v.1.0.0.9005</h2>
+<div id="section-3" class="section level4">
 <h4>2020/12/28</h4>
 <ul>
 <li>implemented new artefacts system, any trace of “valid” and “time” has been purged</li>
@@ -427,9 +454,9 @@ summary {
 </ul>
 </div>
 </div>
-<div id="v.1.0.0.9004-1" class="section level2">
+<div id="v.1.0.0.9004" class="section level2">
 <h2>v.1.0.0.9004</h2>
-<div id="section-1" class="section level4">
+<div id="section-4" class="section level4">
 <h4>2020/12/18</h4>
 <ul>
 <li>pmBest refactor, more elegant code</li>
@@ -439,7 +466,7 @@ summary {
 </div>
 <div id="v.1.0.0.9003" class="section level2">
 <h2>v.1.0.0.9003</h2>
-<div id="section-2" class="section level4">
+<div id="section-5" class="section level4">
 <h4>2020/09/10</h4>
 <ul>
 <li>Improved documentation</li>
@@ -457,7 +484,7 @@ summary {
 </div>
 <div id="v.1.0.0.9001" class="section level2">
 <h2>v.1.0.0.9001</h2>
-<div id="section-3" class="section level4">
+<div id="section-6" class="section level4">
 <h4>2019/06/13</h4>
 <ul>
 <li>included ‘c’ function for Dyad Objects</li>
@@ -465,7 +492,7 @@ summary {
 <li>various bugfixes</li>
 </ul>
 </div>
-<div id="section-4" class="section level4">
+<div id="section-7" class="section level4">
 <h4>2018/12/18</h4>
 <p>Questa versione è ad uno stato di sviluppo instabile.</p>
 <ul>
@@ -476,7 +503,7 @@ summary {
 <li>aggiunta utility di case conversion totitle()</li>
 </ul>
 </div>
-<div id="section-5" class="section level4">
+<div id="section-8" class="section level4">
 <h4>2018/10/24</h4>
 <p>Questa versione è ad uno stato di sviluppo instabile, ma PMBest (lagSec=7,match_threshold=0.5,algorithm = “dev”) discrimina PS da non PS.</p>
 <ul>
@@ -487,7 +514,7 @@ summary {
 <li>aggiunto argomento pres.sign a rangeRescale. Quando la scala deve preservare i segni.</li>
 </ul>
 </div>
-<div id="section-6" class="section level4">
+<div id="section-9" class="section level4">
 <h4>2018/10/17</h4>
 <p>Questa versione è ad uno stato di sviluppo instabile, ma per avere un punto di backup.</p>
 <p>#####Sync_CCFBest.R * eliminato il warning sui 5 secondi di lag * aggiunto il parametro “outputName” per salvare diversi CCFBest nello stesso DyadSignal * aggiunto kleinbubIndex session index, in alternativa a Marci Concordance * aggiunta ccfBestSlope, come ccfBest, ma fa le correlazioni sullo slope. Non bastava aggiungere un parametro?</p>
@@ -497,13 +524,13 @@ summary {
 <p>#####random.R * diversi export di funzioni * aggiornamenti dal vecchio DyadClass a rIP * nuovo approccio a dyadComb()</p>
 <hr />
 </div>
-<div id="section-7" class="section level4">
+<div id="section-10" class="section level4">
 <h4>2018/07/19</h4>
 <ul>
 <li>bugfixes in catExtract.DyadExperiment</li>
 </ul>
 </div>
-<div id="section-8" class="section level4">
+<div id="section-11" class="section level4">
 <h4>2018/07/15</h4>
 <ul>
 <li>catApply.DyadSession ora permette output multipli</li>
@@ -511,7 +538,7 @@ summary {
 <li>bug fixes on catApply and timeMaster and IO functions</li>
 </ul>
 </div>
-<div id="section-9" class="section level4">
+<div id="section-12" class="section level4">
 <h4>2018/07/15</h4>
 <ul>
 <li>bugfixes a catApply()</li>
@@ -523,7 +550,7 @@ summary {
 <li>Nuova funzione streamExtract()!!!</li>
 </ul>
 </div>
-<div id="section-10" class="section level4">
+<div id="section-13" class="section level4">
 <h4>2018/07/14</h4>
 <ul>
 <li>migliorie a PMBest: aggiunti un threshold minimo per i match, e una durata minima per le finestre di sincronizzazione.</li>
@@ -535,7 +562,7 @@ summary {
 <li>migliorie a ‘classAttr&lt;-’ che ora non sovrascrive ‘tsp’ se presente anche nel oggetto di destinazione</li>
 </ul>
 </div>
-<div id="section-11" class="section level4">
+<div id="section-14" class="section level4">
 <h4>2018/07/11</h4>
 <ul>
 <li>NAartifacts renamed to setArtefacts</li>
@@ -544,7 +571,7 @@ summary {
 <li>fixed aliases in rIP_get.R</li>
 </ul>
 </div>
-<div id="section-12" class="section level4">
+<div id="section-15" class="section level4">
 <h4>2018/07/10</h4>
 <ul>
 <li>flexMA è un metodo S3 generale</li>
@@ -552,7 +579,7 @@ summary {
 <li>PMBest testato. Aggiunto un threshold per accettare i match p-p v-v. Un buon valore sembra 0.7</li>
 </ul>
 </div>
-<div id="section-13" class="section level4">
+<div id="section-16" class="section level4">
 <h4>2018/07/09 18:47</h4>
 <ul>
 <li>PMBest completamente compatibile con la v3</li>
