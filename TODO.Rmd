@@ -9,6 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Development 
 
 ## High alert:
+  * ts continua a dare problemi. Ad es window(x, xstart(x),xend(x)) è un sample più lungo di x. Scrivi la tua classe e abbandona sta merda. ho iniziato a segnare con @TSBUG i punti dove ci sono le bestemmie
   * implementa DyadExperiment.[]
   * in xbest di PMbest ci sono delle (rare) occorrenze in cui lo stesso picco viene usato 2 volte, che è grave.
   * tutte le approssimazioni start()[1] end()[1] sono inaccettabili. controlla se e dove sostituire con xstart, xend
@@ -18,7 +19,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
   
 ## Clean Up
-  * peakFinder micropeaks nos is set to 0.03 which is good for SC but should become a parameter
+  * peakFinder micropeaks now is set to 0.03 which is good for SC but should become a parameter
   * in epochstream() artefact remove è obsoleto perché setArtefacts toglie già i valori dallo stream sync (e lag?)
   * c.DyadExperiment, works fine but final report is messy
   * sampRate() diventa frequency()
@@ -28,7 +29,7 @@ knitr::opts_chunk$set(echo = TRUE)
   * metti attribute "SEssionName" o simile dentro a DyadSignal e DyadStream per tnere traccia
   * in extractEpochs espandi 'epochStreamName' in 3 argomenti seperati sync="PMBest", streamKey="sync", category="PACS/IM" come nel resto del pacchetto
 
-## next steps
+## Performance
   * Parallelize -> http://dept.stat.lsa.umich.edu/~jerrick/courses/stat701/notes/parallel.html
   * usa data.table::fread per importare
   

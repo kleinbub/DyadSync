@@ -400,7 +400,7 @@ ppSync_dev = function(signal,minSizeSec, outputName) {
   ## idee: - pesare per la differenza di durata?
   ##       - pesare per la differenza di ampiezza (normalizzata sulla SD individuale?)
   
-  cat(" - AMICo algorithm v.1.0")
+  cat(" - AMICo algorithm v.1.1")
   #please refer to ppSync dev.R in research folder of DyadClass
   
   # signal = lr$CC_1$SC
@@ -541,8 +541,12 @@ ppSync_dev = function(signal,minSizeSec, outputName) {
   lagvec  = ts(lagvec,  start=start(d), frequency = sampRate)
   # applica gli artefatti
   for(i in seq_len(nrow(signal$artefacts)) ){ 
-    window(syncvec,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
-    window(lagvec,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
+    #@TSBUG
+    #in alcune installazioni di R c'è un bug per cui window(x xstart(x), xend(x)) risulta 1 sample più lungo di x
+    realEnd = c(signal$artefacts[i,"end"]-1, frequency(syncvec))
+    realStart = c(signal$artefacts[i,"start"], 1)
+    window(syncvec,realStart, realEnd ) <- NA
+    window(lagvec,realStart, realEnd ) <- NA
   }
   signal[[outputName]]$xBest = xbest
   signal[[outputName]]$sync = DyadStream(syncvec, "PMBest_Sync", col=rgb(191,50,59,max=255))
@@ -717,7 +721,6 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   }
   if(length(toDelete)>1){
     piksam = piksam[-toDelete]
-    piks = piks[-toDelete]
     pv = pv[-toDelete]}
   
   #se ci sono tante valley, togli intanto tutte le v che hanno v sia a destra che sinistra
@@ -732,7 +735,6 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   }
   if(length(toDelete)>1){
     piksam = piksam[-toDelete]
-    piks = piks[-toDelete]
     pv = pv[-toDelete]}
   
   #ora ci saranno al massimo dei casi p--v--v--p
@@ -748,7 +750,6 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   }
   if(length(toDelete)>1){
   piksam = piksam[-toDelete]
-  piks = piks[-toDelete]
   pv = pv[-toDelete]}
   
   #ricrea pikboo & piks dai sample corretti
