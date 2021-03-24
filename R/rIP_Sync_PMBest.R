@@ -665,16 +665,16 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
 
   if(mode=="peaks") {
     warning("with mode=p the flat correction is not active")
-    pikboo = c(s ==  2, FALSE) #embed perde 1 sample, quindi aggiungi un FALSE alla fine
+    pikboo = c(FALSE,s ==  2, FALSE) #diff perde un sample all'inizio, embed perde 1 sample alla fine, quindi aggiungi un FALSE prima e dopo
     piksam = which(pikboo) #in quali sample c'è un'inversione di segno della derivata?
     pv = rep("p",length(piksam))
   } else if(mode=="valleys") {
     warning("with mode=v the flat correction is not active")
-    pikboo = c(s == -2, FALSE) 
+    pikboo = c(FALSE,s == -2, FALSE) 
     piksam = which(pikboo) 
     pv = rep("v",length(piksam))
   } else if(mode=="both") {
-    pikboo = c(abs(s) ==  2, FALSE)
+    pikboo = c(FALSE,abs(s) ==  2, FALSE)
     piksam = which(pikboo) 
     s = s[s!=0]
     pv = s

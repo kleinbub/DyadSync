@@ -197,7 +197,7 @@ extractEpochs = function(experiment, signal="SC", epochStreamName="IM_PmdevSync"
 
 #' @rdname extractEpochs
 #' @export
-catExtractLong = function(){stop("this function has been renamed to extractEpochs ")}
+catExtractLong = function(x, signal="", epochStream="",by="",FUN=""){stop("this function has been renamed to extractEpochs ")}
 
 #' @export
 extractEpochs.DyadExperiment = function(experiment, signal, epochStreamName, by, FUN, ...){
