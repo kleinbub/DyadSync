@@ -159,20 +159,21 @@ setArtefacts.DyadSignal <- function(x, startEnd) {
   
   # if(!all.equal(names(sel),c('start', 'end')) ) stop("startEnd names must be 'start','end'")
   ref = 0
+  sel[grepl("start|inizio",sel[,4],ignore.case = T),4] = start(x)[1]+start(x)[2]/frequency(x)
   sel[grepl("end|fine",sel[,4],ignore.case = T),4] = end(x)[1]+end(x)[2]/frequency(x)
   
   sel$start = timeMaster(sel$start, out="s")
   sel$end   = timeMaster(sel$end,   out="s")
 
   #check for artefact start lower than signal start
-  if(any(sel$start < xstart(x))){
+  if(any(sel$start < round(xstart(x)))){
     warning("artefacts times beginning before signal's start time were trimmed")
-    sel[sel$start < xstart(x),] = start(x)[1]
+    sel[sel$start < round(xstart(x)),] = round(xstart(x))
   }
   #check for artefact end greater than signal end
-  if(any(sel$end > xend(x))){
+  if(any(sel$end > round(xend(x)))){
     warning("artefacts times ending after signal's end time were trimmed")
-    sel[sel$end > xend(x),] = tsp(x)[2]
+    sel[sel$end > round(xend(x)),] = round(xend(x))
   }
   
 

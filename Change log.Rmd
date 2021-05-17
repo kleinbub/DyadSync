@@ -6,6 +6,11 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+## v.1.0.0.9009
+#### 2021/05/17
+  * scaledCorrelation (off by default)
+  * weird start end bugs again....
+  
 ## v.1.0.0.9008
 #### 2021/03/24
   * bugfixes
