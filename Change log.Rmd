@@ -6,6 +6,12 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+## v.1.0.0.9010
+#### 2021/07/05
+  * minor bug fixes regarding NAs and signals that aren't skin conductance
+
+
 ## v.1.0.0.9009
 #### 2021/05/17
   * scaledCorrelation (off by default)

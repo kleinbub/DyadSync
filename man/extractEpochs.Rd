@@ -17,14 +17,7 @@ extractEpochs(
   ...
 )
 
-catExtractLong(
-  experiment,
-  signal = "SC",
-  epochStreamName = "IM_PmdevSync",
-  by,
-  FUN = mean,
-  ...
-)
+catExtractLong(x, signal = "", epochStream = "", by = "", FUN = "")
 }
 \description{
 extract epochs in a simple list

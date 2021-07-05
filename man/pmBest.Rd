@@ -7,14 +7,17 @@
 pmBest(
   experiment,
   signals = "all",
-  lagSec = 7,
+  lagSec = 20,
   sgol_p = 2,
   sgol_n = 25,
-  weightMalus = 30,
-  match_threshold = 0,
-  minSizeSec = 5,
+  weightMalus = 20,
+  match_threshold = 0.25,
+  minSizeSec = 1,
   algorithm = c("classic", "AMICo", "sccf"),
-  outputName = "PMBest"
+  outputName = "PMBest",
+  scaledCorrelation = F,
+  correctionRangeSeconds = 0.5,
+  minPeakDelta
 )
 }
 \arguments{
@@ -33,6 +36,12 @@ pmBest(
 \item{match_threshold}{a value between 0 and 1, specifying the similarity threshold to assign a peak-peak match.}
 
 \item{minSizeSec}{the smallest allowed window size. very small windows may artificially inflate synchrony.}
+
+\item{scaledCorrelation}{logical. If TRUE, correlations will be scaled using the whole signals range, and be much more robust}
+
+\item{correctionRangeSeconds}{parameter passed to peakFinder, seconds of manual correction for derivative based peak-finding}
+
+\item{minPeakDelta}{parameter passed to peakFinder, minimum valley-peak delta to detect a peak}
 }
 \value{
 

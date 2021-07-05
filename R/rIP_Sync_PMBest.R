@@ -30,14 +30,19 @@
 #' @param weightMalus weightmalus è la percentuale di malus per il lag più estremo. Es, con weightMalus= 20 e r = 1 al massimo lag, la trasformazione diventa r' = 0.8
 #' @param match_threshold a value between 0 and 1, specifying the similarity threshold to assign a peak-peak match.
 #' @param minSizeSec the smallest allowed window size. very small windows may artificially inflate synchrony.
+#' @param algorithm
+#' @param outputName
 #' @param scaledCorrelation logical. If TRUE, correlations will be scaled using the whole signals range, and be much more robust
+#' @param correctionRangeSeconds parameter passed to peakFinder, seconds of manual correction for derivative based peak-finding
+#' @param minPeakDelta parameter passed to peakFinder, minimum valley-peak delta to detect a peak
 #' @return
 #' @export
 #'
 #' @examples
-pmBest = function(experiment, signals="all", lagSec=7,
-                  sgol_p = 2, sgol_n = 25,  weightMalus = 35,
-                  match_threshold = 0.25,minSizeSec=5, algorithm=c("classic","AMICo","sccf"), outputName = "PMBest",scaledCorrelation=F){
+pmBest = function(experiment, signals="all", lagSec=20,
+                  sgol_p = 2, sgol_n = 25,  weightMalus = 20,
+                  match_threshold = 0.25,minSizeSec=1, algorithm=c("classic","AMICo","sccf"), outputName = "PMBest",scaledCorrelation=F, 
+                  correctionRangeSeconds = 0.5, minPeakDelta){
   algorithm=match.arg(algorithm)
   if(!is(experiment,"DyadExperiment")) stop("Only objects of class DyadExperiment can be processed by this function")
   cat(paste0("\r\nHigh Sync at positive lags implies that the ",s2Name(experiment[[1]]),
@@ -50,7 +55,7 @@ pmBest = function(experiment, signals="all", lagSec=7,
       cat(" |",name(signal))
       #the first function calculates best lag
       signal = peakMatch(signal, lagSec=lagSec, sgol_p=sgol_p, sgol_n=sgol_n,
-                         weightMalus=weightMalus, match_threshold=match_threshold, outputName=outputName)
+                         weightMalus=weightMalus, match_threshold=match_threshold, outputName=outputName,correctionRangeSeconds=correctionRangeSeconds, minPeakDelta=minPeakDelta)
       #the second calculates the actual sync values
       if(algorithm == "AMICo")
         signal = ppSync_dev(signal,minSizeSec,outputName=outputName, scaledCorrelation)
@@ -71,10 +76,10 @@ pmBest = function(experiment, signals="all", lagSec=7,
 
 
 ## peak picking best lag
-peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,match_threshold=0.0, outputName) {
+peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,match_threshold=0.0, outputName, correctionRangeSeconds, minPeakDelta) {
   if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
   
-  # signal = lr10$CC_1$SC
+  #signal = lr$all_vid1_01$contempt
   # signal = lr10$all_CC_1$SC
   # signal = lr10f$all_02_1$SC
   #pacs best settings
@@ -88,8 +93,8 @@ peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,
   
   
   ### peaks-valleys detection ########
-  s1b = peakFinder(d,  sgol_p, sgol_n, mode = "b", 0.5) 
-  s2b = peakFinder(d2, sgol_p, sgol_n, mode = "b", 0.5)
+  s1b = peakFinder(d,  sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakDelta) 
+  s2b = peakFinder(d2, sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakDelta)
 
   allSec1 = time(d)[s1b$samples]
   allSec2 = time(d2)[s2b$samples]
@@ -408,6 +413,8 @@ ppSync_dev = function(signal,minSizeSec, outputName, scaledCorrelation) {
   # signal = lr$all_CC_1$SC
   # minSizeSec=5 <-- can be smaller as the check is on the shorter segment?
   if(is.null(signal[[outputName]])||is.null(signal[[outputName]]$xBest))stop("Please run peakMatch before.")
+  if(nrow(signal[[outputName]]$xBest)<2) stop("peakMatch found only one peak in the signal")
+  if(nrow(signal[[outputName]]$xBest)<10) warning("peakMatch found less than 10 peaks")
   d = signal$s1
   d2  = signal$s2
   lagSec = attr(signal[[outputName]], "lagSec")
@@ -703,19 +710,21 @@ ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
 #' @param mode should the function return only 'peaks', 'valleys', or 'both'?
 #' @param correctionRangeSeconds the range in which the real maximum/minimum value should be searched, in seconds.
 #' around the derivative shift. Should be less then the periodicity of the signal.  0.5 is good for skin conductance.
+#' @param minPeakDelta the minimum delta from valley to peak for detection. Skin conductance traditionally uses 0.05uS, or 0.03uS
 #'
 #' @return a list of: "bool" a logical vector of the same length of x with TRUE value corresponding to a match;
 #' "samples" the index of matches in x;
 #' "seconds" the position in seconds of matches (if x is a ts object);
 #' and "type" a charachter vector defining for each "samples" value if its a 'p' peak or a 'v' valley.
 #' @export
-peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both"), correctionRangeSeconds = 0.5){
+peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both"), correctionRangeSeconds, minPeakDelta){
   sampRate = frequency(x)
   smooth_x = signal::sgolayfilt(x,  p =sgol_p, n = sgol_n, m=0)
   fdderiv1  = diff(smooth_x)
   mode = match.arg(mode)
   pik = sign(embed(fdderiv1,2)) #embed appaia al segnale il segnale laggato di 1 samp
   s = pik[,2] - pik[,1] #that's where the magic happens
+  s[is.na(s)] = 0
 
   if(mode=="peaks") {
     warning("with mode=p the flat correction is not active")
@@ -743,6 +752,7 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
     search_interval = x[
       max(1,piksam[v]-correctionRangeSeconds*sampRate):min(length(x),piksam[v]+correctionRangeSeconds*sampRate)
       ]
+
     #trova il più piccolo e aggiorna pikmsam
     if(mode=="peaks")
       piksam[v] = max(1, piksam[v]+  (which.max(search_interval) - round(length(search_interval)/2)))
@@ -761,8 +771,9 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   for(v in 2:(length(piksam)-1)){
       if(pv[v]=="p"){
         search_interval = x[piksam[v-1]:piksam[v+1]]
+        search_interval = search_interval[!is.na(search_interval)]
         # plot(c(10,16,search_interval),t="l",main=paste(v," - sd:",round(sd(search_interval,na.rm=T),2)))
-        if((max(search_interval)-search_interval[1])<0.03 ){#delta dall'onset al picco almeno 0.05uS
+        if(length(search_interval) == 0 || (max(search_interval)-search_interval[1])<minPeakDelta){#delta dall'onset al picco almeno 0.05uS o tutti NA
         # if(sd(search_interval)<IQR(x)/20){
           #se alcuni picchi vanno rimossi perché sono essenzialmente flat
           #non ci possono essere 2 valley di seguito, quindi elimina quella col valore più alto
