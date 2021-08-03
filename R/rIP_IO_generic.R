@@ -63,9 +63,9 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F, ...){
       if(is.na(x)){
         warning("No numeric information was found for session identifier '", ax, "' in signal ",shortNames[i],". Please check filenames and idOrder and idSep arguments:\r\n", call.=F)
         ax
-      } else x
+      } else lead0(x,4)
     })
-  } else sess = as.list(rep("01",nFiles))
+  } else sess = as.list(rep("0001",nFiles))
   
   
   #if sessions are specified, check their order
