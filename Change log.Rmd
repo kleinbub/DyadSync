@@ -6,6 +6,9 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+## v.1.0.0.9011
+#### 2021/08/03
+  * utility function nwin() added
 
 ## v.1.0.0.9010
 #### 2021/07/05

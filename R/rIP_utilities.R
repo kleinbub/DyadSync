@@ -383,3 +383,56 @@ merge.list = function(x,y) {
   over = names(x)[which(names(x) %in% names(y))]
   for(n in over){if(x[[n]]!=y[[n]]) stop("Can't merge list with different values for the same tag:\r\n",n,": ",x[[n]]," != ",y[[n]])}
 }
+
+#' Calculate number of windows in a time-series
+#'
+#' @param lenSec a duration to be split in windows, in seconds
+#' @param winSec the width of each window, in seconds
+#' @param incSec the amount of increment between each window (incSec == winSec gives non-overlapping windows)
+#' @param sampRate the number of samples per second (i.e. frequency)
+#' @param verbose should all the windows be printed?
+#' @param return either "number", which returns the number of windows, or "all" which returns a data.frame with the start and end of each window.
+#'
+#' @return
+#' @export
+#'
+#' @examples
+nwin = function(lenSec, winSec, incSec, sampRate=1, verbose = F, return=c("number", "all")) {
+  
+  # sampRate = 10
+  inc=incSec *sampRate;
+  win=winSec*sampRate;
+  len=lenSec*sampRate
+  #la vera santa formula:
+  n_win = ceiling((len-win+1)/inc)
+  
+  return=match.arg(return)
+    
+  if(verbose){
+    digits = nchar(trunc(abs(len)))
+    
+    cat("\r\n Number of windows:",n_win)
+    cat("\r\n Number of samples used:",(n_win-1)*inc+win)
+    cat("\r\n Number of seconds used:",((n_win-1)*inc+win)/sampRate)
+    cat0("\r\n Proportion of len used: ",((n_win-1)*inc+win)/len*100,"%\r\n")
+    
+    all_wins = 1:n_win
+    start = (all_wins-1)*inc +1 
+    end = start + win -1
+    
+    
+    actual = 0;iterations = 0;
+    while ( actual+win<=len) {
+      iterations = iterations+1
+      cat0('\r\nW',lead0(iterations, nchar(n_win))," | Samples: ", lead0(actual+1,digits),' - ',lead0(actual+win,digits),
+           " | Seconds: ", lead0(actual+1/sampRate,digits),' - ',lead0((actual+win)/sampRate,digits))
+      actual = actual+inc;
+      #cat(actual+win,"\n\r")
+    }
+  }
+  else print(n_win)
+  
+  if(return=="number")
+    invisible(n_win)
+  else if (return =="all") data.frame(window=all_wins, start=start,end=end)
+}
