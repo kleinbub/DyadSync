@@ -135,7 +135,7 @@ dyadCCF = function(signal,lagSec,winSec,incSec, simplify, outputName = "CCFBest"
   # signal$ccf$ccfmat[is.na(signal$ccf$ccfmat)] = 0
   xStart = c(start(signal)[1] +trunc(winSec/2),1)
   cat("\r\n freq = ",1/incSec)
-  signal[[outputName]]$zero =DyadStream(signal[[outputName]]$table[["lag0"]],"lagZeroSync","#A11F12",start=xStart,frequency=1/incSec )
+  signal[[outputName]]$zero =DyadStream(signal[[outputName]]$table[["lag0"]],"lagZeroSync",start=xStart,frequency=1/incSec )
   #dimostrazione che la CCF inizia a metà della finestra!
   # plot(rangeRescale(window(signal$s1,start=277,end=277+15),-1,1),type="l");abline(v=277+7.5,lty=3)
   # points(signal[[outputName]]$zero)
@@ -228,8 +228,8 @@ vectorBestLag = function(signal, accelSec, weight_type=c("off","center","free"),
   blag = (blag-lag0)/colFrequency #trasforms blag from columns to seconds
   signal[[outputName]]$table = cbind(signal[[outputName]]$table, "bestCCF" = bCC, "bestLag" = blag)
   xStart = c(start(signal)[1] +attr(signal[[outputName]],"winSec")/2,1)
-  signal[[outputName]]$sync = DyadStream(bCC,  name="bestCCF", "#FF0041", start=xStart, frequency= 1/incSec )
-  signal[[outputName]]$lag  = DyadStream(blag, name="bestLAG", "#BFBF00", start=xStart, frequency= 1/incSec )
+  signal[[outputName]]$sync = DyadStream(bCC,  name="bestCCF",  start=xStart, frequency= 1/incSec )
+  signal[[outputName]]$lag  = DyadStream(blag, name="bestLAG", start=xStart, frequency= 1/incSec )
 
   return(signal)
 }

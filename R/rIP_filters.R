@@ -159,20 +159,21 @@ setArtefacts.DyadSignal <- function(x, startEnd) {
   
   # if(!all.equal(names(sel),c('start', 'end')) ) stop("startEnd names must be 'start','end'")
   ref = 0
+  sel[grepl("start|inizio",sel[,4],ignore.case = T),4] = start(x)[1]+start(x)[2]/frequency(x)
   sel[grepl("end|fine",sel[,4],ignore.case = T),4] = end(x)[1]+end(x)[2]/frequency(x)
   
   sel$start = timeMaster(sel$start, out="s")
   sel$end   = timeMaster(sel$end,   out="s")
 
   #check for artefact start lower than signal start
-  if(any(sel$start < xstart(x))){
+  if(any(sel$start < round(xstart(x)))){
     warning("artefacts times beginning before signal's start time were trimmed")
-    sel[sel$start < xstart(x),] = start(x)[1]
+    sel[sel$start < round(xstart(x)),] = round(xstart(x))
   }
   #check for artefact end greater than signal end
-  if(any(sel$end > xend(x))){
+  if(any(sel$end > round(xend(x)))){
     warning("artefacts times ending after signal's end time were trimmed")
-    sel[sel$end > xend(x),] = tsp(x)[2]
+    sel[sel$end > round(xend(x)),] = round(xend(x))
   }
   
 
@@ -278,7 +279,7 @@ movAv <- function(x, winSec, incSec = NA, remove=FALSE, sampRate=frequency(x) ) 
   # because the last window will be (len-win+1):len
   # also, the resulting series has naturally the same sampling rate of the 
   # original series.
-
+  
   # instead if inc is different than 1 the resulting series sampling rate
   # is equal to inc. The length of the resulting series is roughly len/inc
   # and needs to be interpolated back to the original sampling rate 
@@ -286,10 +287,10 @@ movAv <- function(x, winSec, incSec = NA, remove=FALSE, sampRate=frequency(x) ) 
   if(inc>1){
     max_x = (n_win-1)*inc +1                    #starting value of the last window
     res = approx(x    = seq(1, max_x, by=inc), #starting sample of each window
-                  y    = res,                    #average value of each window
-                  xout = seq(1,max_x)            #x values of new series
+                 y    = res,                    #average value of each window
+                 xout = seq(1,max_x)            #x values of new series
     )$y
-
+    
   }
   
   # Independently from inc, he resulting series will be (win-1) samples shorter than the original,
@@ -299,11 +300,16 @@ movAv <- function(x, winSec, incSec = NA, remove=FALSE, sampRate=frequency(x) ) 
   # ending parts of the original signal to the first/last calculated moving average point
   
   #pad initial half window
-  res = c(seq(mean(x[1:win2],na.rm=T),res[1],length.out = win2 ), res)
+  startVal = mean(x[1:win2],na.rm=T)
+  if(is.na(startVal)) startVal = res[1]
+  res = c(seq(startVal,res[1],length.out = win2 ), res)
+  
   #how many samples could not be estimated?
   miss = len - length(res) 
   #fill them with good values
-  res = c(res,  seq(res[length(res)], mean(x[(len-win2):len],na.rm=T), length.out = miss))
+  endVal = mean(x[(len-win2):len],na.rm=T)
+  if(is.na(endVal)) endVal = res[length(res)]
+  res = c(res,  seq(res[length(res)], endVal, length.out = miss))
   
   #all this done, x and res should ALWAYS have the same length
   if(length(res) != length(x)) warning("the original series and the moving average are of different lenghts, which is a bug")

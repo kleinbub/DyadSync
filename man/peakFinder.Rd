@@ -9,7 +9,8 @@ peakFinder(
   sgol_p = 2,
   sgol_n = 25,
   mode = c("peaks", "valleys", "both"),
-  correctionRangeSeconds = 0.5
+  correctionRangeSeconds,
+  minPeakDelta
 )
 }
 \arguments{
@@ -23,6 +24,8 @@ peakFinder(
 
 \item{correctionRangeSeconds}{the range in which the real maximum/minimum value should be searched, in seconds.
 around the derivative shift. Should be less then the periodicity of the signal.  0.5 is good for skin conductance.}
+
+\item{minPeakDelta}{the minimum delta from valley to peak for detection. Skin conductance traditionally uses 0.05uS, or 0.03uS}
 }
 \value{
 a list of: "bool" a logical vector of the same length of x with TRUE value corresponding to a match;
