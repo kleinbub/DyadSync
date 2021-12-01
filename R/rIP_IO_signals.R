@@ -268,7 +268,7 @@ readDyadSignals = function(
     #"max length" = timeMaster(end, out="min"),
     # "Filename" = unlist(shortNames),
     
-    row.names = shortNames
+    row.names = if(!pairBind) shortNames else shortNames[c(T,F)]
   )
   # if(!pairBind) outtable$role = NULL
   # if(length(end)==1 && !end) outtable$max.length = NULL
