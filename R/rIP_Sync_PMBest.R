@@ -705,7 +705,7 @@ ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
 #' Title
 #'
 #' @param x a ts object or a numeric vector.
-#' @param sgol_p smoothing filter order.
+#' @param sgol_p smoothing filter order. If NA, the filtering is disabled.
 #' @param sgol_n smoothing filter length (must be odd).
 #' @param mode should the function return only 'peaks', 'valleys', or 'both'?
 #' @param correctionRangeSeconds the range in which the real maximum/minimum value should be searched, in seconds.
@@ -719,74 +719,70 @@ ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
 #' @export
 peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both"), correctionRangeSeconds, minPeakDelta){
   sampRate = frequency(x)
+  if(is.na(sgol_p)||is.na(sgol_n)){
+    smooth_x = x
+  } else {
   smooth_x = signal::sgolayfilt(x,  p =sgol_p, n = sgol_n, m=0)
+  }
   fdderiv1  = diff(smooth_x)
+  
   mode = match.arg(mode)
   pik = sign(embed(fdderiv1,2)) #embed appaia al segnale il segnale laggato di 1 samp
   s = pik[,2] - pik[,1] #that's where the magic happens
   s[is.na(s)] = 0
-
-  if(mode=="peaks") {
-    warning("with mode=p the flat correction is not active")
-    pikboo = c(FALSE,s ==  2, FALSE) #diff perde un sample all'inizio, embed perde 1 sample alla fine, quindi aggiungi un FALSE prima e dopo
-    piksam = which(pikboo) #in quali sample c'è un'inversione di segno della derivata?
-    pv = rep("p",length(piksam))
-  } else if(mode=="valleys") {
-    warning("with mode=v the flat correction is not active")
-    pikboo = c(FALSE,s == -2, FALSE) 
-    piksam = which(pikboo) 
-    pv = rep("v",length(piksam))
-  } else if(mode=="both") {
-    pikboo = c(FALSE,abs(s) ==  2, FALSE)
-    piksam = which(pikboo) 
-    s = s[s!=0]
-    pv = s
-    pv[s>0] = "p"
-    pv[s<0] = "v"
-  }
   
-  #correzione manuale: cerca il valore più alto nei dintorni del cambio di derivata
+  #always both
+  pikboo = c(FALSE,abs(s) ==  2, FALSE)
+  piksam = which(pikboo) 
+  s = s[s!=0]
+  pv = s
+  pv[s>0] = "p"
+  pv[s<0] = "v"
+  #correzione manuale: cerca il valore pi� alto nei dintorni del cambio di derivata
   
   for(v in seq_along(piksam)){
     #individua il range con 0.5s prima e dopo la valle della derivata (esclusi gli estremi inzio e fine ts)
     search_interval = x[
       max(1,piksam[v]-correctionRangeSeconds*sampRate):min(length(x),piksam[v]+correctionRangeSeconds*sampRate)
-      ]
-
-    #trova il più piccolo e aggiorna pikmsam
-    if(mode=="peaks")
-      piksam[v] = max(1, piksam[v]+  (which.max(search_interval) - round(length(search_interval)/2)))
-    else if (mode=="valleys")
-      piksam[v] = max(1, piksam[v]+  (which.min(search_interval) - round(length(search_interval)/2)))
-    else
-      piksam[v] = max(1, piksam[v]+  (which.minmax(search_interval,pv[v]) - round(length(search_interval)/2)))
+    ]
+    
+    #trova il pi� piccolo e aggiorna pikmsam
+    # if(mode=="peaks")
+    #   piksam[v] = max(1, piksam[v]+  (which.max(search_interval) - round(length(search_interval)/2)))
+    # else if (mode=="valleys")
+    #   piksam[v] = max(1, piksam[v]+  (which.min(search_interval) - round(length(search_interval)/2)))
+    # else
+    
+    #always both
+    piksam[v] = max(1, piksam[v]+  (which.minmax(search_interval,pv[v]) - round(length(search_interval)/2)))
     
     piksam[v] = min(piksam[v], length(x))
   }
-
-  #trova picchi con sd più bassa di tot, sono solo rumore in un segnale essenzialmente piatto
-  #idee: fisso a IQR(x)/20 ma magari si può trovare un valore più sensato
+  
+  #trova picchi con sd pi� bassa di tot, sono solo rumore in un segnale essenzialmente piatto
+  #idee: fisso a IQR(x)/20 ma magari si pu� trovare un valore pi� sensato
   #     -fisso a 0.05uS da onset a picco
   toDelete=c()
   for(v in 2:(length(piksam)-1)){
-      if(pv[v]=="p"){
-        search_interval = x[piksam[v-1]:piksam[v+1]]
-        search_interval = search_interval[!is.na(search_interval)]
-        # plot(c(10,16,search_interval),t="l",main=paste(v," - sd:",round(sd(search_interval,na.rm=T),2)))
-        if(length(search_interval) == 0 || (max(search_interval)-search_interval[1])<minPeakDelta){#delta dall'onset al picco almeno 0.05uS o tutti NA
+    if(pv[v]=="p"){
+      search_interval = x[piksam[v-1]:piksam[v+1]]
+      search_interval = search_interval[!is.na(search_interval)]
+      # plot(c(10,16,search_interval),t="l",main=paste(v," - sd:",round(sd(search_interval,na.rm=T),2)))
+      if(length(search_interval) == 0 || (max(search_interval)-search_interval[1])<minPeakDelta){#delta dall'onset al picco almeno 0.05uS o tutti NA
         # if(sd(search_interval)<IQR(x)/20){
-          #se alcuni picchi vanno rimossi perché sono essenzialmente flat
-          #non ci possono essere 2 valley di seguito, quindi elimina quella col valore più alto
-          
-          fakeValley = c(v-1,v+1)[which.max(c(x[piksam[v-1]] ,x[piksam[v+1]]))]
-          #elimina sia il picco 'v' che la fake valley
-          toDelete = c(toDelete, v,fakeValley)
-        }
+        #se alcuni picchi vanno rimossi perch� sono essenzialmente flat
+        #non ci possono essere 2 valley di seguito, quindi elimina quella col valore pi� alto
+        
+        fakeValley = c(v-1,v+1)[which.max(c(x[piksam[v-1]] ,x[piksam[v+1]]))]
+        #elimina sia il picco 'v' che la fake valley
+        toDelete = c(toDelete, v,fakeValley)
       }
+    }
   }
   if(length(toDelete)>1){
     piksam = piksam[-toDelete]
     pv = pv[-toDelete]}
+  
   
   #se ci sono tante valley, togli intanto tutte le v che hanno v sia a destra che sinistra
   toDelete=c()
@@ -814,8 +810,20 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
     }
   }
   if(length(toDelete)>1){
-  piksam = piksam[-toDelete]
-  pv = pv[-toDelete]}
+    piksam = piksam[-toDelete]
+    pv = pv[-toDelete]}
+  
+  
+  #tieni solo picchi e valli, se vuoi!
+  if(mode=="peaks") {
+    piksam = piksam[which(pv=="p")]
+    pv = pv[which(pv=="p")]
+  } else if(mode == "valleys"){
+    piksam = piksam[which(pv=="v")]
+    pv = pv[which(pv=="v")]
+    
+    
+  }
   
   #ricrea pikboo & piks dai sample corretti
   pikboo = rep(F,length(pikboo))
@@ -825,7 +833,8 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   list("bool" = pikboo,
        "samples" = piksam,
        "seconds" = piks,
-       "type" = pv)
+       "type" = pv,
+       "y" = x[piksam])
 }
 which.minmax = function(x, pv){if(pv=="p") which.max(x) else if(pv=="v") which.min(x)}
 
