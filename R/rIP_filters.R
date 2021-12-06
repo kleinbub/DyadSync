@@ -213,24 +213,7 @@ resample = function (x, newSampRate, ...) {
 }
   
 
-#Interpolate windowed data to original samplerate. 
-#useful to overlay computed indexes on original timeseries
-winInter = function(windowsList, winSec, incSec, sampRate){
-  if(class(windowsList)!="list") {windowsList = list(windowsList)}
-  #cat("Interpolating",incSec*sampRate,"sample between each HRV datapoint (linear) \r\n")
-  inc=incSec*sampRate
-  win= winSec*sampRate
-  nList=length(windowsList)
-  Map(function(daba,i){
-    #prog(i,nList)
-    data.frame(apply(daba,2,function (series){
-      approx(x    = seq(1,(length(series)*inc), by=inc)+ceiling(win/2)-1, #windowed datapoints must be at the center of the window
-             y    = series, #the exact calculated values
-             xout = seq(1,(length(series)-1)*inc + win,by=1) #all samples covered by the windows
-      )$y
-    }))
-  },windowsList,seq_along(windowsList))
-}
+
 
 
 
