@@ -362,14 +362,15 @@ znorm = function(a){
 #'
 #' @param x a DyadStream or a ts object
 #' @param cut the cutoff frequency in herz
+#' @param attenDb attenuation in decibels
 #'
 #' @return a DyadStream or a ts object
 #' @export
 #'
 #' @examples
-lowpass = function(x, cut){
+lowpass = function(x, cut, attenDb=50){
   Df = ceiling(frequency(x)/10) #transition band, in samples per second, /10: so 10Hz
-  attenDb = 50 #attenuation in decibels
+  # attenDb = 50 #attenuation in decibels
   N = ceiling(frequency(x)/Df * attenDb/22) #"fred harris rule of thumb" https://dsp.stackexchange.com/questions/37646/filter-order-rule-of-thumb
   
   wc = cut/(frequency(x)/2) #normalizza per nyquist freq
