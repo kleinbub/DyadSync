@@ -9,6 +9,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Development 
 
 ## High alert:
+  *  I have introduced the concept of "flex" in the windowing procedures. "flex" means that instead of
+       removing the first and last half windows, initial and ending parts are processed with windows of 
+       decreasing size
+    *  this has broken at least nwin, winInter, and the new functions approxbywin and byWin
+  * read dyad categories non usa stesso nome diadi (uid) di dati fisio
   * setArtefacts richiede che dyad sia char con leading zero. tipo "01" funziona invece 1L no.
   * ts continua a dare problemi. Ad es window(x, xstart(x),xend(x)) è un sample più lungo di x. Scrivi la tua classe e abbandona sta merda. ho iniziato a segnare con @TSBUG i punti dove ci sono le bestemmie
   * implementa DyadExperiment.[]

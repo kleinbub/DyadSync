@@ -6,6 +6,19 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+## v.1.0.0.9020
+#### 2021/12/01
+  * pairBind had possible exceptions. it is still not 100% tested though.
+  * peakFinder now always calculates peaks and valleys, performs all cleanings, and then removes either one or the other. This fixes a wrong implementation of minPeakDelta when mode="p" or "v"
+  * new function "lowpass" using actual engineering rules to set filter
+  * c.DyadExperiment has been relaxed to allow different s1 and s2 names
+  * WARNING: rIP_utilities is now a hot flaming mess!!
+    *  I have introduced the concept of "flex" in the windowing procedures. "flex" means that instead of
+       removing the first and last half windows, initial and ending parts are processed with windows of 
+       decreasing size
+    *  this has broken at least nwin, winInter, and the new functions approxbywin and byWin
+
+  
 ## v.1.0.0.9011
 #### 2021/08/03
   * utility function nwin() added
