@@ -174,7 +174,7 @@ c.DyadExperiment = function (...){
   
   #######################
    # l = list(mea,sc)
-  if(length(l)==1) return(l[[1]])
+  if(length(l)==1) return(l)#return(l[[1]])
   
   
   #c deve unire tra di loro i segnali che hanno lo stesso sessionId, Group, dyadID
@@ -182,7 +182,7 @@ c.DyadExperiment = function (...){
   #se per lo stesso ID ci sono due volte lo stesso segnale, stop.
   
   #1 check if any DyadSession must be merged
-  comp=lapply(l,sapply,function(session){paste(groupId(session),dyadId(session),sessionId(session),sep="_")})
+  comp = lapply(l,sapply,function(session){paste(groupId(session),dyadId(session),sessionId(session),sep="_")})
   comp = lapply(comp,tolower)
   comp2 = comp
   
@@ -200,15 +200,15 @@ c.DyadExperiment = function (...){
   theorUnique = length(unique(unlist(comp)))
   #######################
 
-  for(x in 1:(length(l))){ #per ciascun esperimento (dal più lungo) 
+  for(x in 1){ #per ciascun esperimento (dal più lungo) 
     #aggiungi all'esperimento attuale (se non è l'ultimo) le sessioni uguali degli esperimenti successivi
     if(x<length(l)){
       for(y in (x+1):length(l)){ #per tutti gli esperimenti successivi
         #to compare
         a = l[[x]]
         b = l[[y]]
-        warnS1 = F
-        warnS2 = F
+        # warnS1 = F
+        # warnS2 = F
         toRemove = c()
         for(s in 1:length(a)){#per ciascuna sessione dell'esperimento x-esimo
           # print(s)
@@ -217,8 +217,10 @@ c.DyadExperiment = function (...){
           if(length(toJoin) ==1){ #if there was a match
             # print(paste("match found in session",s,":", names(comp[[y]][toJoin])))
             if(any(names(a[[s]]) %in% names(b[[toJoin]]) )) stop ("experiments ",nOrd[[x]]," and ",nOrd[[y]], "had the same signal")
-            if(!tolower(s1Name(a[[s]])) %in% tolower(s1Name(b[[toJoin]]))) warnF1 = T 
-            if(!tolower(s2Name(a[[s]])) %in% tolower(s2Name(b[[toJoin]]))) warnF2 = T
+            if(!any(is.na( c(s1Name(a[[s]]), s2Name(a[[s]]),s1Name(b[[toJoin]]),s2Name(b[[toJoin]])))) ){
+              # if(!tolower(s1Name(a[[s]])) %in% tolower(s1Name(b[[toJoin]]))) warnS1 = T 
+              # if(!tolower(s2Name(a[[s]])) %in% tolower(s2Name(b[[toJoin]]))) warnS2 = T
+              }
             joined = joined +1
             l[[x]][[s]] = c(a[[s]],b[[toJoin]]) #aggiungi all'exp originale
             toRemove = c(toRemove,toJoin)
@@ -226,8 +228,8 @@ c.DyadExperiment = function (...){
         }
         l[[y]][toRemove] = NULL
         # str(l[[y]],max=1)
-        if(warnS1) warning("experiments ",nOrd[[x]]," and ",nOrd[[y]], "had different s1Names")
-        if(warnS2) warning("experiments ",nOrd[[x]]," and ",nOrd[[y]], "had different s2Names")
+        # if(warnS1) warning("experiments ",nOrd[[x]]," and ",nOrd[[y]], "had different s1Names")
+        # if(warnS2) warning("experiments ",nOrd[[x]]," and ",nOrd[[y]], "had different s2Names")
       }
     }
     newEX = c(newEX,l[[x]]) #aggiungi all'esperimento finale le sessioni aggiornate rimaste nell'esperimento attuale
@@ -243,7 +245,7 @@ c.DyadExperiment = function (...){
   colnames(res) = c(paste("exp", seq(1,length(l))), "res")
   row.names(res) = NULL
   print(res)
-  cat ("\r\nMerge successful.",joined,"session were joined. The final DyadExperiment consists of", length(newEX),"unique sessions.")
+  cat ("\r\nMerge successful.",joined,"sessions were added to the longest experiment. The final DyadExperiment consists of", length(newEX),"unique sessions.")
   
   DyadExperiment(sapply(l,name),newEX)
 }
@@ -290,15 +292,15 @@ c.DyadSession = function(...){
   #check on same signal names (bad)
   if(length(unique(sapply(l,names)))<length(sapply(l,names))) stop("Can't combine sessions containing the same signal. Use selectSignals() to extract only different signals before merging", call.=F)
   #check on different s1 s2 names (bad)
-  if(any(na.omit(sapply(l,s1Name)) %in% na.omit(sapply(l,s2Name)))) stop("Can't combine sessions mixing s1 and s2 names", call.=F)
+  if(any(na.omit(sapply(l,s1Name)) %in% na.omit(sapply(l,s2Name)))) warning("Sessions contain different s1 and s2 names", call.=F)
   
   structure(NextMethod("c"),
             "name" = name(x),
             "sessionId" = sessionId(x),
             "dyadId" = dyadId(x),
             "groupId" = groupId(x),
-            "s1Name" = na.omit(sapply(l,s1Name))[1], #even if one of the signals ha NA sNames
-            "s2Name" = na.omit(sapply(l,s2Name))[1], #the first full value gets selected
+            "s1Name" = na.omit(sapply(l,s1Name)), #even if one of the signals ha NA sNames
+            "s2Name" = na.omit(sapply(l,s2Name)), #all values are selected
             "fileName" = fileNames,
             "class" ="DyadSession")
 }
