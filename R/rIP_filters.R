@@ -373,5 +373,38 @@ znorm = function(a){
 #   ifelse(is.DyadStream(x), cloneDyadStream(a,x) , a )
 # }
 
-
+## lowpass
+#' lowPass
+#'
+#' @param x a DyadStream or a ts object
+#' @param cut the cutoff frequency in herz
+#'
+#' @return a DyadStream or a ts object
+#' @export
+#'
+#' @examples
+lowpass = function(x, cut){
+  Df = ceiling(frequency(x)/10) #transition band, in samples per second, /10: so 10Hz
+  attenDb = 50 #attenuation in decibels
+  N = ceiling(frequency(x)/Df * attenDb/22) #"fred harris rule of thumb" https://dsp.stackexchange.com/questions/37646/filter-order-rule-of-thumb
+  
+  wc = cut/(frequency(x)/2) #normalizza per nyquist freq
+  bf = signal::fir1(N,wc,"low")
+  
+  xf = signal::filtfilt(filt = bf,x,)
+  #head and tail are bad, remove 3 seconds head and tail
+  xf[c(1:(3*frequency(x)), (length(xf)-(3*frequency(x))):length(xf) )] = NA
+  
+  #fir1 also changes the average value, recalibrate
+  xf = xf-(mean(xf,na.rm=T) - mean(x,na.rm=T))
+  
+  xf = DyadStream(xf, name(x), frequency=frequency(x),start = start(x))
+  
+  
+  
+  if(is.DyadStream(x))
+    cloneAttr(x,ts(xf,frequency=frequency(x),start=start(x),end=end(x)))
+  else 
+    ts(xf,frequency=frequency(x),start=start(x))
+}
 
