@@ -76,7 +76,25 @@ name <- function(x) {
   attr(x, "name")    <- name
   x
 }
-
+#' 
+#' 
+#' 
+#' #' @export
+#' uniqueId.DyadExperiment = function(x){
+#'   `Group Ids` = sapply(x, attr, "groupId")
+#'   table(`Group Ids`)
+#' }
+#' 
+#' #' @export
+#' uniqueId.DyadSession = function(x){
+#'   attr(x,"groupId")
+#' }
+#' 
+#' 
+#' 
+#' 
+#' 
+#' 
 
 #' @export
 sampRate <-function(x) {
