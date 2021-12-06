@@ -2,19 +2,20 @@
 % Please edit documentation in R/rIP_utilities.R
 \name{nwin}
 \alias{nwin}
-\title{Calculate number of windows in a time-series}
+\title{Calculate number of windows in a time-series with a given duration}
 \usage{
 nwin(
-  lenSec,
+  x,
   winSec,
   incSec,
-  sampRate = 1,
-  verbose = F,
-  return = c("number", "all")
+  sampRate = frequency(x),
+  return = c("number", "all"),
+  flex = FALSE,
+  verbose = FALSE
 )
 }
 \arguments{
-\item{lenSec}{a duration to be split in windows, in seconds}
+\item{x}{either the duration in seconds of a time-series, or a ts object}
 
 \item{winSec}{the width of each window, in seconds}
 
@@ -22,13 +23,15 @@ nwin(
 
 \item{sampRate}{the number of samples per second (i.e. frequency)}
 
-\item{verbose}{should all the windows be printed?}
-
 \item{return}{either "number", which returns the number of windows, or "all" which returns a data.frame with the start and end of each window.}
+
+\item{flex}{if true the first and last windows are stretched so to have exactly length(x)/inc resulting windows}
+
+\item{verbose}{should all the windows be printed?}
 }
 \value{
 
 }
 \description{
-Calculate number of windows in a time-series
+Calculate number of windows in a time-series with a given duration
 }
