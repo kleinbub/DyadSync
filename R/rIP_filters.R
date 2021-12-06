@@ -251,6 +251,7 @@ movAv <- function(x, winSec, incSec = NA, remove=FALSE, sampRate=frequency(x) ) 
   inc = if(is.na(incSec)) 1 else incSec*sampRate
   len = length(x)
   n_win = ceiling((len-win+1)/inc)
+  if(n_win<1) stop("During movAv routing the chosen window and increment led to zero windows.")
   winssamp = seq(1,by = inc, length.out = n_win)
   res = numeric(n_win)
   a = seq(1,by = inc, length.out = n_win)
