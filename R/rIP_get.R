@@ -20,15 +20,12 @@ sessionId = function(dyadSession){
 }
 #' @rdname sessionId
 #' @export
-session = sessionId
 
-#' @aliases dyad dyadId
 #' @export
 dyadId = function(dyadSession){
   attr(dyadSession,"dyadId")
 } 
 #' @export
-dyad = dyadId
 
 
 ## ## GROUP ID

@@ -50,7 +50,7 @@ pmBest = function(experiment, signals="all", lagSec=20,
   nSessions = length(experiment)
   experiment2 = Map(function(session,iSession){
     if(signals=="all") signals = names(session)
-    cat("\r\n",paste(dyadId(session),session(session)))
+    cat("\r\n",paste(dyadId(session),sessionId(session)))
     session[signals] = Map(function(signal){
       cat(" |",name(signal))
       #the first function calculates best lag
