@@ -268,7 +268,7 @@ DyadSession = function(groupId,sessionId,dyadId, signalList=NULL, s1Name,s2Name,
   
   if(!is.null(signalList)) names(x) = lapply(x, name)
   attributes(x) = c(attributes(x),list(
-    name = paste(groupId,lead0(sessionId),dyadId,sep="_"),
+    name = paste(groupId,dyadId,lead0(sessionId),sep="_"),
     sessionId = sessionId,
     dyadId = dyadId,
     groupId = groupId,
