@@ -6,6 +6,11 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+## v.1.0.0.9021
+#### 2021/12/17
+  * lowpass() was substituted by FIR()
+
 ## v.1.0.0.9020
 #### 2021/12/01
   * pairBind had possible exceptions. it is still not 100% tested though.

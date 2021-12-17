@@ -357,39 +357,93 @@ znorm = function(a){
 #   ifelse(is.DyadStream(x), cloneDyadStream(a,x) , a )
 # }
 
-## lowpass
-#' lowPass
+
+
+#' FIR filter for physiological signals
+#' This is a wrapper for signal::fir1, calculating decent values of filter order
+#' based on engineering rules of thumb
 #'
-#' @param x a DyadStream or a ts object
-#' @param cut the cutoff frequency in herz
-#' @param attenDb attenuation in decibels
+#' @param x a ts or DyadStream object
+#' @param cut filter cut in Hz
+#' @param type lowpass or highpass
+#' @param NAsub signal::fir1 does not allow to have NAs. So they have to be substituted
+#' @param attenDb attenuation in Db
+#' @param burnSec head and tail of the filtered signals are bad. Burnsec specifies an amount of seconds
+#'                over which the filtered signal is crossfaded with the original one.
+#' @param plot logical. if TRUE plots frequency response, pass and stop bands
+#' @param maxN maximum filter order
 #'
-#' @return a DyadStream or a ts object
+#' @details The filter order is calculated automatically following "fred harris' rule of thumb"
+#' and a maximum transition bandwidth of 1.2 times the cut frequency for lowpass (e.g. a cut at 10Hz will
+#' achieve maximum attenuation at )
 #' @export
-#'
 #' @examples
-lowpass = function(x, cut, attenDb=50){
-  Df = ceiling(frequency(x)/10) #transition band, in samples per second, /10: so 10Hz
-  # attenDb = 50 #attenuation in decibels
-  N = ceiling(frequency(x)/Df * attenDb/22) #"fred harris rule of thumb" https://dsp.stackexchange.com/questions/37646/filter-order-rule-of-thumb
+#' Fs = 100; t = 5; samples = seq(0,t,len=Fs*t)
+#' x = ts(sin(2*pi*3*samples + seq(-0.5,0.5,length.out = Fs*t), frequency = Fs)
+#' x[1:50] = NA
+#' xn = x+runif(1000,-0.5,0.5);
+#' x1 = FIR(xn, "low", cut = 3,attenDb = 50,burnSec = 0, plot=TRUE)
+#' plot(xn,col="grey");lines(x,col=3,lwd=2);lines(x1,col=2,lwd=3)
+
+FIR = function(x, cut, type=c("low","high"), NAsub=NA, attenDb=50, burnSec = 0, maxN = 500, plot=F){
+  # https://dsp.stackexchange.com/questions/37646/filter-order-rule-of-thumb 
+  # https://www.allaboutcircuits.com/technical-articles/design-of-fir-filters-design-octave-matlab/
+  # x = sin(1:1000/20)+seq(-0.5,0.5,length.out = 1000)
+  # Fs = 1000;t = 2
+  # samples = seq(0,t,len=Fs*t)
+  # x = (sin(2*pi*100*samples) + sin(2*pi*120*samples)+ sin(2*pi*180*samples))/3
+  # x2 = (sin(2*pi*180*samples))
+  # x = ts(x, frequency = Fs);x2 = ts(x2, frequency = Fs)
+  # plot(x,col="grey",xlim=c(1,1.1))
+  # # x = x+runif(Fs*t,-0.5,0.5);
+  # cut = 180
+
+  x[is.na(x)]=NAsub
+  type = match.arg(type, c("low","high"))
   
-  wc = cut/(frequency(x)/2) #normalizza per nyquist freq
-  bf = signal::fir1(N,wc,"low")
+  max_band = cut*1.1
+  delta_f = abs(max_band - cut) #abs is he same for high and low
+  N = min(maxN,ceiling(attenDb * frequency(x) /(22*delta_f)))
+  if(type=="high"){if(N%%2 != 0) N = N+1}
+  if(type=="low" ){if(N%%2 == 0) N = N+1}
+  wc = cut/(frequency(x)/2) #normalizza per nyquist freq.
+  if(wc > 1) stop("Filter cut must be lower than Niquist frequency:",(frequency(x)/2))
+
+  bf = signal::fir1(N,wc,type)
+  if(plot){
+    k = freqz(bf,Fc=frequency(x))
+    freqz_plot(k)
+  }
+  xf = signal::filtfilt(filt = bf,x)
+
+  #head and tail are bad, cross-fade the first and last n seconds
+  if(burnSec>0){
+    burn = burnSec*frequency(x)
+    firstSamp = 1:(burn)
+    lastSamp = (length(xf)-burn+1):length(xf) 
+    
+    burn1 =  x[firstSamp] * seq(1,0,length.out = burn) 
+    burn2 =  x[lastSamp]  * seq(0,1,length.out = burn)
+    
+    #fadeout the filtered signal
+    xf[firstSamp] = xf[firstSamp]*seq(0,1,length.out = burn) + burn1
+    xf[lastSamp]  = xf[lastSamp] *seq(1,0,length.out = burn) + burn2
   
-  xf = signal::filtfilt(filt = bf,x,)
-  #head and tail are bad, remove 3 seconds head and tail
-  xf[c(1:(3*frequency(x)), (length(xf)-(3*frequency(x))):length(xf) )] = NA
-  
+}
   #fir1 also changes the average value, recalibrate
   xf = xf-(mean(xf,na.rm=T) - mean(x,na.rm=T))
-  
-  xf = DyadStream(xf, name(x), frequency=frequency(x),start = start(x))
-  
-  
+  if(length(xf)!=length(x)) warning("lenght")
   
   if(is.DyadStream(x))
     cloneAttr(x,ts(xf,frequency=frequency(x),start=start(x),end=end(x)))
   else 
     ts(xf,frequency=frequency(x),start=start(x))
 }
+
+x = ts(sin(1:1000/20)+seq(-0.5,0.5,length.out = 1000), frequency = 100)
+# x[1:50] = NA
+xn = x+runif(1000,-0.5,0.5);
+x1 = FIR(xn, "low", cut = 3,attenDb = 50,burnSec = 0)
+plot(xn,col="grey");lines(x,col=3,lwd=2);lines(x1,col=2,lwd=3)
+
 
