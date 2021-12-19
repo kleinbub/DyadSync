@@ -209,7 +209,7 @@ resample = function (x, newSampRate, ...) {
   if(newSampRate == frequency(x)) stop("newSampRate and original signal frequency are identical.")
   if(newSampRate == 12) warning("by default, ts() assumes frequency Values of 4 and 12 to imply a quarterly and monthly series respectively (e.g.) in print methods.")
   q = frequency(x) / newSampRate  #ratio of old vs new sr
-  ts(approx(seq_along(x),x, xout= seq(1,length(x),by=q), ... )$y, start=start(x), frequency=newSampRate)
+  ts(approx(seq_along(x),x, xout= seq(1,length(x),by=q), ... )$y, start=tss(x), frequency=newSampRate)
 }
   
 
