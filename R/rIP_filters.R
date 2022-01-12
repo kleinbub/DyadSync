@@ -431,7 +431,7 @@ FIR = function(x, cut, type=c("low","high"), NAsub=NA, attenDb=50, burnSec = 0, 
   
 }
   #fir1 also changes the average value, recalibrate
-  xf = xf-(mean(xf,na.rm=T) - mean(x,na.rm=T))
+  xf = xf-(median(xf,na.rm=T) - median(x,na.rm=T))
   if(length(xf)!=length(x)) warning("lenght")
   
   if(is.DyadStream(x))
