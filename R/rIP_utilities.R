@@ -397,15 +397,12 @@ merge.list = function(x,y) {
 #'
 #' @examples
 nwin = function(x, winSec, incSec, sampRate=frequency(x), return=c("number", "all"), flex=FALSE, verbose = FALSE) {
-  if(is.ts(x)){
+  if(length(x)>1){
     len = length(x)
-  } else if(length(x)>1 || x%%1 != 0){
-      stop ("in nwin() x must be either a ts object or a single integer number")
   } else {
-      if(missing(sampRate)) warning("in nwin() sampRate was coerced to 1")
-      len = x *sampRate
+    if(x%%1 != 0) stop = "in nwin, x must be integer"
+    len = x*sampRate
   }
-
 
 
   # sampRate = 10
