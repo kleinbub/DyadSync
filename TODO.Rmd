@@ -38,6 +38,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Performance
   * Parallelize -> http://dept.stat.lsa.umich.edu/~jerrick/courses/stat701/notes/parallel.html
   * usa data.table::fread per importare
+  * usa il profiler per trovare bottlenecks: https://support.rstudio.com/hc/en-us/articles/218221837-Profiling-R-code-with-the-RStudio-IDE
   
 ### migliorie all'indice
   * implementare maxWinSize per evitare situazioni come queste:
