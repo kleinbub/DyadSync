@@ -33,7 +33,25 @@
 
 ##Main TS plotting tool
 
-
+#' Easy axes for ts objects
+#'
+#' @param x a ts object
+#' @param side side of the axie
+#' @param every interval between ticks, in seconds
+#' @param out format of the time, one of "hour","min","sec" for respectively the formats
+#' hh:mm:ss, mm:ss, ss.
+#' @param las 'label axis style' sets the labels orientation. See ?par for details
+#' @param ... further arguments passed to axis
+#'
+#' @return
+#' @export
+#'
+#' @examples
+tsAxis = function(x, side, every=1, out=c("hour", "min", "sec"), las=1,...){
+  out = match.arg(out,c("hour", "min", "sec") )
+  axis(side, at=as.numeric(time(x)[c(T,rep(F,every*frequency(x)-1))]), labels = timeMaster(round(time(x)[c(T,rep(F,every*frequency(x)-1))]),out),las=las, ... )
+  
+}
 
 #' @export
 #'
