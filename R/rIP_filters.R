@@ -166,14 +166,14 @@ setArtefacts.DyadSignal <- function(x, startEnd) {
   sel$end   = timeMaster(sel$end,   out="s")
 
   #check for artefact start lower than signal start
-  if(any(sel$start < round(xstart(x)))){
+  if(any(sel$start < tss(x))){
     warning("artefacts times beginning before signal's start time were trimmed")
-    sel[sel$start < round(xstart(x)),] = round(xstart(x))
+    sel[sel$start < tss(x),] = round(xstart(x))
   }
   #check for artefact end greater than signal end
-  if(any(sel$end > round(xend(x)))){
+  if(any(sel$end > tse(x))){
     warning("artefacts times ending after signal's end time were trimmed")
-    sel[sel$end > round(xend(x)),] = round(xend(x))
+    sel[sel$end > tse(x),] = round(xend(x))
   }
   
 
