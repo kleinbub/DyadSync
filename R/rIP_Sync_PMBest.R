@@ -740,25 +740,40 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   pv[s<0] = "v"
   #correzione manuale: cerca il valore pi� alto nei dintorni del cambio di derivata
   
-  for(v in seq_along(piksam)){
-    #individua il range con 0.5s prima e dopo la valle della derivata (esclusi gli estremi inzio e fine ts)
-    search_interval = x[
-      max(1,piksam[v]-correctionRangeSeconds*sampRate):min(length(x),piksam[v]+correctionRangeSeconds*sampRate)
-    ]
-    
-    #trova il pi� piccolo e aggiorna pikmsam
-    # if(mode=="peaks")
-    #   piksam[v] = max(1, piksam[v]+  (which.max(search_interval) - round(length(search_interval)/2)))
-    # else if (mode=="valleys")
-    #   piksam[v] = max(1, piksam[v]+  (which.min(search_interval) - round(length(search_interval)/2)))
-    # else
-    
-    #always both
-    piksam[v] = max(1, piksam[v]+  (which.minmax(search_interval,pv[v]) - round(length(search_interval)/2)))
-    
-    piksam[v] = min(piksam[v], length(x))
-  }
   
+  
+  any(diff(piksam)<= 0)
+  correctionRangeSamp = correctionRangeSeconds*sampRate
+  for(v in seq_along(piksam)){
+
+
+    #individua il range con 0.5s prima e dopo la valle della derivata (esclusi gli estremi inzio e fine ts)
+    prevv = if(v==1) 1 else piksam[v-1] +1
+    nextv = if(v==length(piksam)) length(x) else piksam[v+1] -1
+    search_interval = 
+      seq(from = max(1,piksam[v]-correctionRangeSamp, prevv),
+          to   = min(length(x),piksam[v]+correctionRangeSamp, nextv),
+          by=1)
+    
+    if(FALSE) {
+      plot(piksam[v]+((-50):(50)),x[piksam[v]+((-50):(50))], main=v)
+      points(piksam, x[piksam],col=2,pch=18)
+      text(piksam, eda[piksam]+0.2, paste(1:length(piksam), pv),cex=0.7)
+      points(piksam[v],x[piksam[v]],col=3,pch=4,cex=3)
+      points(range(search_interval),x[range(search_interval)],col=4,pch=4,cex=3)
+      
+    }
+ 
+    #always both
+    piksam[v] = search_interval[which.minmax(x[search_interval],pv[v])]
+    piksam[v] = max(1, piksam[v])
+
+    piksam[v] = min(piksam[v], length(x))
+    if(FALSE){
+      points(piksam[v],x[piksam[v]],col="gold",pch=17,cex=2)
+    }
+  }
+
   #trova picchi con sd pi� bassa di tot, sono solo rumore in un segnale essenzialmente piatto
   #idee: fisso a IQR(x)/20 ma magari si pu� trovare un valore pi� sensato
   #     -fisso a 0.05uS da onset a picco
@@ -781,7 +796,8 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   }
   if(length(toDelete)>1){
     piksam = piksam[-toDelete]
-    pv = pv[-toDelete]}
+    pv = pv[-toDelete]
+    }
   
   
   #se ci sono tante valley, togli intanto tutte le v che hanno v sia a destra che sinistra
@@ -804,9 +820,9 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   for(v in 1:(length(pv)-1)){
     if(pv[v]=="v" && pv[v+1] =="v"){
       # print((piksam[v+1]-piksam[v])/sampRate)
-      if ((piksam[v+1]-piksam[v]) < 5*sampRate  ){
+      # if ((piksam[v+1]-piksam[v]) < 5*sampRate  ){
         toDelete = c(toDelete, c(v+1,v)[which.max(c(x[piksam[v+1]],x[piksam[v]]))])
-      }
+      # }
     }
   }
   if(length(toDelete)>1){
