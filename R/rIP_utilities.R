@@ -204,9 +204,7 @@ rangeRescale <- function(x, newA, newB, oldA =min(x, na.rm=T), oldB = max(x, na.
     oldA = -mightyMax
     oldB = mightyMax
   }
-  (newB-newA) * (
-    (x - oldA)  / (oldB - oldA )
-  ) + newA
+  return((newB-newA) * ((x - oldA)  / (oldB - oldA )) + newA)
 }
 
 
