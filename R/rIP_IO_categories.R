@@ -2,30 +2,46 @@
 
 #' Title
 #'
-#' @param dirPath 
-#' @param startCol 
-#' @param endCol 
-#' @param catName 
-#' @param namefilt 
-#' @param removeSec 
+#' @param startCol character. The column containing the start of each epoch.
+#' In hh:mm:ss or mm:ss format, or just a number representing seconds (see timeMaster).
+#' @param endCol character. The column containing the end of each epoch.
+#' @param codingCol numeric vector. The column(s) containing categories. These
+#' will be converted to factors, searching across all files for possible levels.
+#' @param catName character. The name of the category
+#' @param namefilt character. A name or part of name, to filter among all files in path.
+#' @param removeSec numeric or numeric vector. number of seconds to be subtracted from the 
 #' @param idOrder 
 #' @param idSep 
 #' @param ... 
+#' @param path 
 #'
 #' @return
 #' @export
 #'
 #' @examples
 readCategories = function(path,
-                          startCol, endCol, catName, namefilt = NA, 
+                          startCol, endCol,codingCol, catName, namefilt = NA, 
                           removeSec = 0, 
                           idOrder= c("id","session","group"), #the order of identifiers in the filenames
                           idSep = "_", #the separator of identifiers in the filename
                           ... #additional options to be passed to read.table
 ){
+  # debug
+  # path = "A:/OneDrive - Università degli Studi di Padova/__Ricerche/2019_04_Brasini/PIRS_brasini"
+  # namefilt = ""
+  # catName = "PIRS"
+  # removeSec = 0
+  # startCol =1
+  # endCol = 2
+  # sep = ";"
+  # idOrder = c("id", "session")
+  # idSep = "_"
+  ##############
+  
   l = list(...) # l = list(sep=";")
   l = c(list(path,namefilt,idOrder,idSep),l)
-  l$stringsAsFactors = F
+  l$stringsAsFactors = FALSE
+  l$as.is = TRUE
   if(is.null(l$colClasses)) l$colClasses = "character"
   if(is.null(l$header)) l$header = TRUE
   
@@ -102,13 +118,10 @@ readCategories = function(path,
     
     
     res = data.frame("start"=file[[startCol]], "end" =file[[endCol]], "delta"=deltaSec)
-    #all other columns should be characters if colClasses was not overridden
-    res = cbind(res, file[-c(startCol,endCol)])
-    #check it and finally apply type.convert on all other columns
-    k = list(...)
-    if(is.null(k$colClasses)){ 
-      res[which(sapply(res,is.character))] = lapply(res[which(sapply(res,is.character))],type.convert)
-    }
+    #add the coding columns, which will be converted to factor later
+    res = cbind(res, file[, codingCol])
+    #add all other columns that should be characters if colClasses was not overridden
+    res = cbind(res, file[-c(startCol,endCol,codingCol)])
     res
   },lf,seq_along(lf))
   
@@ -126,5 +139,37 @@ readCategories = function(path,
   },listCat,seq_along(listCat)))
   
   names(experiment) = paste(dyadIds,sess,sep="_")
+  
+  #the codingCols have been placed together starting from column 4
+  newCodingCol = 4:(3+length(codingCol))
+  
+  #now for every coding, run across all files to search all possible levels, then transform to factor.
+  for(cate in 1:length(newCodingCol)){
+    xxx = c()
+    yyy = c()
+    for(i in 1:length(experiment)){
+      xxx=c(xxx,experiment[[i]][[catName]][,newCodingCol[cate]])
+      yyy=c(yyy,colnames(experiment[[i]][[catName]][newCodingCol[cate]]))
+    }
+    codes = sort(unique(xxx))
+    titles = sort(unique(yyy))
+    
+    #are there uncoherent colnames?
+    if(length(titles)>1){
+      cat0("\r\n\r\nIn column ",codingCol[cate], " various names where found and coherced to the most common:\r\n")
+      cat(titles)
+      titles = names(table(yyy))[which.max(table(yyy))]
+      for(i in 1:length(experiment)){
+        colnames(experiment[[i]][[catName]][newCodingCol[cate]]) = titles
+      }
+    }
+    cat0("\r\n\r\nFor coding '",titles,"', the following levels where detected:\r\n")
+    table(xxx)
+    cat0("\r\n --------------------")
+    for(i in 1:length(experiment)){
+      experiment[[i]][[catName]][,newCodingCol[cate]] = factor(experiment[[i]][[catName]][,newCodingCol[cate]],levels = codes )
+    }
+    
+  }
   return(experiment)
 }
