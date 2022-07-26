@@ -35,9 +35,6 @@ readCategories(
 
 \item{dirPath}{}
 }
-\value{
-
-}
 \description{
 Title
 }

@@ -67,9 +67,6 @@ informations.}
 
 \item{...}{additional options to be passed to read.table (es: skip, header, etc)}
 }
-\value{
-
-}
 \description{
 Title
 }

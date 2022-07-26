@@ -29,9 +29,6 @@ nwin(
 
 \item{verbose}{should all the windows be printed?}
 }
-\value{
-
-}
 \description{
 Calculate number of windows in a time-series with a given duration
 }

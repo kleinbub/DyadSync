@@ -43,9 +43,6 @@ pmBest(
 
 \item{minPeakDelta}{parameter passed to peakFinder, minimum valley-peak delta to detect a peak}
 }
-\value{
-
-}
 \description{
 pmBest
 }

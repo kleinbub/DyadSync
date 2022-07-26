@@ -4,14 +4,7 @@
 \alias{tsAxis}
 \title{Easy axes for ts objects}
 \usage{
-tsAxis(
-  x,
-  side,
-  every = 1,
-  out = c("hour", "min", "sec"),
-  las = c(0, 1, 2, 3),
-  ...
-)
+tsAxis(x, side, every = 1, out = c("hour", "min", "sec"), las = 1, ...)
 }
 \arguments{
 \item{x}{a ts object}
@@ -26,9 +19,6 @@ hh:mm:ss, mm:ss, ss.}
 \item{las}{'label axis style' sets the labels orientation. See ?par for details}
 
 \item{...}{further arguments passed to axis}
-}
-\value{
-
 }
 \description{
 Easy axes for ts objects

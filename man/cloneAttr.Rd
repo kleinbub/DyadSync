@@ -11,9 +11,6 @@ cloneAttr(from, to)
 
 \item{to}{}
 }
-\value{
-
-}
 \description{
 c
 }
