@@ -738,7 +738,7 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   pv = s
   pv[s>0] = "p"
   pv[s<0] = "v"
-  #correzione manuale: cerca il valore pi� alto nei dintorni del cambio di derivata
+  #correzione manuale: cerca il valore pi- alto nei dintorni del cambio di derivata
   
   
   
@@ -774,8 +774,8 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
     }
   }
 
-  #trova picchi con sd pi� bassa di tot, sono solo rumore in un segnale essenzialmente piatto
-  #idee: fisso a IQR(x)/20 ma magari si pu� trovare un valore pi� sensato
+  #trova picchi con sd pi- bassa di tot, sono solo rumore in un segnale essenzialmente piatto
+  #idee: fisso a IQR(x)/20 ma magari si pu- trovare un valore pi- sensato
   #     -fisso a 0.05uS da onset a picco
   toDelete=c()
   for(v in 2:(length(piksam)-1)){
@@ -785,8 +785,8 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
       # plot(c(10,16,search_interval),t="l",main=paste(v," - sd:",round(sd(search_interval,na.rm=T),2)))
       if(length(search_interval) == 0 || (max(search_interval)-search_interval[1])<minPeakDelta){#delta dall'onset al picco almeno 0.05uS o tutti NA
         # if(sd(search_interval)<IQR(x)/20){
-        #se alcuni picchi vanno rimossi perch� sono essenzialmente flat
-        #non ci possono essere 2 valley di seguito, quindi elimina quella col valore pi� alto
+        #se alcuni picchi vanno rimossi perch- sono essenzialmente flat
+        #non ci possono essere 2 valley di seguito, quindi elimina quella col valore pi- alto
         
         fakeValley = c(v-1,v+1)[which.max(c(x[piksam[v-1]] ,x[piksam[v+1]]))]
         #elimina sia il picco 'v' che la fake valley
