@@ -1,16 +1,6 @@
-#this file is a revised and controlled (25/07/2022) MASTER file to perform permutation analyses
-#specifically, given a well formatted DyadExperiment object with some calculated DyadStream (e.g. synchronization) and DyadCategory data
-#it cuts the stream according to the categories intervals, extracts random permutations of the stream, and calculates p-values and effect sizes
-#for the observed central values compared to random ones.
-
-#setup
-rm(list=ls())
-library(DyadSync)
-library(hdrcde)
-
-#category settings
 
 #' Permutation tests for signals in specific epochs
+#' 
 #' given a well formatted DyadExperiment object with some calculated DyadStream (e.g. synchronization or physiology) and DyadCategory data
 #' it cuts the stream according to the categories intervals, extracts random permutations of the stream, and calculates p-values and effect sizes
 #' for the observed central values compared to random ones.
@@ -57,13 +47,15 @@ categoryPerm = function(x,
                         parameterFunction = c("mean","median")[2]) {
 
 
-  d3 = experiment
+  d3 = x
   if(absolute){
     for(i in 1:length(d3)){
       d3[[i]][[signal]][[sync]][[streamKey]] = abs(d3[[i]][[signal]][[sync]][[streamKey]])
     }
   }
-  samplesPerSec = frequency(d3[[i]][[signal]][[sync]][[streamKey]])
+  samplesPerSec = sapply(d3, function(x){frequency(x[[signal]][[sync]][[streamKey]])})
+  samplesPerSec = unique(samplesPerSec)
+  if(length(samplesPerSec)>1) stop("multiple frequencies detected for selected stream in different DyadSessions:\r\n",samplesPerSec)
   
   d4 = epochStream(d3, signal=signal, sync=sync,streamKey = streamKey,
                    category=category,groupIndex=groupIndex, mergeEpochs = F, artefact.rm=F)
@@ -77,7 +69,7 @@ categoryPerm = function(x,
     ex2 = ex2[keepOnly]
   }
   ex2 = ex2[sapply(ex2,length)>0]
-  cat("\r\nANALYZED CATEGORIES: ", names(ex2))
+  cat("\r\nANALYZING:\r\n")
   
   
   shift <- function(x, n) {
@@ -231,7 +223,7 @@ categoryPerm = function(x,
     
     #needed functions
     plotHDI <- function( sampleVec , credMass=0.95, y=10, h.len = 5, ...){
-      hdi = as.numeric(hdr( sampleVec , credMass*100)$hdr)
+      hdi = as.numeric(hdrcde::hdr( sampleVec , credMass*100)$hdr)
       x1 = hdi[1]; x2 = hdi[2]
       xpar = par()[["xpd"]]
       par(xpd=NA)
@@ -286,7 +278,7 @@ categoryPerm = function(x,
     
     plotHDI(parlist,lwd=3,y=0, h.len=5)
     cohTit = paste0(parameterFunction," effect size:", round(param(cohenlist,na.rm=T),2),
-                    " [89% HDR range:", paste(round(hdr(cohenlist,89)$hdr,2),collapse = ", "),"]" )
+                    " [89% HDR range:", paste(round(hdrcde::hdr(cohenlist,89)$hdr,2),collapse = ", "),"]" )
     title(main = cohTit,line = 0, cex.main=0.9, font.main=3)
     legend("topleft",lty=c(1,0,0),lwd=c(2,0,0),col=c(2,rgb(0.78, 0.89, 1, alpha = 0.6),rgb(0.4, 0.4, 0.4, alpha = 0.4)),
            legend=c(paste(parameterFunction, "of",n,"real epochs"), "density of observed data", "density of random data"),
