@@ -20,7 +20,8 @@ categoryPerm(
   rotate = TRUE,
   extract_from = c("all", "remaining")[2],
   summarizingFunction = c("mean", "median")[2],
-  parameterFunction = c("mean", "median")[2]
+  parameterFunction = c("mean", "median")[2],
+  xlim = "auto"
 )
 }
 \arguments{
@@ -55,6 +56,8 @@ categoryPerm(
 \item{summarizingFunction}{String. the function used to summarize each epoch's time-series to a single value. Suggested: median.}
 
 \item{parameterFunction}{String. the function used to summarize all epochs's single values. Suggested: median.}
+
+\item{xlim}{either "auto" or a numeric vector of length 2 to set the plot scale.}
 }
 \description{
 given a well formatted DyadExperiment object with some calculated DyadStream (e.g. synchronization or physiology) and DyadCategory data
