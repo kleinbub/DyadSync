@@ -21,6 +21,7 @@
 #' @param extract_from Either "all", or "remaining". Should new extractions be done randomly from the whole stream or only on non-categorized parts.
 #' @param summarizingFunction String. the function used to summarize each epoch's time-series to a single value. Suggested: median.
 #' @param parameterFunction  String. the function used to summarize all epochs's single values. Suggested: median.
+#' @param xlim either "auto" or a numeric vector of length 2 to set the plot scale.
 #'
 #' @return
 #' @export
@@ -44,7 +45,9 @@ categoryPerm = function(x,
                         rotate = TRUE, 
                         extract_from = c("all", "remaining")[2], 
                         summarizingFunction = c("mean","median")[2],
-                        parameterFunction = c("mean","median")[2]) {
+                        parameterFunction = c("mean","median")[2],
+                        #graphic settings
+                        xlim = "auto") {
 
 
   d3 = x
@@ -214,7 +217,11 @@ categoryPerm = function(x,
         
         parlist[k]   =  param(epochMediansRand, na.rm=T)
         parlist2[k]  =  sd(epochMediansRand, na.rm=T)
-        randDen      =  density(epochMediansRand, from = if(absolute) 0 else -1, to = 1)
+        if(xlim=="auto"){
+          randDen = density(epochMediansRand)
+        } else {
+          randDen = density(epochMediansRand, from = xlim[1], to = xlim[2])
+        }
         madness[k,]  =  randDen$y
       }
     })
@@ -239,27 +246,42 @@ categoryPerm = function(x,
     par(cex=0.9, mar=c(5, 4, 4, 4) + 0.1)
     par(xpd=NA)
     
+    if(xlim=="auto"){
+      xmin = min(randDen$x, parReal)
+      xmax = max(randDen$x, parReal)
+      
+    } else {
+      xmin = xlim[1]
+      xmax = xlim[2]
+    }
+    breaks = seq(xmin,xmax,by=(xmax-xmin)/40)
+    
+
     ## big nice plot
-    breaks = seq(-1,1,by=0.05)
     plotData = hist(parlist, breaks = breaks, plot = F)
     maxY = max(plotData$counts)
     # maxY = max(plotData$density)
     
-    xmin = min(plotData$breaks,parReal)
-    xmax = max(plotData$breaks,parReal)
-    if(absolute) xmin = 0 else xmin = -1
     
     hist(parlist,breaks = breaks,
          main=paste0(groupIndex,"-", tipo2,"\nDistribution of ",nIter," ",parameterFunction,"s of ",n, " random epochs each"),
          xlab=paste(summarizingFunction, "synchronization"),
          cex.main = 0.9, col=rgb(1,1,1,1),
          ylim = c(0,maxY*1.2),
-         # xlim = c(xmin,xmax))
-         xlim=c(xmin,1))
+         xlim=c(xmin,xmax))
     
-    realDen = density(epochMediansReal,from=if(absolute) 0 else -1,to=1)
-    polygon(c(xmin,realDen$x,1),c(0,realDen$y,0)*maxY, col = rgb(0.78, 0.89, 1, alpha = 0.6),border = NA)
-    polygon(c(xmin,randDen$x,1), c(0,apply(madness,2,median)*maxY,0) , col = rgb(0.4, 0.4, 0.4, alpha = 0.4),border = NA)
+    realDen = density(epochMediansReal,from=xmin,to=xmax)
+    axis(4, at = seq(0, maxY, length.out=7), labels = round(rangeRescale(seq(0, maxY, length.out=7), 0, max(realDen$y)),1))
+    mtext("Density", side = 4,line=2.8)
+    
+    maxYden = max(madness, realDen$y)
+    minYden = min(madness, realDen$y)
+    
+    realDen$y = rangeRescale(realDen$y, 0, maxY)
+    madness = rangeRescale(madness, 0, maxY )
+    
+    polygon(c(xmin,realDen$x,1),c(0,realDen$y,0), col = rgb(0.78, 0.89, 1, alpha = 0.6),border = NA)
+    polygon(c(xmin,randDen$x,1), c(0,apply(madness,2,median),0) , col = rgb(0.4, 0.4, 0.4, alpha = 0.4),border = NA)
     hist(parlist,breaks = breaks,add=T, col=rgb(1,1,1,0.6))
     
     pval =(length(parlist[parlist>=parReal])+1)/(nIter+1)
@@ -269,8 +291,7 @@ categoryPerm = function(x,
     text (parReal, maxY+maxY/100*2, paste("p-value =", format(round(pval,4),nsmall = 4) ), cex = 0.8, col=2, font=2 )
     text (parReal, maxY+maxY/100*6, paste0("Observed ", parameterFunction," = ",round(parReal,3)), cex = 0.8, col=2, font=2 )
     
-    axis(4, at = seq(0, maxY*1.2, length.out=7), labels = round(rangeRescale(seq(0, maxY*1.2, length.out=7), 0, max(realDen$y)),1))
-    mtext("Density", side = 4,line=2.8)
+
     
     
     # text(parReal,510, "real data",col=2)
