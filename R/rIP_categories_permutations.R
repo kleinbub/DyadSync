@@ -59,7 +59,7 @@ categoryPerm = function(x,
   samplesPerSec = sapply(d3, function(x){frequency(x[[signal]][[sync]][[streamKey]])})
   samplesPerSec = unique(samplesPerSec)
   if(length(samplesPerSec)>1) stop("multiple frequencies detected for selected stream in different DyadSessions:\r\n",samplesPerSec)
-  
+  cat("\r\nSEGMENTING BY EPOCH:\r\n")
   d4 = epochStream(d3, signal=signal, sync=sync,streamKey = streamKey,
                    category=category,groupIndex=groupIndex, mergeEpochs = F, artefact.rm=F)
   
