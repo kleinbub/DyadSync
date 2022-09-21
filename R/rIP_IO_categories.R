@@ -1,6 +1,6 @@
 
 
-#' Title
+#' Imports categorical data
 #'
 #' @param startCol character. The column containing the start of each epoch.
 #' In hh:mm:ss or mm:ss format, or just a number representing seconds (see timeMaster).
@@ -38,7 +38,7 @@ readCategories = function(path,
   # idSep = "_"
   ##############
   
-  l = list(...) # l = list(sep=";")
+  l = list(...) # l = list(sep=",")
   l = c(list(path,namefilt,idOrder,idSep),l)
   l$stringsAsFactors = FALSE
   l$as.is = TRUE
@@ -138,7 +138,7 @@ readCategories = function(path,
     
   },listCat,seq_along(listCat)))
   
-  names(experiment) = paste(dyadIds,sess,sep="_")
+  names(experiment) = paste(group,dyadIds,sess,sep="_")
   
   #the codingCols have been placed together starting from column 4
   newCodingCol = 4:(3+length(codingCol))
@@ -164,8 +164,10 @@ readCategories = function(path,
       }
     }
     cat0("\r\n\r\nFor coding '",titles,"', the following levels where detected:\r\n")
-    table(xxx)
-    cat0("\r\n --------------------")
+    report = table(xxx)
+    names(dimnames(report)) = ""
+    print(report)
+    # cat0("\r\n --------------------")
     for(i in 1:length(experiment)){
       experiment[[i]][[catName]][,newCodingCol[cate]] = factor(experiment[[i]][[catName]][,newCodingCol[cate]],levels = codes )
     }
