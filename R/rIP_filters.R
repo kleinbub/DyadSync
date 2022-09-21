@@ -410,28 +410,75 @@ FIR = function(x, cut, type=c("low","high"), NAsub=NA, attenDb=50, burnSec = 0, 
   if(wc > 1) stop("Filter cut must be lower than Niquist frequency:",(frequency(x)/2))
 
   bf = signal::fir1(N,wc,type)
-  if(plot){
-    k = freqz(bf,Fc=frequency(x))
-    freqz_plot(k)
-  }
+ 
   xf = signal::filtfilt(filt = bf,x)
+  
+  if(plot){
+    len = 150
+    plot( window(x,start=start(x),end=start(x)+len),ylim=c(0,max(x)),t="l")
+    lines(window(ts(xf, start=start(x), frequency = frequency(x)),start=start(x),end=start(x)+len),col=2)
+    
+    plot( window(x,start=end(x)[1]-len,end=end(x)),ylim=c(0,max(x)),t="l")
+    lines(ts(xf, start=start(x), frequency = frequency(x)),col=2)
+    # k = freqz(bf,Fc=frequency(x))
+    # freqz_plot(k)
+  }
 
   #head and tail are bad, cross-fade the first and last n seconds
   if(burnSec>0){
     burn = burnSec*frequency(x)
-    firstSamp = 1:(burn)
-    lastSamp = (length(xf)-burn+1):length(xf) 
+    burn3=round(burn/3)
     
-    burn1 =  x[firstSamp] * seq(1,0,length.out = burn) 
-    burn2 =  x[lastSamp]  * seq(0,1,length.out = burn)
+    if(plot){
+      abline(v=c(start(x)[1]+burnSec, start(x)[1]+burnSec/3),lty=c(1,3))
+      abline(v=c(end(x)[1]-burnSec, end(x)[1]-burnSec/3),lty=c(1,3))
+      
+    }
+   
+    firstSamp = burn3:(burn)
+    lastSamp = (length(x)-burn):(length(xf)-burn3 )
     
-    #fadeout the filtered signal
-    xf[firstSamp] = xf[firstSamp]*seq(0,1,length.out = burn) + burn1
-    xf[lastSamp]  = xf[lastSamp] *seq(1,0,length.out = burn) + burn2
-  
-}
+    #define two weights wa to fade out wb to fade in
+    #their sum must always be one
+    accel = function(baseAccel, targetSpeed, currentSpeed) {
+      baseSpeed = max(30,min(currentSpeed)-5)
+      x = targetSpeed - currentSpeed
+      endpoint = 1.1; slope =max(x)^-1*10; symm = max(x)/2
+      x = baseSpeed + (targetSpeed-baseSpeed)/((1 + exp(slope*(x-symm)))^endpoint) #five-parameter logistic mean function
+      baseAccel*x
+    }
+    wa = (rangeRescale(accel(1, burn, firstSamp),1,0))
+    wb=  wa*-1+1
+    
+    ydelta1 = xf[(burn3-1)] - x[(burn3-1)]
+    ydelta2 = xf[length(xf)-(burn3-1)] - x[length(xf)-(burn3-1)]
+    
+    #fade  original signal
+    fade1 =  (x[firstSamp]+ydelta1) * wa 
+    fade2 =  (x[lastSamp] +ydelta2) * wb 
+    
+    #fade the filtered signal with opposite fade
+    xf[firstSamp] = xf[firstSamp]* wb
+    xf[lastSamp]  = xf[lastSamp] * wa
+    
+    #the first and last third of the burn area are taken from the original
+    #but should be moved a little according to the difference in absolute values
+    xf[1:(burn3-1)]                       = x[1:(burn3-1)] +ydelta1
+    xf[(length(xf)-burn3+1):(length(xf))] = x[(length(xf)-burn3+1):(length(xf))] + ydelta2
+    
+    #the remaining 2/3 are a mix from original and filtered
+    xf[firstSamp] = xf[firstSamp] + fade1
+    xf[lastSamp]  = xf[lastSamp]  + fade2
+    if(plot){
+      lines(ts(xf, start=start(x), frequency = frequency(x)),col=3)
+      }
+
+  }
   #fir1 also changes the average value, recalibrate
   xf = xf-(median(xf,na.rm=T) - median(x,na.rm=T))
+  if(plot){
+    lines(ts(xf, start=start(x), frequency = frequency(x)),col=4)
+  }
   if(length(xf)!=length(x)) warning("lenght")
   
   if(is.DyadStream(x))
@@ -440,10 +487,10 @@ FIR = function(x, cut, type=c("low","high"), NAsub=NA, attenDb=50, burnSec = 0, 
     ts(xf,frequency=frequency(x),start=start(x))
 }
 
-x = ts(sin(1:1000/20)+seq(-0.5,0.5,length.out = 1000), frequency = 100)
-# x[1:50] = NA
-xn = x+runif(1000,-0.5,0.5);
-x1 = FIR(xn, "low", cut = 3,attenDb = 50,burnSec = 0)
-plot(xn,col="grey");lines(x,col=3,lwd=2);lines(x1,col=2,lwd=3)
+# x = ts(sin(1:1000/20)+seq(-0.5,0.5,length.out = 1000), frequency = 100)
+# # x[1:50] = NA
+# xn = x+runif(1000,-0.5,0.5);
+# x1 = FIR(xn, "low", cut = 3,attenDb = 50,burnSec = 0)
+# plot(xn,col="grey");lines(x,col=3,lwd=2);lines(x1,col=2,lwd=3)
 
 
