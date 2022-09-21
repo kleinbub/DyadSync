@@ -166,6 +166,24 @@ DyadExperiment = function(name, sessionList){
 #' @export
 is.DyadExperiment = function(x) inherits(x,"DyadExperiment") && length(x)
 
+#' Extract or replace parts of a dyadexperiment
+#'
+#' @param x 
+#' @param i 
+#' @param name The name of the new experiment
+#'
+#' @return
+#' @export
+#'
+#' @examples
+"[.DyadExperiment" = function(x,i,name=NA){
+  y = .subset(x, i)
+  if(is.na(name)) name = paste0(paste0(name(x),collapse="-" ),"-redux")
+  DyadExperiment(name,y)
+}
+
+
+
 # c.DyadExperiment sostituisce experimentMerge() e permette di unire
 # i segnali di esperimenti con la stessa struttura di sessioni.
 #' @export
