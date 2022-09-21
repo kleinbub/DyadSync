@@ -173,79 +173,59 @@ c.DyadExperiment = function (...){
   l = list(...)
   
   #######################
-   # l = list(mea,sc)
+  # l = list(mea,sc)
   if(length(l)==1) return(l)#return(l[[1]])
+  
   
   
   #c deve unire tra di loro i segnali che hanno lo stesso sessionId, Group, dyadID
   #invece deve incollare uno dopo l'altro le diadi che non overlappano
   #se per lo stesso ID ci sono due volte lo stesso segnale, stop.
+  # comp = lapply(l,sapply,function(session){paste(groupId(session),dyadId(session),sessionId(session),sep="_")})
+  # comp = lapply(comp,tolower)
+  # 
+  newEX = unclass(l[[1]])
+  newEXsessions = attr(newEX,"names")
+  fancynames = paste(newEXsessions, sapply(lapply(newEX, names), paste,collapse="_"),sep="_")
+  report = data.frame("FINAL"=fancynames, "exp1"= fancynames)
+  joined = added = 0
   
-  #1 check if any DyadSession must be merged
-  comp = lapply(l,sapply,function(session){paste(groupId(session),dyadId(session),sessionId(session),sep="_")})
-  comp = lapply(comp,tolower)
-  comp2 = comp
-  
-  
-  #sort by length
-  lengths = sapply(l, length)
-  nOrd = sort.list(lengths,decreasing = T)
-  comp = comp[nOrd]
-  l = l[nOrd]
-
-  
-  newEX = list()
-  joined = 0
-  compN = length(unlist(comp))
-  theorUnique = length(unique(unlist(comp)))
-  #######################
-
-  for(x in 1){ #per ciascun esperimento (dal più lungo) 
-    #aggiungi all'esperimento attuale (se non è l'ultimo) le sessioni uguali degli esperimenti successivi
-    if(x<length(l)){
-      for(y in (x+1):length(l)){ #per tutti gli esperimenti successivi
-        #to compare
-        a = l[[x]]
-        b = l[[y]]
-        # warnS1 = F
-        # warnS2 = F
-        toRemove = c()
-        for(s in 1:length(a)){#per ciascuna sessione dell'esperimento x-esimo
-          # print(s)
-          toJoin = which(comp[[y]] == comp[[x]][s])
-          if(length(toJoin) > 1) stop("experiment ", nOrd[[y]], " had more than one session of ",comp[[x]][s])
-          if(length(toJoin) ==1){ #if there was a match
-            # print(paste("match found in session",s,":", names(comp[[y]][toJoin])))
-            if(any(names(a[[s]]) %in% names(b[[toJoin]]) )) stop ("experiments ",nOrd[[x]]," and ",nOrd[[y]], "had the same signal")
-            if(!any(is.na( c(s1Name(a[[s]]), s2Name(a[[s]]),s1Name(b[[toJoin]]),s2Name(b[[toJoin]])))) ){
-              # if(!tolower(s1Name(a[[s]])) %in% tolower(s1Name(b[[toJoin]]))) warnS1 = T 
-              # if(!tolower(s2Name(a[[s]])) %in% tolower(s2Name(b[[toJoin]]))) warnS2 = T
-              }
-            joined = joined +1
-            l[[x]][[s]] = c(a[[s]],b[[toJoin]]) #aggiungi all'exp originale
-            toRemove = c(toRemove,toJoin)
-          } #else print("NO MATCH")
-        }
-        l[[y]][toRemove] = NULL
-        # str(l[[y]],max=1)
-        # if(warnS1) warning("experiments ",nOrd[[x]]," and ",nOrd[[y]], "had different s1Names")
-        # if(warnS2) warning("experiments ",nOrd[[x]]," and ",nOrd[[y]], "had different s2Names")
-      }
-    }
-    newEX = c(newEX,l[[x]]) #aggiungi all'esperimento finale le sessioni aggiornate rimaste nell'esperimento attuale
-    message("adding to newEX the following:\r\n",paste(sapply(l[[x]], function(session){paste(groupId(session),dyadId(session),sessionId(session),sep="_")}),"\r\n" ))
+  for(y in (2):length(l)){ #per tutti gli esperimenti successivi
+    #to compare
+    ADD = l[[y]]
+    ADDsessions = attr(ADD,"names")
     
+    report = cbind(report,data.frame(temp=NA))
+    colnames(report)[y+1] = paste0("exp",y)
+    
+    
+    for(s in 1:length(ADD)){#per ciascuna sessione di ADD
+      # print(s)
+      toJoin = which(newEXsessions ==ADDsessions[s])
+      if(length(toJoin) > 1) stop("experiment ", y, " had more than one session of ",ADDsessions[s])
+      if(length(toJoin) ==1){ #if there was a match
+        # check that signals are not 
+        if(any(names(ADD[[ADDsessions[s]]]) %in% names(newEX[[newEXsessions[toJoin]]]) )) stop ("session ",ADDsessions[s]," in experiment 1 and ",y," had the same signal")
+        else {
+          report[toJoin,1] = paste(report[toJoin,1], paste(names(ADD[[s]]),collapse = "_"),sep="_") 
+          report[toJoin,y+1] = paste(ADDsessions[s], paste(names(ADD[[s]]),collapse = "_"),sep="_") 
+          joined = joined +1
+          newEX[[toJoin]] = c(newEX[[toJoin]],ADD[[s]]) #aggiungi all'exp originale
+        }
+      } else { #the session could not be joined, so add it! 
+        newEX = c(newEX,ADD[s]) 
+        report[nrow(report)+1,1] = paste(ADDsessions[s], paste(names(ADD[[s]]),collapse = "_"),sep="_")
+        report[nrow(report),y+1] = paste(ADDsessions[s], paste(names(ADD[[s]]),collapse = "_"),sep="_")
+        added = added+1
+      }
+      #refresh names of newEX
+      newEXsessions = attr(newEX,"names")
+      
+    }
   }
   
-  if(sd( c(compN - joined, theorUnique,length(newEX) ) )  !=0) warning("the number of resulting DyadSession may be wrong. Check the result manually.")
-  
-  comp3 = c(comp2, list(sapply(newEX, function(session){paste(groupId(session),dyadId(session),sessionId(session),sep="_")})))
-  comp3 = lapply(comp3, sort)
-  res = do.call(unequalCbind,comp3)
-  colnames(res) = c(paste("exp", seq(1,length(l))), "res")
-  row.names(res) = NULL
-  print(res)
-  cat ("\r\nMerge successful.",joined,"sessions were added to the longest experiment. The final DyadExperiment consists of", length(newEX),"unique sessions.")
+  print(report)
+  cat ("\r\nMerge successful.",added+length(l[[1]]),"sessions were added, and ",joined," were joined to existing sessions. The final DyadExperiment consists of", length(newEX),"unique sessions.")
   
   DyadExperiment(sapply(l,name),newEX)
 }
