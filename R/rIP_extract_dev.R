@@ -39,7 +39,7 @@ epochStream.DyadExperiment = function(x, signal= "SC", sync="PMBest", streamKey=
                                       mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0){
   res = Map(function(session, nSession){
     prog(nSession, length(x))
-    cat("session:", attr(session,"dyadId"),"-", attr(session,"sessionId"),"\r\n")
+    # cat("session:", attr(session,"dyadId"),"-", attr(session,"sessionId"),"\r\n")
     epochStream(session, signal, sync, streamKey, category, groupIndex,mergeEpochs, artefact.rm, shift_start, shift_end )
   },x, seq_along(x))
   classAttr(res) = classAttr(x)
