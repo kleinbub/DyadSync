@@ -202,6 +202,8 @@ c.DyadExperiment = function (...){
   # comp = lapply(l,sapply,function(session){paste(groupId(session),dyadId(session),sessionId(session),sep="_")})
   # comp = lapply(comp,tolower)
   # 
+  if(length(unique(sapply(l,class)))>1) stop("Only 'DyadExperiment' objects can be combined together")
+  
   newEX = unclass(l[[1]])
   newEXsessions = attr(newEX,"names")
   fancynames = paste(newEXsessions, sapply(lapply(newEX, names), paste,collapse="_"),sep="_")
