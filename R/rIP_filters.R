@@ -39,12 +39,33 @@ signalFilter = function (x, FUN, newAttributes=NULL, signals="all", ...) {
 #' @export
 signalFilter.DyadExperiment = function (x, FUN, newAttributes=NULL, signals="all", ...) {
   #for each session
-  experiment2 = Map(function (session,nSession){
-    session = signalFilter(session, FUN=FUN, newAttributes=newAttributes, signals=signals, ...)
-    prog(nSession,length(x))
-    return(session)
-  },x,seq_along(x))
+  cores=parallel::detectCores()
+  cl <- parallel::makeCluster(cores[1]-1) #not to overload your computer
+  doParallel::registerDoParallel(cl)
+  `%dopar%` <- foreach::`%dopar%`
+  `%do%` <- foreach::`%do%`
+  
+  experiment2 <- foreach::foreach(
+    nSession = 1:length(x),
+    .combine = c) %dopar% { 
+      session = x[[nSession]]
+      session = signalFilter(session, FUN=FUN, newAttributes=newAttributes, signals=signals, ...)
+      session[["namex"]] = names(x)[nSession]
+      list(session)
+    }
+  for(i in 1:length(experiment2)){
+    names(experiment2)[i] = experiment2[[i]][["namex"]]
+    experiment2[[i]][["namex"]] = NULL
+  }
+  
+  # experiment2 = Map(function (session,nSession){
+  #   session = signalFilter(session, FUN=FUN, newAttributes=newAttributes, signals=signals, ...)
+  #   prog(nSession,length(x))
+  #   return(session)
+  # },x,seq_along(x))
   experiment2 = cloneAttr(x,experiment2)
+  
+  parallel::stopCluster(cl)
   return(experiment2)
 }
 
@@ -74,7 +95,7 @@ signalFilter.DyadSignal = function (x, FUN, newAttributes=NULL, signals=NULL, ..
   attr(x,"start") = start(x$s1)
   attr(x,"end")   = end(x$s1)
   attr(x,"sampRate") = frequency(x$s1)
-
+  
   if(!is.null(newAttributes)){
     if("filter"%in%names(newAttributes)){
       newAttributes[["filter"]] = paste0(attributes(x)[["filter"]]," -> ",newAttributes[["filter"]])
@@ -119,7 +140,7 @@ setArtefacts.DyadExperiment <- function(x, startEnd, signal) {
       stop("startEnd must have 3 vectors 'session', 'start', 'end' of equal length")
     sel = as.data.frame(startEnd,stringsAsFactors = F)
   } else stop("startEnd must be a list or dataframe")
-
+  
   nClean = 0  
   for(j in unique(sel$dyad) ){
     for(i in unique(sel$session) ){
@@ -164,7 +185,7 @@ setArtefacts.DyadSignal <- function(x, startEnd) {
   
   sel$start = timeMaster(sel$start, out="s")
   sel$end   = timeMaster(sel$end,   out="s")
-
+  
   #check for artefact start lower than signal start
   if(any(sel$start < tss(x))){
     warning("artefacts times beginning before signal's start time were trimmed")
@@ -176,9 +197,9 @@ setArtefacts.DyadSignal <- function(x, startEnd) {
     sel[sel$end > tse(x),] = round(xend(x))
   }
   
-
+  
   x$artefacts = sel[,c("start","end")]
-
+  
   attributes(x)["filter"] = paste0(attr(x,"filter"), "--> artifacts set")
   x
 }
@@ -190,7 +211,7 @@ setArtefacts.DyadSignal <- function(x, startEnd) {
 ############################################################################################################
 
 #' @export
- signalDecimate = function (signal, newSampRate) {stop("this function has been deprecated. Use resample and signalFilter instead")}
+signalDecimate = function (signal, newSampRate) {stop("this function has been deprecated. Use resample and signalFilter instead")}
 
 
 #' resample
@@ -211,7 +232,7 @@ resample = function (x, newSampRate, ...) {
   q = frequency(x) / newSampRate  #ratio of old vs new sr
   ts(approx(seq_along(x),x, xout= seq(1,length(x),by=q), ... )$y, start=tss(x), frequency=newSampRate)
 }
-  
+
 
 
 
@@ -245,7 +266,7 @@ resample = function (x, newSampRate, ...) {
 #' @export
 
 movAv <- function(x, winSec, incSec = NA, remove=FALSE, sampRate=frequency(x) ) {
-
+  
   win = winSec*sampRate
   win2 = round(win/2)
   inc = if(is.na(incSec)) 1 else incSec*sampRate
@@ -397,7 +418,7 @@ FIR = function(x, cut, type=c("low","high"), NAsub=NA, attenDb=50, burnSec = 0, 
   # plot(x,col="grey",xlim=c(1,1.1))
   # # x = x+runif(Fs*t,-0.5,0.5);
   # cut = 180
-
+  
   x[is.na(x)]=NAsub
   type = match.arg(type, c("low","high"))
   
@@ -408,9 +429,9 @@ FIR = function(x, cut, type=c("low","high"), NAsub=NA, attenDb=50, burnSec = 0, 
   if(type=="low" ){if(N%%2 == 0) N = N+1}
   wc = cut/(frequency(x)/2) #normalizza per nyquist freq.
   if(wc > 1) stop("Filter cut must be lower than Niquist frequency:",(frequency(x)/2))
-
+  
   bf = signal::fir1(N,wc,type)
- 
+  
   xf = signal::filtfilt(filt = bf,x)
   
   if(plot){
@@ -423,7 +444,7 @@ FIR = function(x, cut, type=c("low","high"), NAsub=NA, attenDb=50, burnSec = 0, 
     # k = freqz(bf,Fc=frequency(x))
     # freqz_plot(k)
   }
-
+  
   #head and tail are bad, cross-fade the first and last n seconds
   if(burnSec>0){
     burn = burnSec*frequency(x)
@@ -434,7 +455,7 @@ FIR = function(x, cut, type=c("low","high"), NAsub=NA, attenDb=50, burnSec = 0, 
       abline(v=c(end(x)[1]-burnSec, end(x)[1]-burnSec/3),lty=c(1,3))
       
     }
-   
+    
     firstSamp = burn3:(burn)
     lastSamp = (length(x)-burn):(length(xf)-burn3 )
     
@@ -471,8 +492,8 @@ FIR = function(x, cut, type=c("low","high"), NAsub=NA, attenDb=50, burnSec = 0, 
     xf[lastSamp]  = xf[lastSamp]  + fade2
     if(plot){
       lines(ts(xf, start=start(x), frequency = frequency(x)),col=3)
-      }
-
+    }
+    
   }
   #fir1 also changes the average value, recalibrate
   xf = xf-(median(xf,na.rm=T) - median(x,na.rm=T))
