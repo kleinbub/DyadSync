@@ -734,7 +734,7 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   #always both
   pikboo = c(FALSE,abs(s) ==  2, FALSE)
   piksam = which(pikboo) 
-  s = s[s!=0]
+  s = s[abs(s)== 2]
   pv = s
   pv[s>0] = "p"
   pv[s<0] = "v"
