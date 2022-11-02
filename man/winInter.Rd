@@ -15,6 +15,9 @@ winInter(windowsList, winSec, incSec, sampRate)
 
 \item{sampRate}{}
 }
+\value{
+
+}
 \description{
 Interpolate by window
 Interpolate windowed data to original samplerate. 

@@ -24,6 +24,9 @@ timeMaster(
 
 \item{baseSep}{}
 }
+\value{
+
+}
 \description{
 timeMaster
 timeMaster allows to:

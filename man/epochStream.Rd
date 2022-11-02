@@ -38,6 +38,9 @@ epochStream(
 
 \item{shift_end}{integer in seconds (e.g. 7 shifts all epoch end by 7 seconds later )}
 }
+\value{
+
+}
 \description{
 epochStream cycles through all sessions in an experiment.
 For each session extracts a stream, then cuts it

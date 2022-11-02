@@ -13,6 +13,9 @@ mycolz(n, demo = F, alpha = 1)
 
 \item{alpha}{}
 }
+\value{
+
+}
 \description{
 Title
 }

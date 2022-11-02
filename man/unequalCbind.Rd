@@ -9,6 +9,9 @@ unequalCbind(...)
 \arguments{
 \item{...}{}
 }
+\value{
+
+}
 \description{
 cbind allowing to bind unequal columns to a same data.frame padding NAs to the end of the shorter
 }

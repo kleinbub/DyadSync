@@ -12,6 +12,9 @@ selectSignals(x, signals)
 
 \item{signals}{a vector of signal names. Es: c("SC", "HRV", "PACS")}
 }
+\value{
+
+}
 \description{
 Title
 This function allows to subset only specific signals from an experiment

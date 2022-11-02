@@ -11,6 +11,9 @@ cohend(a, b, na.rm = TRUE)
 
 \item{b}{}
 }
+\value{
+
+}
 \description{
 Title
 }

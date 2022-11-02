@@ -59,6 +59,9 @@ categoryPerm(
 
 \item{xlim}{either "auto" or a numeric vector of length 2 to set the plot scale.}
 }
+\value{
+
+}
 \description{
 given a well formatted DyadExperiment object with some calculated DyadStream (e.g. synchronization or physiology) and DyadCategory data
 it cuts the stream according to the categories intervals, extracts random permutations of the stream, and calculates p-values and effect sizes

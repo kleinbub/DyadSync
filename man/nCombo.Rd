@@ -11,6 +11,9 @@ nCombo(n_dyads, max_combo = 10000)
 
 \item{max_combo}{}
 }
+\value{
+
+}
 \description{
 Calculate the number of possible pseudo-dyads
 }
