@@ -9,9 +9,9 @@
 #' @param plotPrefix character. path and prefix of output plots names.
 #' @param signal character. name of a DyadSignal contained in x.
 #' @param sync character. Name of a synchronization object. E.g. PMBest, or CCFBest
-#' @param streamKey character. Name of a DyadStream object contained within sync
+#' @param stream character. Name of a DyadStream object contained within sync
 #' @param category character. Name of a DyadCategory object contained in x
-#' @param groupIndex character. Name of a factor column in 'category'.
+#' @param categoryIndex character. Name of a factor column in 'category'.
 #' @param absolute logical. should the DyadStream be transformed to absolute values?
 #' @param minEpochSec number of seconds of minimum epoch. Shorter epochs will be deleted.
 #' @param minOccurrences min occurrences of given category to be kept. Less frequent categories will be deleted.
@@ -29,14 +29,14 @@
 #' @examples
 categoryPerm = function(x,
                         plotPrefix,
-                        signal="SC",
-                        sync="PMdev",
-                        streamKey="sync",
-                        category = "PIRS",
-                        groupIndex = "code2",
+                        signal,
+                        sync,
+                        stream,
+                        category,
+                        categoryIndex,
                         keepOnly = c(), #
-                        minEpochSec = 3, #
-                        minOccurrences = 10, #
+                        minEpochSec, #
+                        minOccurrences, #
                         
                         absolute = FALSE,
                         
@@ -53,17 +53,17 @@ categoryPerm = function(x,
   d3 = x
   if(absolute){
     for(i in 1:length(d3)){
-      d3[[i]][[signal]][[sync]][[streamKey]] = abs(d3[[i]][[signal]][[sync]][[streamKey]])
+      d3[[i]][[signal]][[sync]][[stream]] = abs(d3[[i]][[signal]][[sync]][[stream]])
     }
   }
-  samplesPerSec = sapply(d3, function(x){frequency(x[[signal]][[sync]][[streamKey]])})
+  samplesPerSec = sapply(d3, function(x){frequency(x[[signal]][[sync]][[stream]])})
   samplesPerSec = unique(samplesPerSec)
   if(length(samplesPerSec)>1) stop("multiple frequencies detected for selected stream in different DyadSessions:\r\n",samplesPerSec)
   cat("\r\nSEGMENTING BY EPOCH:\r\n")
-  d4 = epochStream(d3, signal=signal, sync=sync,streamKey = streamKey,
-                   category=category,groupIndex=groupIndex, mergeEpochs = F, artefact.rm=F)
+  d4 = epochStream(d3, signal=signal, sync=sync,stream = stream,
+                   category=category,categoryIndex=categoryIndex, mergeEpochs = F, artefact.rm=F)
   
-  resName = paste0(c(toupper(category), "_", totitle(c(sync,streamKey))),collapse = "")
+  resName = paste0(c(toupper(category), "_", totitle(c(sync,stream))),collapse = "")
   ex2 = extractEpochs (d4, signal=signal, epochStream=resName)
   
   
@@ -147,7 +147,7 @@ categoryPerm = function(x,
     
     if(extract_from =="all") {
       #estrai tutti i segnali sync delle sedute e togli i NA
-      full_from = lapply(d4, function(x) as.numeric(x[[signal]][[sync]][[streamKey]]))
+      full_from = lapply(d4, function(x) as.numeric(x[[signal]][[sync]][[stream]]))
       full_from = do.call("c",full_from)
       full_from = full_from[!is.na(full_from)]
     } else if(extract_from =="remaining")  {
@@ -167,7 +167,7 @@ categoryPerm = function(x,
     parlist2 = numeric(nIter)
     res = numeric(sum(durReal))
     madness = matrix(0,nrow=nIter,ncol=512)
-    system.time({
+    # system.time({
       for(k in 1:nIter){
         #randomizza l'ordine delle durate
         durRand = sample(durReal)
@@ -224,7 +224,7 @@ categoryPerm = function(x,
         }
         madness[k,]  =  randDen$y
       }
-    })
+    # })
     
     exRan[[tipo2]] = parlist
     
@@ -264,8 +264,8 @@ categoryPerm = function(x,
     
     
     hist(parlist,breaks = breaks,
-         main=paste0(groupIndex,"-", tipo2,"\nDistribution of ",nIter," ",parameterFunction,"s of ",n, " random epochs each"),
-         xlab=paste(summarizingFunction, "synchronization"),
+         main=paste0(categoryIndex,"-", tipo2,"\nDistribution of ",nIter," ",parameterFunction,"s of ",n, " random epochs each"),
+         xlab=paste(summarizingFunction, stream),
          cex.main = 0.9, col=rgb(1,1,1,1),
          ylim = c(0,maxY*1.2),
          xlim=c(xmin,xmax))

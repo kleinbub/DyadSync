@@ -14,12 +14,12 @@
 #' For each session extracts a stream, then cuts it
 #' according to categories epochs
 #'
-#' @param x 
-#' @param signal  asd
-#' @param sync 
-#' @param streamKey 
+#' @param x a DyadExperiment object
+#' @param signal  string. The name of a DyadSignal present in x
+#' @param sync If missing, stream is searched in the signal (s1, s2, ...). If specified, stream is searched within a sync object (PMBest, CCFBest, ...). 
+#' @param stream 
 #' @param category 
-#' @param groupIndex 
+#' @param categoryIndex 
 #' @param artefact.rm 
 #' @param mergeEpochs 
 #' @param shift_start integer in seconds (e.g. -5 shifts all epoch starts by 5 seconds before )
@@ -29,54 +29,56 @@
 #' @export
 #'
 #' @examples
-epochStream = function(x, signal= "SC", sync="PMBest", streamKey="sync", category, groupIndex,
+epochStream = function(x, signal, sync, stream, category, categoryIndex,
                        mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0){
   UseMethod("epochStream", x)
 }
 
 #' @export
-epochStream.DyadExperiment = function(x, signal= "SC", sync="PMBest", streamKey="sync", category, groupIndex,
+epochStream.DyadExperiment = function(x, signal, sync, stream, category, categoryIndex,
                                       mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0){
   res = Map(function(session, nSession){
     prog(nSession, length(x))
     # cat("session:", attr(session,"dyadId"),"-", attr(session,"sessionId"),"\r\n")
-    epochStream(session, signal, sync, streamKey, category, groupIndex,mergeEpochs, artefact.rm, shift_start, shift_end )
+    epochStream(session, signal, sync, stream, category, categoryIndex,mergeEpochs, artefact.rm, shift_start, shift_end )
   },x, seq_along(x))
   classAttr(res) = classAttr(x)
   res
 }
 
 #' @export
-epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIndex, mergeEpochs, artefact.rm, shift_start, shift_end){
+epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIndex, mergeEpochs, artefact.rm, shift_start, shift_end){
+  #' Nota: dobbiamo poter estrarre sia le synchro che qualunque altro stream, ad es S1 o s2
+  #' quindi 
   ##DEBUG
   # x = d$all_CC_4
   # signal="SC"
   # x$SC$artefacts = rbind(data.frame(start=c(160,300), end=c(200,400)),x[[signal]]$artefacts)
   # 
   # sync="PMdev"
-  # streamKey = "sync"
+  # stream = "sync"
   # category="PACS"
-  # groupIndex="PACS"
+  # categoryIndex="PACS"
   # mergeEpochs = F
   # artefact.rm=T
   ###
   
   if(!sync %in% c("none",names(x[[signal]]))) stop ('sync was',sync,'and should be one of: none,',names(x[[signal]]))
-  resName = paste0(c(toupper(category),"_",totitle(c(if(sync=="none"){""}else{sync},streamKey))),collapse = "")
+  resName = paste0(c(toupper(category),"_",totitle(c(if(sync=="none"){""}else{sync},stream))),collapse = "")
   
   #select stream according to sync and streamkey
   if(sync!="none"){
-    if(length(names(x[[signal]][[sync]])) == 0) stop ("'sync' argument must point to a list containing 'streamKey'")
-    if(!streamKey %in% names(x[[signal]][[sync]])) stop ('streamKey should be one of:',names(x[[signal]][[sync]]))
-    stream = x[[signal]][[sync]][[streamKey]]
+    if(length(names(x[[signal]][[sync]])) == 0) stop ("'sync' argument must point to a list containing 'stream'")
+    if(!stream %in% names(x[[signal]][[sync]])) stop ('stream should be one of:',names(x[[signal]][[sync]]))
+    xstream = x[[signal]][[sync]][[stream]]
   } else {
-    if(!streamKey %in% c("s1","s2","time")) stop ("sync none requires streamkey == s1 or s2 or time")
-    stream = x[[signal]][[streamKey]]
+    if(!stream %in% c("s1","s2","time")) stop ("sync none requires streamkey == s1 or s2 or time")
+    xstream = x[[signal]][[stream]]
   }
   if( artefact.rm ){
     warning("Currently artefact.rm=TRUE does nothing. pmBest() $sync and $lag streams are already cleaned")
-    # # if(length(stream)!=length(x[[signal]]$valid)) stop("artefact.rm temporarily requires that stream has the same frequency of valid")
-    # ## remove Artefacts windows from stream
+    # # if(length(xstream)!=length(x[[signal]]$valid)) stop("artefact.rm temporarily requires that xstream has the same frequency of valid")
+    # ## remove Artefacts windows from xstream
     # for(i in 1:nrow(x[[signal]]$artefacts)){
     #   # asd = ts(1:101, frequency=10,start=0)
     #   # #i campioni da rimuovere sono dal secondo 5 al secondo 7
@@ -87,47 +89,47 @@ epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIn
     #   # window(asd2,start=5,end=7) <- NA
     #   
     #   cat("\r\n",x[[signal]]$artefacts$start[i], " ", x[[signal]]$artefacts$end[i])
-    #   window(stream, start=x[[signal]]$artefacts$start[i],end=x[[signal]]$artefacts$end[i]) <- NA
+    #   window(xstream, start=x[[signal]]$artefacts$start[i],end=x[[signal]]$artefacts$end[i]) <- NA
     # }
     # 
-    # stream[!x[[signal]]$valid]=NA
+    # xstream[!x[[signal]]$valid]=NA
   }
   # seleziona il dataframe della categoria e crea un oggetto per ciascun livello
   cate = x[[category]]
   cate$start = cate$start + shift_start
   cate$end = cate$end + shift_end
-  if(!is.factor(cate[[groupIndex]])) stop("groupIndex should be a factor column in the epoch table")
+  if(!is.factor(cate[[categoryIndex]])) stop("categoryIndex should be a factor column in the epoch table")
   resList = list()
   #istanzia i contenitori vouti per ciascun livello
-  for(lev in levels(cate[[groupIndex]])){
-    # dur = sum((cate[cate[[groupIndex]]==lev,"end"] - cate[cate[[groupIndex]]==lev,"start"] )*frequency(stream))
+  for(lev in levels(cate[[categoryIndex]])){
+    # dur = sum((cate[cate[[categoryIndex]]==lev,"end"] - cate[cate[[categoryIndex]]==lev,"start"] )*frequency(xstream))
     if(mergeEpochs)
       resList[[lev]]=numeric()
     else
       resList[[lev]]=list()
   }
-  names(resList) = levels(cate[[groupIndex]])
+  names(resList) = levels(cate[[categoryIndex]])
 
-  remStream = stream
+  remStream = xstream
   for(i in 1:nrow(cate)){ #for each epoch
-    if(!is.na(cate[[groupIndex]][i]) && !is.null(cate[[groupIndex]][i])) {
-      if(cate$start[i]>=end(stream)[1]){
+    if(!is.na(cate[[categoryIndex]][i]) && !is.null(cate[[categoryIndex]][i])) {
+      if(cate$start[i]>=end(xstream)[1]){
         warning("In session ", dyadId(x),"-",sessionId(x), ", start of window ",i,": was equal to or beyond the stream end.", call.=F)
         # lres[[i]] = NA
-      } else { #if start is before the end of stream, as it should...
+      } else { #if start is before the end of xstream, as it should...
 
         #if (by applying shift_start) cate$start is before the signal start, create a NA padding
-        if(cate$start[i]<start(stream)[1]){
+        if(cate$start[i]<start(xstream)[1]){
           padding = ts(start = cate$start[i],
-                     end = c(start(stream)[1],0), #-> since the real signal starts at c(start(stream)[1],1)
-                     frequency = frequency(stream))
-          cate$start[i] = start(stream[1])
+                     end = c(start(xstream)[1],0), #-> since the real signal starts at c(start(xstream)[1],1)
+                     frequency = frequency(xstream))
+          cate$start[i] = start(xstream[1])
         } else padding = NULL
         
-        #if end goes beyond the stream duration...
-        if(cate$end[i] > end(stream)[1] ){
+        #if end goes beyond the xstream duration...
+        if(cate$end[i] > end(xstream)[1] ){
           message("In session ", dyadId(x),"-",sessionId(x), ", end of window ",i,": was reduced to the stream end.", call.=F)
-          cate$end[i]= end(stream)[1]
+          cate$end[i]= end(xstream)[1]
         }
         
         # rimuovi la finestra dallo stream di segnale residuo remStream:
@@ -159,16 +161,16 @@ epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIn
         # 
         # ####################### END
         
-        #aggiungi la finestra al vettore di resList corrispondente al livello di groupIndex
-        win = window(stream, start = cate$start[i], end = cate$end[i])
+        #aggiungi la finestra al vettore di resList corrispondente al livello di categoryIndex
+        win = window(xstream, start = cate$start[i], end = cate$end[i])
         if(mergeEpochs)
-          resList[[cate[[groupIndex]][i]]] = c(resList[[cate[[groupIndex]][i]]], c(padding,win))
+          resList[[cate[[categoryIndex]][i]]] = c(resList[[cate[[categoryIndex]][i]]], c(padding,win))
         else{
           if(!is.null(padding)){ #se c'è da aggiungere il padding
-            win = ts(c(padding,win2),start=start(padding),end = end(win2),frequency = frequency(stream)) 
+            win = ts(c(padding,win2),start=start(padding),end = end(win2),frequency = frequency(xstream)) 
           }
-          resList[[cate[[groupIndex]][i]]] = c(resList[[cate[[groupIndex]][i]]], list(win))
-          names(resList[[cate[[groupIndex]][i]]])[length(resList[[cate[[groupIndex]][i]]])] = paste0(dyadId(x),sessionId(x),"|",cate$start[i], "-",cate$end[i])
+          resList[[cate[[categoryIndex]][i]]] = c(resList[[cate[[categoryIndex]][i]]], list(win))
+          names(resList[[cate[[categoryIndex]][i]]])[length(resList[[cate[[categoryIndex]][i]]])] = paste0(dyadId(x),sessionId(x),"|",cate$start[i], "-",cate$end[i])
           }
       }
     }
@@ -184,24 +186,37 @@ epochStream.DyadSession = function(x, signal, sync, streamKey, category, groupIn
 
 
 
-#### cambia epochStreamName in sync="PMBest", streamKey="sync", category="PACS/IM"
+#### cambia epochStreamName in sync="PMBest", stream="sync", category="PACS/IM"
 #' @title extract epochs in a simple list
-#'  This function extracts the selected epochs from every session of a "DyadExperiment" object and puts them in
-#'  a simple list.
+#' @param experiment 
+#' @param signal 
+#' @param sync 
+#' @param stream 
+#' @param category the category used to 
+#' @param epochStreamName deprecated. use sync, streamkey, category
+#' @param by 
+#' @param FUN 
+#' @param ... 
+#'
+#' @description  This function extracts the selected epochs from every session of a "DyadExperiment" object and puts them in
+#'  a simple list. Categories must be created with epochStream() beforehand.
 #'  In future the 'by' argument will be used to split the data by experimental group, participant, or any other relevant condition.
 #' @export
-extractEpochs = function(experiment, signal="SC", epochStreamName="IM_PmdevSync", by, FUN = mean, ...){
+extractEpochs = function(experiment, signal, sync, stream, category, epochStreamName, by, ...){
   if(!missing("by")) stop("by is not implemented yet.")
   UseMethod("extractEpochs",experiment) 
 }
 
-
-#' @rdname extractEpochs
 #' @export
-catExtractLong = function(x, signal="", epochStream="",by="",FUN=""){stop("this function has been renamed to extractEpochs ")}
-
-#' @export
-extractEpochs.DyadExperiment = function(experiment, signal, epochStreamName, by, FUN, ...){
+extractEpochs.DyadExperiment = function(experiment, signal, sync, stream, category, epochStreamName, by,  ...){
+  if(missing(category) | missing(sync) | missing(stream)){
+    if(missing(epochStreamName)){
+      stop("please specify: category, sync, stream")
+    } else warning("epochStreamName is a deprecated argument. Please specify: sync, stream, category")
+  }
+  if(missing(epochStreamName)){
+    epochStreamName = paste0(c(toupper(category), "_", totitle(c(sync,stream))),collapse = "")
+  }
   #check names
   keepNames = unique(unlist(lapply (experiment, function(session){
     names(session[[signal]][[epochStreamName]])
@@ -231,6 +246,8 @@ extractEpochs.DyadExperiment = function(experiment, signal, epochStreamName, by,
   res
 }
 
+
+
 # questa funzione al momento è ibrida e incompleta.
 # una prima parte serve ad estrarre delle finestre random dal remaining
 # allo scopo di salvarle nel EXPERIMENT
@@ -253,9 +270,9 @@ extractEpochs.DyadExperiment = function(experiment, signal, epochStreamName, by,
 #' @param signal 
 #' @param category 
 #' @param sync 
-#' @param streamKey 
+#' @param stream 
 # 
-# randomEpochs = function(mimic, n, mean.duration, sd.duration, from="remaining", experiment, signal= "SC", category,  sync="PMBest", streamKey="sync"){
+# randomEpochs = function(mimic, n, mean.duration, sd.duration, from="remaining", experiment, signal= "SC", category,  sync="PMBest", stream="sync"){
 #   ##debug
 #   mimic = "3"
 #   n
@@ -265,12 +282,12 @@ extractEpochs.DyadExperiment = function(experiment, signal, epochStreamName, by,
 #   experiment = d3
 #   signal= "SC"
 #   sync="PMdev"
-#   streamKey="sync"
+#   stream="sync"
 #   category = "IM"
 #   from="remaining"
 #   #-----------------------
 #   mimicMode = match.arg(mimicMode)
-#   resName = paste0(c(toupper(category), "_", totitle(c(sync,streamKey))),collapse = "")
+#   resName = paste0(c(toupper(category), "_", totitle(c(sync,stream))),collapse = "")
 #   ex = catExtractLong(experiment, signal=signal, epochStream=resName)
 #   ex2 = list(IM=do.call(c,ex[1:3]))
 #   ex2$remaining = do.call(c,ex$remaining)
