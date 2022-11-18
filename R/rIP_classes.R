@@ -66,13 +66,13 @@
 ##            $DyadStream s2    |    più metadati, tra cui elementi grafici che forse sono da eliminare
 ##            $artefact         | <- un data.frame contenente le epoche (start end in secondi) da escludere
 ##            $CCFBest          | <- contenitore di analisi sincro basato sulle windowed x-cors
-##              $sync           | <- il vecchio BestCCF
-##              $lag            | <- il vecchio BestLag
-##              $table          | <- la vecchia ccfMatrix
+##              $DyadStream sync| <- il vecchio BestCCF
+##              $DyadStream lag | <- il vecchio BestLag
+##              $df table       | <- la vecchia ccfMatrix
 ##            $PMBest           | <- contenitore di analisi sincro basato sul Peak Matching
-##              $sync           |
-##              $lag            |
-##              $xBest          |
+##              $DyadStream sync|
+##              $DyadStream lag |
+##              $df xBest       |
 ##        $DyadSignal "PPG"     |
 ##            $DyadStream s1    |
 ##            $DyadStream s2    |
