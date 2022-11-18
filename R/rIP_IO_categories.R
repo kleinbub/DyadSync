@@ -41,7 +41,7 @@ readCategories = function(path,
   l = list(...) # l = list(sep=",")
   l = c(list(path,namefilt,idOrder,idSep),l)
   l$stringsAsFactors = FALSE
-  l$as.is = TRUE
+  # l$as.is = TRUE
   if(is.null(l$colClasses)) l$colClasses = "character"
   if(is.null(l$header)) l$header = TRUE
   
