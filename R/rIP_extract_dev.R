@@ -48,8 +48,7 @@ epochStream.DyadExperiment = function(x, signal, sync, stream, category, categor
 
 #' @export
 epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIndex, mergeEpochs, artefact.rm, shift_start, shift_end){
-  #' Nota: dobbiamo poter estrarre sia le synchro che qualunque altro stream, ad es S1 o s2
-  #' quindi 
+
   ##DEBUG
   # x = d$all_CC_4
   # signal="SC"
@@ -62,45 +61,38 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
   # mergeEpochs = F
   # artefact.rm=T
   ###
-  
-  if(!sync %in% c("none",names(x[[signal]]))) stop ('sync was',sync,'and should be one of: none,',names(x[[signal]]))
-  resName = paste0(c(toupper(category),"_",totitle(c(if(sync=="none"){""}else{sync},stream))),collapse = "")
+  goodSyncs = names(x[[signal]])[sapply(x[[signal]],is.sync)]
+  if(!missing(sync) && !sync %in% names(x[[signal]])) stop ('sync was',sync,'and should be one of: ',goodSyncs)
+  resName = paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},stream)),collapse = "")
   
   #select stream according to sync and streamkey
-  if(sync!="none"){
-    if(length(names(x[[signal]][[sync]])) == 0) stop ("'sync' argument must point to a list containing 'stream'")
-    if(!stream %in% names(x[[signal]][[sync]])) stop ('stream should be one of:',names(x[[signal]][[sync]]))
+  if(!missing(sync)){
+    goodStreams = names(x[[signal]][[sync]])[sapply(x[[signal]][[sync]],is.DyadStream)]
+    if(length(goodStreams) == 0) stop ("'sync' argument must point to a list containing 'stream'")
+    if(!stream %in% goodStreams) stop ('stream was',stream,'and should be one of:',goodStreams)
     xstream = x[[signal]][[sync]][[stream]]
   } else {
-    if(!stream %in% c("s1","s2","time")) stop ("sync none requires streamkey == s1 or s2 or time")
+    goodStreams = names(x[[signal]])[sapply(x[[signal]],is.DyadStream)]
+    if(!stream %in% goodStreams) stop ("stream was", stream,"and should be one of:",goodStreams )
     xstream = x[[signal]][[stream]]
   }
-  if( artefact.rm ){
-    warning("Currently artefact.rm=TRUE does nothing. pmBest() $sync and $lag streams are already cleaned")
-    # # if(length(xstream)!=length(x[[signal]]$valid)) stop("artefact.rm temporarily requires that xstream has the same frequency of valid")
-    # ## remove Artefacts windows from xstream
-    # for(i in 1:nrow(x[[signal]]$artefacts)){
-    #   # asd = ts(1:101, frequency=10,start=0)
-    #   # #i campioni da rimuovere sono dal secondo 5 al secondo 7
-    #   # window(asd, start=5,end=7) <- NA
-    #   # # funziona indipendentemente da frequency,
-    #   # # es. in una ts con frequenza diversa:
-    #   # asd2 = ts(seq(1,101,by=10),frequency = 1,start=0)
-    #   # window(asd2,start=5,end=7) <- NA
-    #   
-    #   cat("\r\n",x[[signal]]$artefacts$start[i], " ", x[[signal]]$artefacts$end[i])
-    #   window(xstream, start=x[[signal]]$artefacts$start[i],end=x[[signal]]$artefacts$end[i]) <- NA
-    # }
-    # 
-    # xstream[!x[[signal]]$valid]=NA
+  
+  ## remove Artefacts windows from xstream, if any
+  if( artefact.rm && nrow(x[[signal]]$artefacts)>0 ){
+    for(i in 1:nrow(x[[signal]]$artefacts)){
+      # cat("\r\n",x[[signal]]$artefacts$start[i], " ", x[[signal]]$artefacts$end[i])
+      window(xstream, start=x[[signal]]$artefacts$start[i],end=x[[signal]]$artefacts$end[i]) <- NA
+    }
+
   }
   # seleziona il dataframe della categoria e crea un oggetto per ciascun livello
   cate = x[[category]]
+  #applica gli shift
   cate$start = cate$start + shift_start
   cate$end = cate$end + shift_end
-  if(!is.factor(cate[[categoryIndex]])) stop("categoryIndex should be a factor column in the epoch table")
+  if(!is.factor(cate[[categoryIndex]])) stop("categoryIndex must be a factor column in the ",category,"'s epochs table")
   resList = list()
-  #istanzia i contenitori vouti per ciascun livello
+  #istanzia i contenitori vuoti per ciascun livello
   for(lev in levels(cate[[categoryIndex]])){
     # dur = sum((cate[cate[[categoryIndex]]==lev,"end"] - cate[cate[[categoryIndex]]==lev,"start"] )*frequency(xstream))
     if(mergeEpochs)
@@ -186,7 +178,6 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
 
 
 
-#### cambia epochStreamName in sync="PMBest", stream="sync", category="PACS/IM"
 #' @title extract epochs in a simple list
 #' @param experiment 
 #' @param signal 
