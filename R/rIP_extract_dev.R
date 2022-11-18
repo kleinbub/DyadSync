@@ -185,47 +185,47 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
 #' @param stream 
 #' @param category the category used to 
 #' @param epochStreamName deprecated. use sync, streamkey, category
-#' @param by 
+#' @param by currently unused. In future will be used to split the data by experimental group, participant, or any other relevant condition
 #' @param FUN 
 #' @param ... 
 #'
 #' @description  This function extracts the selected epochs from every session of a "DyadExperiment" object and puts them in
 #'  a simple list. Categories must be created with epochStream() beforehand.
-#'  In future the 'by' argument will be used to split the data by experimental group, participant, or any other relevant condition.
 #' @export
-extractEpochs = function(experiment, signal, sync, stream, category, epochStreamName, by, ...){
+extractEpochs = function(experiment, signal, sync, stream, category, categoryIndex, by, epochStreamName, ...){
   if(!missing("by")) stop("by is not implemented yet.")
   UseMethod("extractEpochs",experiment) 
 }
 
 #' @export
-extractEpochs.DyadExperiment = function(experiment, signal, sync, stream, category, epochStreamName, by,  ...){
-  if(missing(category) | missing(sync) | missing(stream)){
-    if(missing(epochStreamName)){
-      stop("please specify: category, sync, stream")
-    } else warning("epochStreamName is a deprecated argument. Please specify: sync, stream, category")
+extractEpochs.DyadExperiment = function(experiment, signal, sync, stream, category, categoryIndex, by, epochStreamName,   ...){
+  #deleteme @OBSOLETE
+  if(!missing(epochStreamName)) stop("epochStreamName is obsolete. Specify sync, stream, category, categoryIndex instead.")
+  if(missing(category) | missing(categoryIndex) | missing(stream)){
+      stop("category, categoryIndex, stream, must all be specified")
   }
-  if(missing(epochStreamName)){
-    epochStreamName = paste0(c(toupper(category), "_", totitle(c(sync,stream))),collapse = "")
-  }
+  epochsName = paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},stream)),collapse = "")
+  goodNames = names(session[[signal]])[!sapply(session[[signal]],is.sync) & !sapply(session[[signal]],is.DyadStream)]
+  if(! epochsName %in% goodNames) stop(epochsName, " was not found in session. Have you run epochStream() beforehand. Found names: ", goodNames )
+  
   #check names
   keepNames = unique(unlist(lapply (experiment, function(session){
-    names(session[[signal]][[epochStreamName]])
+    names(session[[signal]][[epochsName]])
   })))
   keepNames = sort(keepNames)
   #controlla se mergeEpochs era T o F
   mergeEpochs = !any(unlist(lapply (experiment, function(session){
-    lapply(session[[signal]][[epochStreamName]],is.list)
+    lapply(session[[signal]][[epochsName]],is.list)
   })))
   #instanzia una lista vuota con keepNames elementi
   res = vector("list", length(keepNames))
   names(res) = keepNames
 
   for(session in experiment){
-    if(!is.null(session[[signal]][[epochStreamName]])){
-      sesNames= names(session[[signal]][[epochStreamName]])
+    if(!is.null(session[[signal]][[epochsName]])){
+      sesNames= names(session[[signal]][[epochsName]])
       for(sesName in sesNames){
-        newElement = session[[signal]][[epochStreamName]][[sesName]]
+        newElement = session[[signal]][[epochsName]][[sesName]]
         newElement = if(mergeEpochs  || is.list(newElement)) newElement else list(newElement)
         res[[sesName]] = c(res[[sesName]], newElement)
       }
