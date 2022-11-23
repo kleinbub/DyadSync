@@ -400,7 +400,7 @@ znorm = function(a){
 #' @export
 #' @examples
 #' Fs = 100; t = 5; samples = seq(0,t,len=Fs*t)
-#' x = ts(sin(2*pi*3*samples + seq(-0.5,0.5,length.out = Fs*t), frequency = Fs)
+#' x = ts(sin(2*pi*3*samples) + seq(-0.5,0.5,length.out = Fs*t), frequency = Fs)
 #' x[1:50] = NA
 #' xn = x+runif(1000,-0.5,0.5);
 #' x1 = FIR(xn, "low", cut = 3,attenDb = 50,burnSec = 0, plot=TRUE)
