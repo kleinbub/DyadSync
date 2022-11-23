@@ -1,7 +1,7 @@
 Package: DyadSync
 Type: Package
 Title: Synchronization of physiological and behavioral time-series of two interacting persons.
-Version: 1.0.0.9024
+Version: 1.1.0.0000
 Date: 2022-11-23
 Author: Johann R. Kleinbub
 Maintainer: Johann R. Kleinbub <johann.kleinbub@gmail.com>
