@@ -13,16 +13,25 @@ scale.ts = function(x, center = TRUE, scale = TRUE){
 #'
 #' @param x a ts object
 #' @export
-tss = function(x){return(tsp(x)[1L])}
+tss = function(x){UseMethod("tss",x)}
+tss.ts = function(x){return(tsp(x)[1L])}
+#start(x)[1]*frequency(x)+start(x)[2]-1
+
 #' Time Series End
 #' this returns the end of a ts object in time units
 #'
 #' @param x a ts object
 #' @export
-tse = function(x){return(tsp(x)[2L])}
+tse = function(x){UseMethod("tse",x)}
+tse.ts = function(x){return(tsp(x)[2L])}
+# end(x)[1]*frequency(x)+end(x)[2]-1
 
 #' Duration of a ts object in time units
 #' @param x a ts object
 #'
 #' @export
-duration = function(x){return(tse(x)-tss(x))}
+duration = function(x){UseMethod("duration",x)}
+duration.ts = function(x){return(tse(x)-tss(x))}
+
+
+
