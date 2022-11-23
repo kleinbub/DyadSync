@@ -6,6 +6,27 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+## v.1.0.0.9024
+#### 2022/11/23
+  * renamed groupIndex to categoryIndex and streamKey to stream
+  * renamed PMbest to AMICo
+  * parallelized AMICo
+  * general clean up and obsolescence file
+
+
+
+## v.1.0.0.9023
+#### 2022/09/20
+  * switched to data.table for input output tasks
+  * started parallelization of the package (signalFilter)
+  
+## v.1.0.0.9022
+#### 2022/09/20
+  * vastly improved fadein fadeout performance in FIR. Note to self. This approach could be used in other filters too.
+  * vastly improved c.DyadExperiment
+  * minor fixes to readCategories()
+  * new extraction method for DyadExperiment objects
+  * implemented "[.DyadExperiment" to extract or replace parts of a DyadExperiment
 
 ## v.1.0.0.9021
 #### 2021/12/17

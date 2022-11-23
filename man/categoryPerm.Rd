@@ -7,14 +7,14 @@
 categoryPerm(
   x,
   plotPrefix,
-  signal = "SC",
-  sync = "PMdev",
-  streamKey = "sync",
-  category = "PIRS",
-  groupIndex = "code2",
+  signal,
+  sync,
+  stream,
+  category,
+  categoryIndex,
   keepOnly = c(),
-  minEpochSec = 3,
-  minOccurrences = 10,
+  minEpochSec,
+  minOccurrences,
   absolute = FALSE,
   nIter = 1000,
   rotate = TRUE,
@@ -33,11 +33,11 @@ categoryPerm(
 
 \item{sync}{character. Name of a synchronization object. E.g. PMBest, or CCFBest}
 
-\item{streamKey}{character. Name of a DyadStream object contained within sync}
+\item{stream}{character. Name of a DyadStream object contained within sync}
 
 \item{category}{character. Name of a DyadCategory object contained in x}
 
-\item{groupIndex}{character. Name of a factor column in 'category'.}
+\item{categoryIndex}{character. Name of a factor column in 'category'.}
 
 \item{keepOnly}{vector of characters denoting if only given categories must be analyzed. Eg: c("cat1","cat2").}
 
@@ -58,9 +58,6 @@ categoryPerm(
 \item{parameterFunction}{String. the function used to summarize all epochs's single values. Suggested: median.}
 
 \item{xlim}{either "auto" or a numeric vector of length 2 to set the plot scale.}
-}
-\value{
-
 }
 \description{
 given a well formatted DyadExperiment object with some calculated DyadStream (e.g. synchronization or physiology) and DyadCategory data

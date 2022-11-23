@@ -20,9 +20,6 @@ hh:mm:ss, mm:ss, ss.}
 
 \item{...}{further arguments passed to axis}
 }
-\value{
-
-}
 \description{
 Easy axes for ts objects
 }

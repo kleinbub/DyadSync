@@ -16,7 +16,7 @@
 #'
 #' @param x a DyadExperiment object
 #' @param signal  string. The name of a DyadSignal present in x
-#' @param sync If missing, stream is searched in the signal (s1, s2, ...). If specified, stream is searched within a sync object (PMBest, CCFBest, ...). 
+#' @param sync If missing, stream is searched in the signal (s1, s2, ...). If specified, stream is searched within a sync object (PMBdev, CCFBest, ...). 
 #' @param stream 
 #' @param category 
 #' @param categoryIndex 
@@ -119,6 +119,7 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
       } else { #if start is before the end of xstream, as it should...
 
         #if (by applying shift_start) cate$start is before the signal start, create a NA padding
+        #@TSBUG
         if(cate$start[i]<start(xstream)[1]){
           padding = ts(start = cate$start[i],
                      end = c(start(xstream)[1],0), #-> since the real signal starts at c(start(xstream)[1],1)

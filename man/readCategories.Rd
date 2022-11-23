@@ -40,9 +40,6 @@ will be converted to factors, searching across all files for possible levels.}
 
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Imports categorical data
 }

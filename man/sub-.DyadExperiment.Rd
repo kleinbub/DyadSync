@@ -13,9 +13,6 @@
 
 \item{name}{The name of the new experiment}
 }
-\value{
-
-}
 \description{
 Extract or replace parts of a dyadexperiment
 }
