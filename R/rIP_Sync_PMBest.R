@@ -80,7 +80,7 @@ AMICo = pmBest = function(experiment, signal="all", lagSec=20, #@OBSOLETE 2022 p
   #parallelization
   
   cores=parallel::detectCores()-1
-  cat(paste0("\r\nPerforming parallized computation of AMICo ",algorithm," using ",cores," cores.\r\n")) #verified!
+  cat(paste0("\r\nPerforming parallelized computation of AMICo ",algorithm," using ",cores," cores.\r\n")) #verified!
   cat(paste0("\r\nHigh Sync at positive lags implies that the ",s2Name(experiment[[1]]),
              " follows the ", s1Name(experiment[[1]]),"\r\n")) #verified!
   cl <- parallel::makeCluster(cores[1]-1) #not to overload your computer
