@@ -73,32 +73,3 @@ name <- function(x) {
   attr(x, "name")    <- name
   x
 }
-#' 
-#' 
-#' 
-#' #' @export
-#' uniqueId.DyadExperiment = function(x){
-#'   `Group Ids` = sapply(x, attr, "groupId")
-#'   table(`Group Ids`)
-#' }
-#' 
-#' #' @export
-#' uniqueId.DyadSession = function(x){
-#'   attr(x,"groupId")
-#' }
-#' 
-#' 
-#' 
-#' 
-#' 
-#' 
-
-#' @export
-sampRate <-function(x) {
-  if(is.ts(x)) frequency(x)
-  else attr(x,"sampRate")
-}
-
-#' @export
-frequency.DyadSignal = function(x){attr(x,"sampRate")}
-
