@@ -461,10 +461,13 @@ print.DyadStream = function (x, ...) {
             "\nEnd: ", format(tsp(x)[2L]), "\nFrequency: ", deparse(fr.x), 
             "\n")
   cat0("Duration: ",length(x), " samples, ",length(x)/frequency(x), " seconds\n\n")
-  cat(x[1:100], sep = "\t")
-  cat("\n...\n")
-  cat(x[(length(x)-100):length(x)], sep = "\t") 
-  
+  if(length(x)>200){
+    cat(x[1:100], sep = "\t")
+    cat("\n...\n")
+    cat(x[(length(x)-100):length(x)], sep = "\t") 
+  } else {
+    cat(x, sep="\t")
+  }
 }
 
 #' Time Windows
