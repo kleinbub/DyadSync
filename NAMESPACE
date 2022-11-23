@@ -3,6 +3,7 @@
 S3method("[",DyadExperiment)
 S3method("groupId<-",DyadExperiment)
 S3method("groupId<-",DyadSession)
+S3method("window<-",DyadStream)
 S3method(as.ts,DyadStream)
 S3method(basicPlot,DyadExperiment)
 S3method(basicPlot,DyadSignal)
