@@ -43,7 +43,7 @@ AMICo = pmBest = function(experiment, signal="all", lagSec=20, #@OBSOLETE 2022 p
                   sgol_p = 2, sgol_n = 25,  weightMalus = 20,
                   match_threshold = 0.25, minSizeSec=1,
                   algorithm=c("v1.1","v1.0"),
-                  outputName = "PMBest", 
+                  outputName = "AMICo", 
                   correctionRangeSeconds = 0.5, minPeakDelta){
   
   #debug
@@ -309,7 +309,7 @@ peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,
   xbest$s1 = s1b$samples[xbest$row]
   xbest$s2 = s2b$samples[xbest$col]
   #instantiate new sync class object
-  signal[[outputName]] = PMBest(NULL,NULL,xbest,lagSec,sgol_p,sgol_n,weightMalus)
+  signal[[outputName]] = newAMICo(NULL,NULL,xbest,lagSec,sgol_p,sgol_n,weightMalus)
   signal
 }
 
