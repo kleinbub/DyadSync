@@ -8,7 +8,7 @@ Maintainer: Johann R. Kleinbub <johann.kleinbub@gmail.com>
 Description: A suite of tools useful to import, visualize and analyze dyadic data of various form. The current version contains tools for electrodermal activity. 
 URL: https://github.com/kleinbub/DyadSync http://www.kleinbub.it 
 BugReports: https://github.com/kleinbub/DyadSync/issues
-Imports: grDevices, graphics, methods, stats, utils, signal, hdrcde, parallel, doParallel, foreach, data.table
+Imports: grDevices, graphics, methods, stats, utils, signal, hdrcde, parallel, doSNOW, foreach, data.table, progress
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
