@@ -6,11 +6,11 @@
 \usage{
 epochStream(
   x,
-  signal = "SC",
-  sync = "PMBest",
-  streamKey = "sync",
+  signal,
+  sync,
+  stream,
   category,
-  groupIndex,
+  categoryIndex,
   mergeEpochs = FALSE,
   artefact.rm = TRUE,
   shift_start = 0,
@@ -18,17 +18,17 @@ epochStream(
 )
 }
 \arguments{
-\item{x}{}
+\item{x}{a DyadExperiment object}
 
-\item{signal}{asd}
+\item{signal}{string. The name of a DyadSignal present in x}
 
-\item{sync}{}
+\item{sync}{If missing, stream is searched in the signal (s1, s2, ...). If specified, stream is searched within a sync object (PMBdev, CCFBest, ...).}
 
-\item{streamKey}{}
+\item{stream}{}
 
 \item{category}{}
 
-\item{groupIndex}{}
+\item{categoryIndex}{}
 
 \item{mergeEpochs}{}
 
@@ -37,9 +37,6 @@ epochStream(
 \item{shift_start}{integer in seconds (e.g. -5 shifts all epoch starts by 5 seconds before )}
 
 \item{shift_end}{integer in seconds (e.g. 7 shifts all epoch end by 7 seconds later )}
-}
-\value{
-
 }
 \description{
 epochStream cycles through all sessions in an experiment.

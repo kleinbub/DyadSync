@@ -20,15 +20,12 @@ sessionId = function(dyadSession){
 }
 #' @rdname sessionId
 #' @export
-session = sessionId
 
-#' @aliases dyad dyadId
 #' @export
 dyadId = function(dyadSession){
   attr(dyadSession,"dyadId")
 } 
 #' @export
-dyad = dyadId
 
 
 ## ## GROUP ID
@@ -76,14 +73,3 @@ name <- function(x) {
   attr(x, "name")    <- name
   x
 }
-
-
-#' @export
-sampRate <-function(x) {
-  if(is.ts(x)) frequency(x)
-  else attr(x,"sampRate")
-}
-
-#' @export
-frequency.DyadSignal = function(x){attr(x,"sampRate")}
-

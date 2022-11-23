@@ -153,17 +153,7 @@ pvalFormat= function(x){
 
 
 
-############################################################################################################
-############################################################################################################
-############################################################################################################
-## FUNCTIONS FOR SIGNALS
 
-#' @export
-xstart = function(x) {start(x)[1]+start(x)[2]/frequency(x)}
-#' @export
-xend = function(x){end(x)[1]+end(x)[2]/frequency(x)}
-#' @export
-xduration = function(x){length(x)/frequency(x)}
 
 ############################################################################################################
 ############################################################################################################
@@ -214,9 +204,7 @@ rangeRescale <- function(x, newA, newB, oldA =min(x, na.rm=T), oldB = max(x, na.
     oldA = -mightyMax
     oldB = mightyMax
   }
-  (newB-newA) * (
-    (x - oldA)  / (oldB - oldA )
-  ) + newA
+  return((newB-newA) * ((x - oldA)  / (oldB - oldA )) + newA)
 }
 
 
@@ -241,7 +229,15 @@ pkgTest <- function(x)
   }
 }
 
-## binds unequal columns to a same data.frame padding NAs to the end of the shorter
+## 
+#' cbind allowing to bind unequal columns to a same data.frame padding NAs to the end of the shorter
+#'
+#' @param ... 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 unequalCbind = function(...) {
   dots <- list(...)
   #debug
@@ -384,43 +380,58 @@ merge.list = function(x,y) {
   for(n in over){if(x[[n]]!=y[[n]]) stop("Can't merge list with different values for the same tag:\r\n",n,": ",x[[n]]," != ",y[[n]])}
 }
 
-#' Calculate number of windows in a time-series
+#' Calculate number of windows in a time-series with a given duration
 #'
-#' @param lenSec a duration to be split in windows, in seconds
+#' @param x either the duration in seconds of a time-series, or a ts object
 #' @param winSec the width of each window, in seconds
 #' @param incSec the amount of increment between each window (incSec == winSec gives non-overlapping windows)
 #' @param sampRate the number of samples per second (i.e. frequency)
-#' @param verbose should all the windows be printed?
 #' @param return either "number", which returns the number of windows, or "all" which returns a data.frame with the start and end of each window.
+#' @param verbose should all the windows be printed?
+#' @param flex if true the first and last windows are stretched so to have exactly length(x)/inc resulting windows
 #'
 #' @return
 #' @export
 #'
 #' @examples
-nwin = function(lenSec, winSec, incSec, sampRate=1, verbose = F, return=c("number", "all")) {
-  
+nwin = function(x, winSec, incSec, sampRate=frequency(x), return=c("number", "all"), flex=FALSE, verbose = FALSE) {
+  if(length(x)>1){
+    len = length(x)
+  } else {
+    if(x%%1 != 0) stop = "in nwin, x must be integer"
+    len = x*sampRate
+  }
+
+
   # sampRate = 10
   inc=incSec *sampRate;
   win=winSec*sampRate;
-  len=lenSec*sampRate
+
+
   #la vera santa formula:
   n_win = ceiling((len-win+1)/inc)
-  
+
   return=match.arg(return)
-    
+
+  all_wins = 1:n_win
+  start = (all_wins-1)*inc +1
+  end = start + win -1
+  mid = start + win/2
+
+  # if(flex) {
+  #   init =
+  # }
+
+
+
   if(verbose){
     digits = nchar(trunc(abs(len)))
-    
+
     cat("\r\n Number of windows:",n_win)
     cat("\r\n Number of samples used:",(n_win-1)*inc+win)
     cat("\r\n Number of seconds used:",((n_win-1)*inc+win)/sampRate)
     cat0("\r\n Proportion of len used: ",((n_win-1)*inc+win)/len*100,"%\r\n")
-    
-    all_wins = 1:n_win
-    start = (all_wins-1)*inc +1 
-    end = start + win -1
-    
-    
+
     actual = 0;iterations = 0;
     while ( actual+win<=len) {
       iterations = iterations+1
@@ -430,9 +441,82 @@ nwin = function(lenSec, winSec, incSec, sampRate=1, verbose = F, return=c("numbe
       #cat(actual+win,"\n\r")
     }
   }
-  else print(n_win)
-  
-  if(return=="number")
-    invisible(n_win)
-  else if (return =="all") data.frame(window=all_wins, start=start,end=end)
+
+  if(return=="number")  return(n_win)
+  else if (return =="all") return(data.frame(window=all_wins, start=start,end=end, mid=mid))
 }
+
+
+#' Interpolate by window
+#' Interpolate windowed data to original samplerate. 
+#' useful to overlay computed indexes on original timeseries
+#'
+#' @param windowsList
+#' @param winSec 
+#' @param incSec 
+#' @param sampRate 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+winInter = function(windowsList, winSec, incSec, sampRate){
+  warning("This function is a mess, please ask some developer to refactor it!")
+  if(class(windowsList)!="list") {windowsList = list(windowsList)}
+  #cat("Interpolating",incSec*sampRate,"sample between each HRV datapoint (linear) \r\n")
+  inc=incSec*sampRate
+  win= winSec*sampRate
+  nList=length(windowsList)
+  Map(function(daba,i){
+    #prog(i,nList)
+    data.frame(apply(daba,2,function (series){
+      approx(x    = seq(1,(length(series)*inc), by=inc)+ceiling(win/2)-1, #windowed datapoints must be at the center of the window
+             y    = series, #the exact calculated values
+             xout = seq(1,(length(series)-1)*inc + win,by=1) #all samples covered by the windows
+      )$y
+    }))
+  },windowsList,seq_along(windowsList))
+}
+
+#' Approx by window
+#' when you have a value for each window (even overlapping ones) and you
+#' want to transform the values to a time series with the original sampling rate
+#'
+#' @param a a numerical vector, resulting from a windowing
+#' @param winSec the size of the window used to calculate a, in seconds
+#' @param incSec the increment of each window used to calculate a, in seconds
+#' @param sampRate the number of samples per second of the destination time-series
+#' @param midPoints if true, the value are considered to be at the center of the window, and the result is padded right by half window
+#'
+#' @return
+#' @export
+#'
+#' @examples
+
+# approxByWin = function(a, winSec, incSec, sampRate=frequency(x), midPoints=T){
+#   # a = res
+#   # winSec=4
+#   # incSec = 1
+#   # sampRate  = 100
+#   warning("I think this function has issues!")
+# 
+#   inc=incSec*sampRate
+#   win= winSec*sampRate
+# 
+#   halfWin = ceiling(win/2)
+#   if(midPoints)
+#     x_vals = seq(1,(length(a)*inc), by=inc)+halfWin #windowed datapoints must be at the center of the window
+#   # else
+#   #   x_vals = seq(1,(length(a)*inc), by=inc) #windowed datapoints must be at the center of the window
+# 
+#   out = approx(x    = x_vals,
+#                y    = a, #the exact calculated values
+#                xout = seq(1,(length(a)-1)*inc + win,by=1) #all samples covered by the windows
+#   )$y
+#   #replicate first/last good value in first half windows
+#   out[1:halfWin-1] = out[halfWin]
+#   out[(length(out)-halfWin+1):length(out)] = out[(length(out)-halfWin)]
+#   return(out)
+# }
+
+

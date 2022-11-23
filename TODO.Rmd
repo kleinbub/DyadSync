@@ -6,33 +6,104 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-## Development 
+# ULTRA IMPORTANT KNOWLEDGE
+  * puoi debuggare i missing e le chiamate stampanod:
+  __print(match.call())__
+  * marker nel codice:
+    * @TSBUG
+    * @OBSOLETE
 
-## High alert:
+
+## Git
+  * merge di dev4 con master
+  * nuovo branch con tempo in millesimi e/o frazioni di secondo in timemaster
+
+## physiology
+  * recupera tutte le funzioni avanzate sviluppate per VRperGenere
+  
+## mechanics
+  * fai funzionare byWin
+  * ottimizza ccfBest e omologa l'output di ccfBest e pmBest. In particolar modo 
+    ci sia il tempo per le finestre di ccfBest
+  *  I have introduced the concept of "flex" in the windowing procedures. "flex" means that instead of
+       removing the first and last half windows, initial and ending parts are processed with windows of 
+       decreasing size
+    *  this has broken at least nwin, winInter, and the new functions approxbywin and byWin
+    *  prova a vedere l'implementazione in FIR()
+  * nuova funzione: filterArtefacts() che applica una FUN sulle finestre specificate da setArtefacts(), ad es settando a NA, o smoothando. Metti anche come filtro una possibile label per scriminare diversi artefatti. flat, wiggle, motion, etc.
+
+## BUGS & various mishaps
+ * cloneAttr e classAttr cambiano solo alcuni attributi, ha senso?
+   usando peraltro una variabile    globale LOCK_ATTR. 
+   Forse in R internals c'è una guida per dire come fare meglio?
+ 
+    
+## XSTREAM TS sobstitution
+
+  
+## rats CLASS DOCUMENTATION
+  * ts continua a dare problemi.  abbandona sta merda!  
+  * ho iniziato a segnare con @TSBUG i punti dove ci sono le bestemmie  
+    * tutte le approssimazioni start()[1] end()[1] sono inaccettabili. controlla se e dove sostituire con tss, tse
+  * ho scritto una classe in fixing_ts.R si chiama rats e funziona da dio
+    * bisogna scrivere tutti i methodi, vedi: methods(class="ts")
+    *
+  * __NB: stream means data available over time. This is not the case. find better names.__
+    * rats: rational time series
+    * huts: human time series
+    * dyats: time series of the dyadsync package
+  * rats deve sostituire DyadStream
+  
+### rats CLASS DOCUMENTATION
+  * rats are legion: there is no singular form "rat"
+  * rats are small: rats is never capitalized.
+  * rats fit well together: rats(start=0, end=10, f=1) and rats(start=10, end=20, f=1) do
+    not overlap. Time intervals are half-open intervals, including the start value
+    but excluding the end one.
+  * rats are familiar: syntax is intuitive for ts() or zoo() users
+
+
+
+## Permutations
+  * implementa misure di effect size robuste per le permutations:
+    https://garstats.wordpress.com/2016/05/02/robust-effect-sizes-for-2-independent-groups/
+    
+## Category extraction
+  * se voglio usare più di un groupIndex, ad es IM_tipo e IM_livello, queste si sovrascrivono in epochStream. Devi sempre indicare signal="SC", sync="PMdev",streamKey = "sync", category="IM",groupIndex="micro".
+
+
+## Graphics 
+  * scrivi funzioni generiche per long plot
+
+  
+  
+## double check & cleanup
+  * read dyad categories non usa stesso nome diadi (uid) di dati fisio (maybe fixed?)
   * setArtefacts richiede che dyad sia char con leading zero. tipo "01" funziona invece 1L no.
-  * ts continua a dare problemi. Ad es window(x, xstart(x),xend(x)) è un sample più lungo di x. Scrivi la tua classe e abbandona sta merda. ho iniziato a segnare con @TSBUG i punti dove ci sono le bestemmie
-  * implementa DyadExperiment.[]
+  * sampRate() diventa frequency()
+  * sccf sarebbe meglio wccs "window cross corr of slopes"
+  * aggiungi '...' a PMBest e CCFBest, per accomodare i parametri di eventuali altri algoritmi di calcolo.
+  * metti attribute "SEssionName" o simile dentro a DyadSignal e DyadStream per tnere traccia
+  * rinomina i files in modo sensato
+  * elimina i commenti e le cose obsolete. Sto segnando con @OBSOLETE le parti da rimuovere e/o spostare in obsolenscence.R
+  * c'è un bug in print.DyadStream:  Error in `[.default`(x, (length(x) - 100):length(x)) : only 0's may be mixed with negative subscripts. Probabilmente con streams molto brevi.
+  * cambia gli inutili mapply (Map) in cicli for!
+  
+  
+
+## Performance
+  * Parallelize -> http://dept.stat.lsa.umich.edu/~jerrick/courses/stat701/notes/parallel.html
+  * usa il profiler per trovare bottlenecks: https://support.rstudio.com/hc/en-us/articles/218221837-Profiling-R-code-with-the-RStudio-IDE
+   
+   
+
+## AMICo algorithm
+
   * in xbest di PMbest ci sono delle (rare) occorrenze in cui lo stesso picco viene usato 2 volte, che è grave.
-  * tutte le approssimazioni start()[1] end()[1] sono inaccettabili. controlla se e dove sostituire con xstart, xend
   * errori (rari) in PMBest (su diadi random): 
     * In cor(rs1, rs2, use = "c") : la deviazione standard è zero
     * In s2p\$bool + s2v\$bool :  longer object length is not a multiple of shorter object length
 
-  
-## Clean Up
-  * peakFinder micropeaks now is set to 0.03 which is good for SC but should become a parameter
-  * in epochstream() artefact remove è obsoleto perché setArtefacts toglie già i valori dallo stream sync (e lag?)
-  * c.DyadExperiment, works fine but final report is messy
-  * sampRate() diventa frequency()
-  * sccf sarebbe meglio wccs "window cross corr of slopes"
-  * aggiungi '...' a PMBest e CCFBest, per accomodare i parametri di eventuali altri algoritmi di calcolo.
-  * signalDecimate deve diventare decimate() secondo la nuova filosofia dei filtri
-  * metti attribute "SEssionName" o simile dentro a DyadSignal e DyadStream per tnere traccia
-  * in extractEpochs espandi 'epochStreamName' in 3 argomenti seperati sync="PMBest", streamKey="sync", category="PACS/IM" come nel resto del pacchetto
-
-## Performance
-  * Parallelize -> http://dept.stat.lsa.umich.edu/~jerrick/courses/stat701/notes/parallel.html
-  * usa data.table::fread per importare
   
 ### migliorie all'indice
   * implementare maxWinSize per evitare situazioni come queste:

@@ -2,12 +2,13 @@
 % Please edit documentation in R/rIP_IO_categories.R
 \name{readCategories}
 \alias{readCategories}
-\title{Title}
+\title{Imports categorical data}
 \usage{
 readCategories(
   path,
   startCol,
   endCol,
+  codingCol,
   catName,
   namefilt = NA,
   removeSec = 0,
@@ -17,27 +18,28 @@ readCategories(
 )
 }
 \arguments{
-\item{startCol}{}
+\item{path}{}
 
-\item{endCol}{}
+\item{startCol}{character. The column containing the start of each epoch.
+In hh:mm:ss or mm:ss format, or just a number representing seconds (see timeMaster).}
 
-\item{catName}{}
+\item{endCol}{character. The column containing the end of each epoch.}
 
-\item{namefilt}{}
+\item{codingCol}{numeric vector. The column(s) containing categories. These
+will be converted to factors, searching across all files for possible levels.}
 
-\item{removeSec}{}
+\item{catName}{character. The name of the category}
+
+\item{namefilt}{character. A name or part of name, to filter among all files in path.}
+
+\item{removeSec}{numeric or numeric vector. number of seconds to be subtracted from the}
 
 \item{idOrder}{}
 
 \item{idSep}{}
 
 \item{...}{}
-
-\item{dirPath}{}
-}
-\value{
-
 }
 \description{
-Title
+Imports categorical data
 }

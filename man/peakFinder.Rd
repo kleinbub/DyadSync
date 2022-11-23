@@ -16,7 +16,7 @@ peakFinder(
 \arguments{
 \item{x}{a ts object or a numeric vector.}
 
-\item{sgol_p}{smoothing filter order.}
+\item{sgol_p}{smoothing filter order. If NA, the filtering is disabled.}
 
 \item{sgol_n}{smoothing filter length (must be odd).}
 

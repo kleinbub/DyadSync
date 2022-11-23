@@ -63,9 +63,9 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F, ...){
       if(is.na(x)){
         warning("No numeric information was found for session identifier '", ax, "' in signal ",shortNames[i],". Please check filenames and idOrder and idSep arguments:\r\n", call.=F)
         ax
-      } else x
+      } else lead0(x,4)
     })
-  } else sess = as.list(rep("01",nFiles))
+  } else sess = as.list(rep("0001",nFiles))
   
   
   #if sessions are specified, check their order
@@ -82,6 +82,7 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F, ...){
         if(sum(duplicated(x)) != length(unique(x))) stop ("Uncomplete dyad ", i,":\r\n", paste(x," ") )
         x = x[seq(1,length(x)-1,by=2)]
       }
+      x = as.numeric(x)
       ifelse(length(x)>1,diff(x),1) #if there are multiple sessions with the same id, check that they are in progressive order
     }, split(unlist(sess),unlist(dyadIds)), unique(unlist(dyadIds) ) )
     if(any(deltaSess<=0))
@@ -100,8 +101,8 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F, ...){
     skipRow = options$skip
     options$skip = NULL
   } else skipRow =rep(0,nFiles)
-  lf <- mapply(function(x,iFile) {  prog(iFile,nFiles); do.call(read.table,c(list(x, skip=skipRow[iFile]), options)) },filenames,seq_along(filenames),SIMPLIFY = F )
-  if(ncol(lf[[1]])==1) {print(str(lf[[1]]));stop("Import failed. Check sep?")}
+  lf <- mapply(function(x,iFile) {  prog(iFile,nFiles); do.call(data.table::fread,c(list(x, skip=skipRow[iFile]), options)) },filenames,seq_along(filenames),SIMPLIFY = F )
+  if(ncol(lf[[1]])==1 && !pairBind) {print(str(lf[[1]]));stop("Import failed. Check sep?")}
   return(list("lf"=lf,
               "sess"=sess,
               "dyadIds" = dyadIds,

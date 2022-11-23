@@ -11,9 +11,6 @@ dyadComb(x, ...)
 
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Title
 }

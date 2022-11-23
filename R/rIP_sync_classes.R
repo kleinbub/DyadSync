@@ -1,5 +1,13 @@
 
 #COSTRUTTORI DI CLASSE per oggetti contenenti analisi
+#' Checks if the object is an admitted 'sync analysis type'
+#'
+#' @param x 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 is.sync = function(x){
   (inherits(x,"CCFBest")||inherits(x,"PMBest") )&& length(x)
 }
@@ -30,10 +38,10 @@ CCFBest = function(sync, lag, ccf_matrix, lagSec, winSec, incSec, accelSec, weig
 }                    
 
 #peakMatch
-PMBest = function(sync, lag, xBest, lagSec, sgol_p, sgol_n, weightMalus)
+newAMICo = PMBest = function(sync, lag, xBest, lagSec, sgol_p, sgol_n, weightMalus)
 {
   x = list("sync"=sync, "lag"=lag, "xBest"=xBest)
-  class(x) = "PMBest"
+  class(x) = c("AMICo","PMBest") #@OBSOLETE pmbest
   attributes(x) = c(attributes(x), list(
       "lagSec"   = lagSec,
       "sgol_p"   = sgol_p,

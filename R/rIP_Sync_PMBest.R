@@ -23,7 +23,7 @@
 #' pmBest
 #'
 #' @param experiment 
-#' @param signals 
+#' @param signal the name of a DyadSignal contained in experiment 
 #' @param lagSec 
 #' @param sgol_p 
 #' @param sgol_n 
@@ -39,44 +39,90 @@
 #' @export
 #'
 #' @examples
-pmBest = function(experiment, signals="all", lagSec=20,
+AMICo = pmBest = function(experiment, signal="all", lagSec=20, #@OBSOLETE 2022 pmBest diventa AMICo
                   sgol_p = 2, sgol_n = 25,  weightMalus = 20,
-                  match_threshold = 0.25,minSizeSec=1, algorithm=c("classic","AMICo","sccf"), outputName = "PMBest",scaledCorrelation=F, 
+                  match_threshold = 0.25, minSizeSec=1,
+                  algorithm=c("v1.1","v1.0"),
+                  outputName = "AMICo", 
                   correctionRangeSeconds = 0.5, minPeakDelta){
+  
+  #debug
+  # experiment = lr; signal="SC"; lagSec=4;
+  # sgol_p = 2; sgol_n = 25;  weightMalus = 35;
+  # match_threshold = 0.25; minSizeSec=1;
+  # algorithm=c("AMICo_v1.0");
+  # outputName = "PMBest";
+  # correctionRangeSeconds = 0.5; minPeakDelta = 0.05;
+
   algorithm=match.arg(algorithm)
   if(!is(experiment,"DyadExperiment")) stop("Only objects of class DyadExperiment can be processed by this function")
+
+  nSessions = length(experiment)
+
+  # progresbar
+  pb <- progress::progress_bar$new(
+    format = "Calculation::percent [:bar] :elapsed | ETA: :eta",
+    total = nSessions,    # number of iterations
+    width = 60, 
+    show_after=0 #show immediately
+    )
+  
+  progress_letter <- rep(LETTERS[1:10], 10)  # token reported in progress bar
+  
+  # allowing progress bar to be used in foreach -----------------------------
+  progress <- function(n){
+    pb$tick(tokens = list(letter = progress_letter[n]))
+  } 
+  
+  opts <- list(progress = progress)
+  
+  
+  #parallelization
+  
+  cores=parallel::detectCores()-1
+  cat(paste0("\r\nPerforming parallelized computation of AMICo ",algorithm," using ",cores," cores.\r\n")) #verified!
   cat(paste0("\r\nHigh Sync at positive lags implies that the ",s2Name(experiment[[1]]),
              " follows the ", s1Name(experiment[[1]]),"\r\n")) #verified!
-  nSessions = length(experiment)
-  experiment2 = Map(function(session,iSession){
-    if(signals=="all") signals = names(session)
-    cat("\r\n",paste(dyadId(session),session(session)))
-    session[signals] = Map(function(signal){
-      cat(" |",name(signal))
-      #the first function calculates best lag
-      signal = peakMatch(signal, lagSec=lagSec, sgol_p=sgol_p, sgol_n=sgol_n,
-                         weightMalus=weightMalus, match_threshold=match_threshold, outputName=outputName,correctionRangeSeconds=correctionRangeSeconds, minPeakDelta=minPeakDelta)
-      #the second calculates the actual sync values
-      if(algorithm == "AMICo")
-        signal = ppSync_dev(signal,minSizeSec,outputName=outputName, scaledCorrelation)
-      else stop("other algorithms are deprecated")
-      # else if(algorithm == "classic")
-      #   signal = ppSync(signal,minSizeSec,outputName=outputName)
-      # else if(algorithm == "sccf")
-      #   signal = ppSync_sccf(signal,outputName=outputName)
+  cl <- parallel::makeCluster(cores[1]-1) #not to overload your computer
+  doSNOW::registerDoSNOW(cl)
+  `%dopar%` <- foreach::`%dopar%`
+  `%do%` <- foreach::`%do%`
+  pb$tick(0)
+  experiment2 <- foreach::foreach(
+    iSession = 1:nSessions,
+    .options.snow = opts
+    ) %dopar% { 
       
-      return(signal)
-    }, session[signals])
-    return(session)
-  },experiment,seq_along(experiment))
+      session = experiment[[iSession]]
+      xsignal = experiment[[iSession]][[signal]]
+      #the first function calculates best lag
+      xsignal = peakMatch(xsignal, lagSec=lagSec, sgol_p=sgol_p, sgol_n=sgol_n,
+                          weightMalus=weightMalus, match_threshold=match_threshold,
+                          outputName=outputName,
+                          correctionRangeSeconds=correctionRangeSeconds,
+                          minPeakDelta=minPeakDelta, algorithm=algorithm)
+      #the second calculates the actual sync values
+      xsignal = ppSync_dev(xsignal,minSizeSec,outputName=outputName)
+      
+      #now store the modified signal into the experiment
+      session[[signal]] = xsignal
+      session
+      
+    }
+  parallel::stopCluster(cl) 
+
+
   cat("\r\nDone ;)\r\n")
-  classAttr(experiment2)=classAttr(experiment)
+  names(experiment2) = names(experiment)
+  experiment2 = cloneAttr(experiment, experiment2)
   return(experiment2)
 }
 
 
 ## peak picking best lag
-peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,match_threshold=0.0, outputName, correctionRangeSeconds, minPeakDelta) {
+peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,
+                     match_threshold=0.0, outputName, correctionRangeSeconds,
+                     minPeakDelta, ...) {
   if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
   
   #signal = lr$all_vid1_01$contempt
@@ -93,9 +139,15 @@ peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,
   
   
   ### peaks-valleys detection ########
-  s1b = peakFinder(d,  sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakDelta) 
-  s2b = peakFinder(d2, sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakDelta)
-
+  l = list(...)
+  if(any(names(l) == "algorithm") && l[["algorithm"]]=="v1.0"){
+    print("v1.0 legacy")
+    s1b = legacyPeakFinder(d,  sgol_p, sgol_n, mode = "b", correctionRangeSeconds)
+    s2b = legacyPeakFinder(d2, sgol_p, sgol_n, mode = "b", correctionRangeSeconds)
+  } else {
+    s1b = peakFinder(d,  sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakDelta)
+    s2b = peakFinder(d2, sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakDelta)
+  }
   allSec1 = time(d)[s1b$samples]
   allSec2 = time(d2)[s2b$samples]
   
@@ -257,7 +309,7 @@ peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,
   xbest$s1 = s1b$samples[xbest$row]
   xbest$s2 = s2b$samples[xbest$col]
   #instantiate new sync class object
-  signal[[outputName]] = PMBest(NULL,NULL,xbest,lagSec,sgol_p,sgol_n,weightMalus)
+  signal[[outputName]] = newAMICo(NULL,NULL,xbest,lagSec,sgol_p,sgol_n,weightMalus)
   signal
 }
 
@@ -267,7 +319,7 @@ ppSync = function(signal,minSizeSec, outputName) {
   d = signal$s1
   d2  = signal$s2
   lagSec = attr(signal[[outputName]], "lagSec")
-  sampRate = sampRate(signal)
+  sampRate = frequency(signal)
   ransamp = lagSec * sampRate
   xbest = signal[[outputName]]$xBest
   xbest$sync = rep(NA,nrow(xbest))
@@ -389,7 +441,7 @@ ppSync = function(signal,minSizeSec, outputName) {
 }
 
 #AMICo: Adaptive Matching Interpolated Correlation
-ppSync_dev = function(signal,minSizeSec, outputName, scaledCorrelation) {
+ppSync_dev = function(signal,minSizeSec, outputName) {
   ##questa è una versione di debug e sviluppo di ppSync di rIP
   # richiede dei dati generati con rIP in un oggetto chiamato lr
   # ottimi quelli di "PACS_rIP engine.R"
@@ -501,18 +553,18 @@ ppSync_dev = function(signal,minSizeSec, outputName, scaledCorrelation) {
     
     if(length(rs1) > minSizeSec*sampRate){
       # #normalizing element
-      if(scaledCorrelation){
-        # #his is shit
-        # rs1=c(nMin,nMax,rs1)
-        # rs2=c(nMin,nMax,rs2)
-        rs1 = rs1-mean(rs1)
-        rs1 = rs1/normPam
-        rs2 = rs2-mean(rs2)
-        rs2 = rs2/normPam
-        
-        iCor = sqrt(sum((rs2-rs1)^2))
-        iCor = 1- iCor/maxDist
-      }else 
+      # if(scaledCorrelation){
+      #   # #his is shit
+      #   # rs1=c(nMin,nMax,rs1)
+      #   # rs2=c(nMin,nMax,rs2)
+      #   rs1 = rs1-mean(rs1)
+      #   rs1 = rs1/normPam
+      #   rs2 = rs2-mean(rs2)
+      #   rs2 = rs2/normPam
+      #   
+      #   iCor = sqrt(sum((rs2-rs1)^2))
+      #   iCor = 1- iCor/maxDist
+      # }else 
       iCor = cor(rs1,rs2, use = "c")
       
       # ### diagnostic plot ####
@@ -705,7 +757,7 @@ ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
 #' Title
 #'
 #' @param x a ts object or a numeric vector.
-#' @param sgol_p smoothing filter order.
+#' @param sgol_p smoothing filter order. If NA, the filtering is disabled.
 #' @param sgol_n smoothing filter length (must be odd).
 #' @param mode should the function return only 'peaks', 'valleys', or 'both'?
 #' @param correctionRangeSeconds the range in which the real maximum/minimum value should be searched, in seconds.
@@ -719,74 +771,86 @@ ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
 #' @export
 peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both"), correctionRangeSeconds, minPeakDelta){
   sampRate = frequency(x)
+  if(is.na(sgol_p)||is.na(sgol_n)){
+    smooth_x = x
+  } else {
   smooth_x = signal::sgolayfilt(x,  p =sgol_p, n = sgol_n, m=0)
+  }
   fdderiv1  = diff(smooth_x)
+  
   mode = match.arg(mode)
   pik = sign(embed(fdderiv1,2)) #embed appaia al segnale il segnale laggato di 1 samp
   s = pik[,2] - pik[,1] #that's where the magic happens
   s[is.na(s)] = 0
-
-  if(mode=="peaks") {
-    warning("with mode=p the flat correction is not active")
-    pikboo = c(FALSE,s ==  2, FALSE) #diff perde un sample all'inizio, embed perde 1 sample alla fine, quindi aggiungi un FALSE prima e dopo
-    piksam = which(pikboo) #in quali sample c'è un'inversione di segno della derivata?
-    pv = rep("p",length(piksam))
-  } else if(mode=="valleys") {
-    warning("with mode=v the flat correction is not active")
-    pikboo = c(FALSE,s == -2, FALSE) 
-    piksam = which(pikboo) 
-    pv = rep("v",length(piksam))
-  } else if(mode=="both") {
-    pikboo = c(FALSE,abs(s) ==  2, FALSE)
-    piksam = which(pikboo) 
-    s = s[s!=0]
-    pv = s
-    pv[s>0] = "p"
-    pv[s<0] = "v"
-  }
   
-  #correzione manuale: cerca il valore più alto nei dintorni del cambio di derivata
+  #always both
+  pikboo = c(FALSE,abs(s) ==  2, FALSE)
+  piksam = which(pikboo) 
+  s = s[abs(s)== 2]
+  pv = s
+  pv[s>0] = "p"
+  pv[s<0] = "v"
+  #correzione manuale: cerca il valore pi- alto nei dintorni del cambio di derivata
   
+  
+  
+  any(diff(piksam)<= 0)
+  correctionRangeSamp = correctionRangeSeconds*sampRate
   for(v in seq_along(piksam)){
-    #individua il range con 0.5s prima e dopo la valle della derivata (esclusi gli estremi inzio e fine ts)
-    search_interval = x[
-      max(1,piksam[v]-correctionRangeSeconds*sampRate):min(length(x),piksam[v]+correctionRangeSeconds*sampRate)
-      ]
 
-    #trova il più piccolo e aggiorna pikmsam
-    if(mode=="peaks")
-      piksam[v] = max(1, piksam[v]+  (which.max(search_interval) - round(length(search_interval)/2)))
-    else if (mode=="valleys")
-      piksam[v] = max(1, piksam[v]+  (which.min(search_interval) - round(length(search_interval)/2)))
-    else
-      piksam[v] = max(1, piksam[v]+  (which.minmax(search_interval,pv[v]) - round(length(search_interval)/2)))
+
+    #individua il range con 0.5s prima e dopo la valle della derivata (esclusi gli estremi inzio e fine ts)
+    prevv = if(v==1) 1 else piksam[v-1] +1
+    nextv = if(v==length(piksam)) length(x) else piksam[v+1] -1
+    search_interval = 
+      seq(from = max(1,piksam[v]-correctionRangeSamp, prevv),
+          to   = min(length(x),piksam[v]+correctionRangeSamp, nextv),
+          by=1)
     
+    if(FALSE) {
+      plot(piksam[v]+((-50):(50)),x[piksam[v]+((-50):(50))], main=v)
+      points(piksam, x[piksam],col=2,pch=18)
+      text(piksam, eda[piksam]+0.2, paste(1:length(piksam), pv),cex=0.7)
+      points(piksam[v],x[piksam[v]],col=3,pch=4,cex=3)
+      points(range(search_interval),x[range(search_interval)],col=4,pch=4,cex=3)
+      
+    }
+ 
+    #always both
+    piksam[v] = search_interval[which.minmax(x[search_interval],pv[v])]
+    piksam[v] = max(1, piksam[v])
+
     piksam[v] = min(piksam[v], length(x))
+    if(FALSE){
+      points(piksam[v],x[piksam[v]],col="gold",pch=17,cex=2)
+    }
   }
 
-  #trova picchi con sd più bassa di tot, sono solo rumore in un segnale essenzialmente piatto
-  #idee: fisso a IQR(x)/20 ma magari si può trovare un valore più sensato
+  #trova picchi con sd pi- bassa di tot, sono solo rumore in un segnale essenzialmente piatto
+  #idee: fisso a IQR(x)/20 ma magari si pu- trovare un valore pi- sensato
   #     -fisso a 0.05uS da onset a picco
   toDelete=c()
   for(v in 2:(length(piksam)-1)){
-      if(pv[v]=="p"){
-        search_interval = x[piksam[v-1]:piksam[v+1]]
-        search_interval = search_interval[!is.na(search_interval)]
-        # plot(c(10,16,search_interval),t="l",main=paste(v," - sd:",round(sd(search_interval,na.rm=T),2)))
-        if(length(search_interval) == 0 || (max(search_interval)-search_interval[1])<minPeakDelta){#delta dall'onset al picco almeno 0.05uS o tutti NA
+    if(pv[v]=="p"){
+      search_interval = x[piksam[v-1]:piksam[v+1]]
+      search_interval = search_interval[!is.na(search_interval)]
+      # plot(c(10,16,search_interval),t="l",main=paste(v," - sd:",round(sd(search_interval,na.rm=T),2)))
+      if(length(search_interval) == 0 || (max(search_interval)-search_interval[1])<minPeakDelta){#delta dall'onset al picco almeno 0.05uS o tutti NA
         # if(sd(search_interval)<IQR(x)/20){
-          #se alcuni picchi vanno rimossi perché sono essenzialmente flat
-          #non ci possono essere 2 valley di seguito, quindi elimina quella col valore più alto
-          
-          fakeValley = c(v-1,v+1)[which.max(c(x[piksam[v-1]] ,x[piksam[v+1]]))]
-          #elimina sia il picco 'v' che la fake valley
-          toDelete = c(toDelete, v,fakeValley)
-        }
+        #se alcuni picchi vanno rimossi perch- sono essenzialmente flat
+        #non ci possono essere 2 valley di seguito, quindi elimina quella col valore pi- alto
+        
+        fakeValley = c(v-1,v+1)[which.max(c(x[piksam[v-1]] ,x[piksam[v+1]]))]
+        #elimina sia il picco 'v' che la fake valley
+        toDelete = c(toDelete, v,fakeValley)
       }
+    }
   }
   if(length(toDelete)>1){
     piksam = piksam[-toDelete]
-    pv = pv[-toDelete]}
+    pv = pv[-toDelete]
+    }
+  
   
   #se ci sono tante valley, togli intanto tutte le v che hanno v sia a destra che sinistra
   toDelete=c()
@@ -808,14 +872,26 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   for(v in 1:(length(pv)-1)){
     if(pv[v]=="v" && pv[v+1] =="v"){
       # print((piksam[v+1]-piksam[v])/sampRate)
-      if ((piksam[v+1]-piksam[v]) < 5*sampRate  ){
+      # if ((piksam[v+1]-piksam[v]) < 5*sampRate  ){
         toDelete = c(toDelete, c(v+1,v)[which.max(c(x[piksam[v+1]],x[piksam[v]]))])
-      }
+      # }
     }
   }
   if(length(toDelete)>1){
-  piksam = piksam[-toDelete]
-  pv = pv[-toDelete]}
+    piksam = piksam[-toDelete]
+    pv = pv[-toDelete]}
+  
+  
+  #tieni solo picchi e valli, se vuoi!
+  if(mode=="peaks") {
+    piksam = piksam[which(pv=="p")]
+    pv = pv[which(pv=="p")]
+  } else if(mode == "valleys"){
+    piksam = piksam[which(pv=="v")]
+    pv = pv[which(pv=="v")]
+    
+    
+  }
   
   #ricrea pikboo & piks dai sample corretti
   pikboo = rep(F,length(pikboo))
@@ -825,7 +901,11 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   list("bool" = pikboo,
        "samples" = piksam,
        "seconds" = piks,
-       "type" = pv)
+       "type" = pv,
+       "y" = x[piksam])
 }
 which.minmax = function(x, pv){if(pv=="p") which.max(x) else if(pv=="v") which.min(x)}
+
+
+
 

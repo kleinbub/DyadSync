@@ -9,9 +9,6 @@ pvalFormat(x)
 \arguments{
 \item{x}{}
 }
-\value{
-
-}
 \description{
 pvalFormat
 }
