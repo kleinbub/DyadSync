@@ -441,7 +441,7 @@ ppSync = function(signal,minSizeSec, outputName) {
 }
 
 #AMICo: Adaptive Matching Interpolated Correlation
-ppSync_dev = function(signal,minSizeSec, outputName, scaledCorrelation) {
+ppSync_dev = function(signal,minSizeSec, outputName) {
   ##questa è una versione di debug e sviluppo di ppSync di rIP
   # richiede dei dati generati con rIP in un oggetto chiamato lr
   # ottimi quelli di "PACS_rIP engine.R"
@@ -553,18 +553,18 @@ ppSync_dev = function(signal,minSizeSec, outputName, scaledCorrelation) {
     
     if(length(rs1) > minSizeSec*sampRate){
       # #normalizing element
-      if(scaledCorrelation){
-        # #his is shit
-        # rs1=c(nMin,nMax,rs1)
-        # rs2=c(nMin,nMax,rs2)
-        rs1 = rs1-mean(rs1)
-        rs1 = rs1/normPam
-        rs2 = rs2-mean(rs2)
-        rs2 = rs2/normPam
-        
-        iCor = sqrt(sum((rs2-rs1)^2))
-        iCor = 1- iCor/maxDist
-      }else 
+      # if(scaledCorrelation){
+      #   # #his is shit
+      #   # rs1=c(nMin,nMax,rs1)
+      #   # rs2=c(nMin,nMax,rs2)
+      #   rs1 = rs1-mean(rs1)
+      #   rs1 = rs1/normPam
+      #   rs2 = rs2-mean(rs2)
+      #   rs2 = rs2/normPam
+      #   
+      #   iCor = sqrt(sum((rs2-rs1)^2))
+      #   iCor = 1- iCor/maxDist
+      # }else 
       iCor = cor(rs1,rs2, use = "c")
       
       # ### diagnostic plot ####
