@@ -100,7 +100,7 @@ AMICo = pmBest = function(experiment, signal="all", lagSec=20, #@OBSOLETE 2022 p
                           weightMalus=weightMalus, match_threshold=match_threshold,
                           outputName=outputName,
                           correctionRangeSeconds=correctionRangeSeconds,
-                          minPeakDelta=minPeakDelta)
+                          minPeakDelta=minPeakDelta, algorithm=algorithm)
       #the second calculates the actual sync values
       xsignal = ppSync_dev(xsignal,minSizeSec,outputName=outputName)
       
@@ -122,7 +122,7 @@ AMICo = pmBest = function(experiment, signal="all", lagSec=20, #@OBSOLETE 2022 p
 ## peak picking best lag
 peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,
                      match_threshold=0.0, outputName, correctionRangeSeconds,
-                     minPeakDelta) {
+                     minPeakDelta, ...) {
   if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
   
   #signal = lr$all_vid1_01$contempt
@@ -139,15 +139,15 @@ peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,
   
   
   ### peaks-valleys detection ########
-  # l = list(...)
-  # if(algorithm=="v1.0"){
-  #   print("v1.0 legacy")
-  #   s1b = legacyPeakFinder(d,  sgol_p, sgol_n, mode = "b", correctionRangeSeconds) 
-  #   s2b = legacyPeakFinder(d2, sgol_p, sgol_n, mode = "b", correctionRangeSeconds)
-  # } else {
-    s1b = peakFinder(d,  sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakDelta) 
+  l = list(...)
+  if(any(names(l) == "algorithm") && l[["algorithm"]]=="v1.0"){
+    print("v1.0 legacy")
+    s1b = legacyPeakFinder(d,  sgol_p, sgol_n, mode = "b", correctionRangeSeconds)
+    s2b = legacyPeakFinder(d2, sgol_p, sgol_n, mode = "b", correctionRangeSeconds)
+  } else {
+    s1b = peakFinder(d,  sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakDelta)
     s2b = peakFinder(d2, sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakDelta)
-  # }
+  }
   allSec1 = time(d)[s1b$samples]
   allSec2 = time(d2)[s2b$samples]
   
@@ -905,5 +905,7 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
        "y" = x[piksam])
 }
 which.minmax = function(x, pv){if(pv=="p") which.max(x) else if(pv=="v") which.min(x)}
+
+
 
 
