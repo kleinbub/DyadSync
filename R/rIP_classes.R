@@ -491,6 +491,15 @@ window.DyadStream = function(x, duration, ...){
   attr(res,"duration") = length(res)/frequency(res)
   res
 }
+#' @export
+"window<-.DyadStream" = function(x, value, ...){
+  l = list(...)
+  if (! all.equal( names(l),c("start", "end"))) stop("start and end must be specified")
+  y = as.ts(x)
+  window(y, start=l$start, end=l$end) <- value
+  y = cloneAttr(x, y)
+  y
+}
 
 
 #' @export
