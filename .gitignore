@@ -4,6 +4,8 @@ inst/doc
 .RData
 .Ruserdata
 /dev_spam/*
+/R/WIP
+/R/WIP/*
 -DPA-PALMIERI02.Rhistory
 rip_bootstrap.RData
 rip_bootstrap_lag5_PMthres0.75_devF.RData
