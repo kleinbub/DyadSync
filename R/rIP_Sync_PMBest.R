@@ -769,7 +769,17 @@ ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
 #' "seconds" the position in seconds of matches (if x is a ts object);
 #' and "type" a charachter vector defining for each "samples" value if its a 'p' peak or a 'v' valley.
 #' @export
-peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both"), correctionRangeSeconds, minPeakDelta){
+peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both"),
+                      correctionRangeSeconds, minPeakDelta){
+  #debug
+  # stop("debug")
+  # x = d2
+  # sgol_p = 2
+  # sgol_n = 25
+  # mode="both"
+  # correctionRangeSeconds = 0.5
+  # minPeakDelta = 0.05
+  ##
   sampRate = frequency(x)
   if(is.na(sgol_p)||is.na(sgol_n)){
     smooth_x = x
@@ -794,7 +804,7 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   
   
   
-  any(diff(piksam)<= 0)
+  # any(diff(piksam)<= 0)
   correctionRangeSamp = correctionRangeSeconds*sampRate
   for(v in seq_along(piksam)){
 
@@ -849,38 +859,61 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   if(length(toDelete)>1){
     piksam = piksam[-toDelete]
     pv = pv[-toDelete]
-    }
+  }
   
-  
-  #se ci sono tante valley, togli intanto tutte le v che hanno v sia a destra che sinistra
+  #risolvi il problema delle valli consevutive v-v-v...
+  #this is ultrafast but don't discriminate vs and ps  
+  # toDelete = which(pv[-length(pv)] == pv[-1])
   toDelete=c()
-  for(v in 2:(length(pv)-1)){
-    # lel = pv=="v"
-    # lele = embed(lel,2)
-    # err = which(lele[,2] + lele[,1]>1)
-    if(pv[v]=="v" && pv[v-1]=="v" && pv[v+1]=="v"){
-      toDelete = c(toDelete, v)
+  for(v in 2:(length(pv))){
+    #se la feature attuale è uguale alla precedente
+    if(pv[v] == pv[v-1]){
+      if(pv[v] == "v" ){
+        #se la feature è valley, tieni solo l'ultima
+        #ovvero elimina quella precedente
+        toDelete = c(toDelete, v-1)
+      } else if(pv[v] == "p"){
+        #se la feature è un picco, tieni il più alto
+        #ovvero elimina il più basso.
+        #se il più basso è v, lowest = 0, se no lowest = 1
+        lowest = which.min(c(x[v], x[v-1]))
+        toDelete = c(toDelete, v-lowest)
+      }
     }
   }
   if(length(toDelete)>1){
     piksam = piksam[-toDelete]
-    pv = pv[-toDelete]}
-  
-  #ora ci saranno al massimo dei casi p--v--v--p
-  #eliminale solo se poco distanti
-  toDelete = c()
-  for(v in 1:(length(pv)-1)){
-    if(pv[v]=="v" && pv[v+1] =="v"){
-      # print((piksam[v+1]-piksam[v])/sampRate)
-      # if ((piksam[v+1]-piksam[v]) < 5*sampRate  ){
-        toDelete = c(toDelete, c(v+1,v)[which.max(c(x[piksam[v+1]],x[piksam[v]]))])
-      # }
-    }
+    pv = pv[-toDelete]
   }
-  if(length(toDelete)>1){
-    piksam = piksam[-toDelete]
-    pv = pv[-toDelete]}
   
+  # 
+  # 
+  # #se ci sono tante valley, togli intanto tutte le v che hanno v sia a destra che sinistra
+  # toDelete=c()
+  # for(v in 2:(length(pv)-1)){
+  #   # lel = pv=="v"
+  #   # lele = embed(lel,2)
+  #   # err = which(lele[,2] + lele[,1]>1)
+  #   if(pv[v]=="v" && pv[v-1]=="v" && pv[v+1]=="v"){
+  #     toDelete = c(toDelete, v)
+  #   }
+  # }
+  # if(length(toDelete)>1){
+  #   piksam = piksam[-toDelete]
+  #   pv = pv[-toDelete]}
+  # 
+  # #ora ci saranno al massimo dei casi p--v--v--p
+  # #eliminale solo se poco distanti
+  # toDelete = c()
+  # for(v in 1:(length(pv)-1)){
+  #   if(pv[v]=="v" && pv[v+1] =="v"){
+  #       toDelete = c(toDelete, c(v+1,v)[which.max(c(x[piksam[v+1]],x[piksam[v]]))])
+  #   }
+  # }
+  # if(length(toDelete)>1){
+  #   piksam = piksam[-toDelete]
+  #   pv = pv[-toDelete]}
+  # 
   
   #tieni solo picchi e valli, se vuoi!
   if(mode=="peaks") {
@@ -898,30 +931,6 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   pikboo[piksam] = T
   piks = time(x)[piksam]
   
-
-  
-  #elimina duplicati v-v o p-p
-  toDel = c()
-  for(i in 1:length(pikboo)){
-    if(i>=2){
-      if(pv[i]==pv[i-1]){
-        #if there are two consecutive peaks, take the first
-        if(pv[i]=="p"){
-          toDel = c(toDel, i)
-        }
-        #if there are two consecutive throughs take the last
-        else if(pv[i]=="v"){
-          toDel = c(toDel, i-1)
-        }
-      }
-    }
-  }
-  if(length(toDel)>0){
-    pikboo = pikboo[-toDel]
-    piksam = piksam[-toDel]
-    piks   = piks  [-toDel]
-    pv     = pv    [-toDel] 
-  }
   
   list("bool" = pikboo,
        "samples" = piksam,
