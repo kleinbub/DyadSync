@@ -898,11 +898,39 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   pikboo[piksam] = T
   piks = time(x)[piksam]
   
+
+  
+  #elimina duplicati v-v o p-p
+  toDel = c()
+  for(i in 1:length(pikboo)){
+    if(i>=2){
+      if(pv[i]==pv[i-1]){
+        #if there are two consecutive peaks, take the first
+        if(pv[i]=="p"){
+          toDel = c(toDel, i)
+        }
+        #if there are two consecutive throughs take the last
+        else if(pv[i]=="v"){
+          toDel = c(toDel, i-1)
+        }
+      }
+    }
+  }
+  if(length(toDel)>0){
+    pikboo = pikboo[-toDel]
+    piksam = piksam[-toDel]
+    piks   = piks  [-toDel]
+    pv     = pv    [-toDel] 
+  }
+  
   list("bool" = pikboo,
        "samples" = piksam,
        "seconds" = piks,
        "type" = pv,
-       "y" = x[piksam])
+       "y" = x[piksam],
+       "amp" = c(NA,diff(x[piksam]))
+  )
+  
 }
 which.minmax = function(x, pv){if(pv=="p") which.max(x) else if(pv=="v") which.min(x)}
 
