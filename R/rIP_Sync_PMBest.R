@@ -20,31 +20,38 @@
 
 
 
-#' pmBest
+#' Peak matching similarity of signals
 #'
 #' @param experiment 
 #' @param signal the name of a DyadSignal contained in experiment 
 #' @param lagSec 
-#' @param sgol_p 
-#' @param sgol_n 
 #' @param weightMalus weightmalus è la percentuale di malus per il lag più estremo. Es, con weightMalus= 20 e r = 1 al massimo lag, la trasformazione diventa r' = 0.8
 #' @param match_threshold a value between 0 and 1, specifying the similarity threshold to assign a peak-peak match.
 #' @param minSizeSec the smallest allowed window size. very small windows may artificially inflate synchrony.
-#' @param algorithm
+#' @param algorithm character. The version of AMICo algorithm. 
 #' @param outputName
-#' @param scaledCorrelation logical. If TRUE, correlations will be scaled using the whole signals range, and be much more robust
-#' @param correctionRangeSeconds parameter passed to peakFinder, seconds of manual correction for derivative based peak-finding
-#' @param minPeakDelta parameter passed to peakFinder, minimum valley-peak delta to detect a peak
+#' @param ... Further arguments passed to peakFinder. Specifically, 
+#' sgol_p, sgol_n, correctionRangeSeconds and minPeakAmplitude must be set
+#' according to the signal type.
+#' @param maxPeakDuration 
+#' @param interval_sec in AMICO2, how long should unmatched sequences be?
+#'
+#' @details Good values for skin conductance are correctionRangeSeconds = 0.5,
+#' minPeakAmplitude = 0.05.
+#' 
+#' The difference in algorithms can be found in the changelog
+#' 
 #' @return
 #' @export
 #'
 #' @examples
-AMICo = pmBest = function(experiment, signal="all", lagSec=20, #@OBSOLETE 2022 pmBest diventa AMICo
-                  sgol_p = 2, sgol_n = 25,  weightMalus = 20,
-                  match_threshold = 0.25, minSizeSec=1,
-                  algorithm=c("v1.1","v1.0"),
-                  outputName = "AMICo", 
-                  correctionRangeSeconds = 0.5, minPeakDelta){
+AMICo = function(experiment, signal="all", lagSec=6, #@OBSOLETE 2022 pmBest diventa AMICo
+                  weightMalus = 50,
+                  match_threshold = 0.1, minSizeSec=4,
+                  maxPeakDuration = "hrt", interval_sec = 10,
+                  algorithm=c("v1.1", "v1.0", "v2RC0.4"),
+                  outputName = "AMICo",
+                  sgol_p=2,sgol_n=25,correctionRangeSeconds,minPeakAmplitude){
   
   #debug
   # experiment = lr; signal="SC"; lagSec=4;
@@ -52,9 +59,14 @@ AMICo = pmBest = function(experiment, signal="all", lagSec=20, #@OBSOLETE 2022 p
   # match_threshold = 0.25; minSizeSec=1;
   # algorithm=c("AMICo_v1.0");
   # outputName = "PMBest";
-  # correctionRangeSeconds = 0.5; minPeakDelta = 0.05;
+  # correctionRangeSeconds = 0.5; minPeakAmplitude = 0.05;
+  
+
 
   algorithm=match.arg(algorithm)
+  # if(grepl("v2",algorithm)){
+  #   warning("V2 is not yet fully implemented. some hidden paramenters are default")
+  # }
   if(!is(experiment,"DyadExperiment")) stop("Only objects of class DyadExperiment can be processed by this function")
 
   nSessions = length(experiment)
@@ -78,51 +90,116 @@ AMICo = pmBest = function(experiment, signal="all", lagSec=20, #@OBSOLETE 2022 p
   
   
   #parallelization
-  
+  warningsFile = "AMICoWarnings"
+  if (file.exists(warningsFile)) {
+    unlink(warningsFile)
+  }
   cores=parallel::detectCores()-1
   cat(paste0("\r\nPerforming parallelized computation of AMICo ",algorithm," using ",cores," cores.\r\n")) #verified!
   cat(paste0("\r\nHigh Sync at positive lags implies that the ",s2Name(experiment[[1]]),
              " follows the ", s1Name(experiment[[1]]),"\r\n")) #verified!
-  cl <- parallel::makeCluster(cores[1]-1) #not to overload your computer
+  cl <- parallel::makeCluster(cores[1], outfile=warningsFile) #not to overload your computer
   doSNOW::registerDoSNOW(cl)
   `%dopar%` <- foreach::`%dopar%`
   `%do%` <- foreach::`%do%`
   pb$tick(0)
+  #Questo è un loop parallelo sulle sessions.
+  #il return del ciclo deve essere un oggetto DyadSession
   experiment2 <- foreach::foreach(
     iSession = 1:nSessions,
-    .options.snow = opts
+    .options.snow = opts, .errorhandling='pass'
     ) %dopar% { 
       
-      session = experiment[[iSession]]
       xsignal = experiment[[iSession]][[signal]]
-      #the first function calculates best lag
-      xsignal = peakMatch(xsignal, lagSec=lagSec, sgol_p=sgol_p, sgol_n=sgol_n,
-                          weightMalus=weightMalus, match_threshold=match_threshold,
-                          outputName=outputName,
-                          correctionRangeSeconds=correctionRangeSeconds,
-                          minPeakDelta=minPeakDelta, algorithm=algorithm)
-      #the second calculates the actual sync values
-      xsignal = ppSync_dev(xsignal,minSizeSec,outputName=outputName)
       
-      #now store the modified signal into the experiment
-      session[[signal]] = xsignal
-      session
-      
+      if(grepl("v2",algorithm)){
+        #I am using v2 which already implements peakmatch and ppsync in the same
+        #function
+
+        synchro = AMICO2(xsignal, lagSec=lagSec, 
+                            weightMalus=weightMalus, match_threshold=match_threshold,
+                        minSizeSec=minSizeSec,interval_sec=interval_sec,
+                            outputName=outputName, maxPeakDuration=maxPeakDuration,
+                        sgol_p=sgol_p,sgol_n=sgol_n,
+                        correctionRangeSeconds=correctionRangeSeconds,
+                        minPeakAmplitude=minPeakAmplitude )
+      } else {
+        synchro = AMICo1(xsignal, lagSec=lagSec, 
+                            weightMalus=weightMalus, match_threshold=match_threshold,
+                            outputName=outputName,
+                            algorithm=algorithm, minSizeSec=minSizeSec,
+                         sgol_p=sgol_p,sgol_n=sgol_n,
+                         correctionRangeSeconds=correctionRangeSeconds,
+                         minPeakAmplitude=minPeakAmplitude)
+        
+      }
+      experiment[[iSession]][[signal]][[outputName]] = synchro
+      return(experiment[[iSession]])
     }
   parallel::stopCluster(cl) 
+  
+  #restore session names and attributes
+  for(iSession in 1:nSessions){
+    if(!is.null(experiment2[[iSession]][["message"]])){
+      write(paste0("QQQZ",experiment2[[iSession]][["message"]],"\n"),file=warningsFile,append=TRUE)
+    }
+    experiment2[[iSession]] = cloneAttr(experiment[[iSession]],experiment2[[iSession]])
+  }
 
 
   cat("\r\nDone ;)\r\n")
   names(experiment2) = names(experiment)
   experiment2 = cloneAttr(experiment, experiment2)
+  
+  
+  if (file.exists(warningsFile)) {
+    wr = readLines(warningsFile)
+    wr = wr[grepl("QQQZ",wr,fixed = T)]
+    if(length(wr)>0){
+      cat("\r\nIssues:\r\n")
+      for(i in 1:length(wr)){
+        cat(substr(wr[i], start = 5, stop=10000), "\r\n")
+      }
+      stop("Please fix the issues before proceding.")
+    }
+    unlink(warningsFile)
+  }
+
   return(experiment2)
+}
+
+AMICo1 = function(signal,lagSec,weightMalus,match_threshold, outputName, algorithm,
+                  minSizeSec,...) {
+  args <- c(as.list(environment()), list(...),
+            list(
+              sessionId=sessionId(signal),
+              dyadId=dyadId(signal),
+              groupId=groupId(signal))
+  )
+  args["signal"] = NULL
+  l = list(...)
+  sgol_p=l[["sgol_p"]]
+  sgol_n=l[["sgol_n"]]
+  correctionRangeSeconds=l[["correctionRangeSeconds"]]
+  minPeakAmplitude = l[["minPeakAmplitude"]]
+  
+  
+  xbest = peakMatch(signal, lagSec=lagSec, 
+                      weightMalus=weightMalus, match_threshold=match_threshold,
+                      outputName=outputName,algorithm=algorithm, ...)
+  #the second calculates the actual sync values
+  res = ppSync_dev(signal,xbest,minSizeSec,outputName=outputName)
+  
+  return(newAMICo(res$sync, res$lag, res$xBest, args))
+  
 }
 
 
 ## peak picking best lag
 peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,
                      match_threshold=0.0, outputName, correctionRangeSeconds,
-                     minPeakDelta, ...) {
+                     minPeakAmplitude, ...) {
+
   if(!is(signal,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
   
   #signal = lr$all_vid1_01$contempt
@@ -145,8 +222,8 @@ peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,
     s1b = legacyPeakFinder(d,  sgol_p, sgol_n, mode = "b", correctionRangeSeconds)
     s2b = legacyPeakFinder(d2, sgol_p, sgol_n, mode = "b", correctionRangeSeconds)
   } else {
-    s1b = peakFinder(d,  sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakDelta)
-    s2b = peakFinder(d2, sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakDelta)
+    s1b = peakFinder(d,  sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakAmplitude)
+    s2b = peakFinder(d2, sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakAmplitude)
   }
   allSec1 = time(d)[s1b$samples]
   allSec2 = time(d2)[s2b$samples]
@@ -309,139 +386,140 @@ peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,
   xbest$s1 = s1b$samples[xbest$row]
   xbest$s2 = s2b$samples[xbest$col]
   #instantiate new sync class object
-  signal[[outputName]] = newAMICo(NULL,NULL,xbest,lagSec,sgol_p,sgol_n,weightMalus)
-  signal
+  # signal[[outputName]] = newAMICo(NULL,NULL,xbest, NULL)
+  # signal
+  xbest
 }
 
-
-ppSync = function(signal,minSizeSec, outputName) {
-  if(is.null(signal[[outputName]])||is.null(signal[[outputName]]$xBest))stop("Please run peakMatch before.")
-  d = signal$s1
-  d2  = signal$s2
-  lagSec = attr(signal[[outputName]], "lagSec")
-  sampRate = frequency(signal)
-  ransamp = lagSec * sampRate
-  xbest = signal[[outputName]]$xBest
-  xbest$sync = rep(NA,nrow(xbest))
-  
-  lagvec = rep(NA,length(d) )
-  lags = xbest$lag
-  for(i in 1:nrow(xbest)){
-    #per il primo picco porta tutti i lag al valore del primo picco
-    if(i==1) {lagvec[1:xbest$s1[1]] = lags[1]
-    } else {
-      # per tutti gli altri lag fai una interpolazione
-      ab = (xbest$s1[i-1]+1):xbest$s1[i]
-      lagvec[ab] = round(seq(from=lags[i-1], to=lags[i], length.out = length(ab)))
-    }
-  }
-  lagvec[is.na(lagvec)] = lags[length(lags)] #fix the last values
-  
-  
-  syncvec = rep(NA,length(d))
-  abCum = list()
-  iCum = c()
-  deltaVec = rep(NA,nrow(xbest))
-  xbest$syncBound = c(T,rep(F,nrow(xbest)-1))
-  xbest$syncStart = rep(F,nrow(xbest))
-  xbest$syncEnd   = rep(F,nrow(xbest))
-  
-  for(i in 1:(nrow(xbest)-1)){
-    
-    ab = list()
-    ab[[1]] = xbest$s1[i]:xbest$s1[i+1]
-    ab[[2]] = xbest$s2[i]:xbest$s2[i+1]
-    ii = i
-    
-    if(length(abCum)>0){ #se ci sono dei dati lasciati indietro aggiungili ad ab
-      ab[[1]] = c(abCum[[1]],ab[[1]])
-      ab[[2]] = c(abCum[[2]],ab[[2]])
-      abCum = list() # e resetta abCum
-      ii = c(iCum, ii)
-      iCum = c()
-    }
-    #if the longest of ab is at least minSizeSec length
-    if(length(ab[[which.max(lapply(ab,length))]]) >= minSizeSec*sampRate){
-      ## trova il segmento più corto e allungalo fino alla larghezza di quello di più lungo
-      ## mantenendolo al centro
-      short = s = which.min(lapply(ab,length))
-      long =  l = which.max(lapply(ab,length))
-      
-      ### [MODE 1] use the width of the longer, by enlarging the WINDOW of the shorter #########
-      delta = abs(length(ab[[1]]) - length(ab[[2]]))
-      deltaVec[i]=delta
-      if(delta%%2!=0){ #se delta è dispari, invece di usare delta/2 ti tocca fare delta-1 /2 e rimettere l'1 alla fine
-        ab[[short]] = (min(ab[[short]]) - (delta-1)/2) : (max(ab[[short]]+ (delta-1)/2) +1)
-      } else { #se pari o uguale a zero (stessa lunghezza)
-        ab[[short]] = (min(ab[[short]]) - delta/2) : (max(ab[[short]]+ delta/2))
-      }
-      ## controllo che non si vada oltre ai boundaries 1:length(d)
-      toKeep1 = which(ab[[1]]>0 & ab[[1]]<length(d))
-      toKeep2 = which(ab[[2]]>0 & ab[[2]]<length(d2))
-      ab = lapply(ab, function(x) x[if(length(toKeep1)<length(toKeep2)) toKeep1 else toKeep2  ])
-      iCor = cor(d[ab[[1]]] , d2[ab[[2]]]) #"pear"
-      # iCor = cor(diff(d[ab[[1]]]) , diff(d2[ab[[2]]])) #"pear" on slopes
-      
-      ### [MODE 2] stretch the shorter to the width of the longer #########
-      # #is this working?
-      # data = list("s1" = d, "s2" = d2)
-      #
-      # if(length(ab[[1]]) != length(ab[[2]])){
-      #   toCorL = data[[l]][ab[[l]]]
-      #   toCorS = approx(x=1:length(ab[[s]]),y=data[[s]][ab[[s]]],
-      #                   xout=seq(1,length(ab[[s]]),length.out = length(ab[[l]])))$y
-      # } else {
-      #   toCorL = data[[1]][ab[[1]]]
-      #   toCorS = data[[2]][ab[[2]]]
-      # }
-      # iCor = cor(toCorL,toCorS)
-      
-      
-      ### diagnostic plot ####
-      # rs1 = rangeRescale(d,-1,1)
-      # rs2 = rangeRescale(d2,-1,1)
-      # par(mfrow=c(1,2))
-      # plot(rs1[ab[[1]]],type="l",main=iCor,ylim=c(-1,1))
-      # lines(rs2[ab[[2]]])
-      # #scatter
-      # plot(d[ab[[1]]],d2[ab[[2]]]);abline(lm(d[ab[[2]]]~d2[ab[[1]]]),lty=3);
-      # midLine(mean(d[ab[[1]]]),mean(d2[ab[[2]]]))
-      # midLine = function(ux,uy){lines(seq(-1+ux,1+ux,length.out = 100),seq(-1+uy,1+uy,length.out = 100))}
-      
-      
-      ### [FINALLY] save objects ##########
-      xbest$sync[ii] = iCor
-      xbest$syncBound[i+1] = T
-      #start of each sync windows is located in the center between begin of s1 and s2 windows
-      xStart = round(mean(min(ab[[1]]),min(ab[[2]])))
-      xEnd = round(mean(max(ab[[1]]),max(ab[[2]])))
-      syncvec[xStart:xEnd] = iCor
-      xbest$syncStart[i] = xStart
-      xbest$syncEnd[i] = xEnd
-      
-    }  else { #salva i dati
-      abCum = ab
-      iCum = ii
-    }
-  } # end of for
-  
-  #qui salva l'output ############
-  syncvec = ts(syncvec, start=start(d), frequency = sampRate)
-  lagvec  = ts(lagvec,  start=start(d), frequency = sampRate)
-   # applica gli artefatti
-  for(i in seq_len(nrow(signal$artefacts))){
-    window(syncvec,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
-    window(lagvec,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
-  }
-  signal[[outputName]]$xBest = xbest
-  signal[[outputName]]$sync = DyadStream(syncvec, "PMBest_Sync", col=rgb(191,50,59,max=255))
-  signal[[outputName]]$lag = DyadStream(lagvec, "PMBest_Lag", col=rgb(253,177,2,max=255))
-  return(signal)
-  
-}
+##############################
+# ppSync = function(signal,minSizeSec, outputName) {
+#   if(is.null(signal[[outputName]])||is.null(signal[[outputName]]$xBest))stop("Please run peakMatch before.")
+#   d = signal$s1
+#   d2  = signal$s2
+#   lagSec = attr(signal[[outputName]], "lagSec")
+#   sampRate = frequency(signal)
+#   ransamp = lagSec * sampRate
+#   xbest = signal[[outputName]]$xBest
+#   xbest$sync = rep(NA,nrow(xbest))
+#   
+#   lagvec = rep(NA,length(d) )
+#   lags = xbest$lag
+#   for(i in 1:nrow(xbest)){
+#     #per il primo picco porta tutti i lag al valore del primo picco
+#     if(i==1) {lagvec[1:xbest$s1[1]] = lags[1]
+#     } else {
+#       # per tutti gli altri lag fai una interpolazione
+#       ab = (xbest$s1[i-1]+1):xbest$s1[i]
+#       lagvec[ab] = round(seq(from=lags[i-1], to=lags[i], length.out = length(ab)))
+#     }
+#   }
+#   lagvec[is.na(lagvec)] = lags[length(lags)] #fix the last values
+#   
+#   
+#   syncvec = rep(NA,length(d))
+#   abCum = list()
+#   iCum = c()
+#   deltaVec = rep(NA,nrow(xbest))
+#   xbest$syncBound = c(T,rep(F,nrow(xbest)-1))
+#   xbest$syncStart = rep(F,nrow(xbest))
+#   xbest$syncEnd   = rep(F,nrow(xbest))
+#   
+#   for(i in 1:(nrow(xbest)-1)){
+#     
+#     ab = list()
+#     ab[[1]] = xbest$s1[i]:xbest$s1[i+1]
+#     ab[[2]] = xbest$s2[i]:xbest$s2[i+1]
+#     ii = i
+#     
+#     if(length(abCum)>0){ #se ci sono dei dati lasciati indietro aggiungili ad ab
+#       ab[[1]] = c(abCum[[1]],ab[[1]])
+#       ab[[2]] = c(abCum[[2]],ab[[2]])
+#       abCum = list() # e resetta abCum
+#       ii = c(iCum, ii)
+#       iCum = c()
+#     }
+#     #if the longest of ab is at least minSizeSec length
+#     if(length(ab[[which.max(lapply(ab,length))]]) >= minSizeSec*sampRate){
+#       ## trova il segmento più corto e allungalo fino alla larghezza di quello di più lungo
+#       ## mantenendolo al centro
+#       short = s = which.min(lapply(ab,length))
+#       long =  l = which.max(lapply(ab,length))
+#       
+#       ### [MODE 1] use the width of the longer, by enlarging the WINDOW of the shorter #########
+#       delta = abs(length(ab[[1]]) - length(ab[[2]]))
+#       deltaVec[i]=delta
+#       if(delta%%2!=0){ #se delta è dispari, invece di usare delta/2 ti tocca fare delta-1 /2 e rimettere l'1 alla fine
+#         ab[[short]] = (min(ab[[short]]) - (delta-1)/2) : (max(ab[[short]]+ (delta-1)/2) +1)
+#       } else { #se pari o uguale a zero (stessa lunghezza)
+#         ab[[short]] = (min(ab[[short]]) - delta/2) : (max(ab[[short]]+ delta/2))
+#       }
+#       ## controllo che non si vada oltre ai boundaries 1:length(d)
+#       toKeep1 = which(ab[[1]]>0 & ab[[1]]<length(d))
+#       toKeep2 = which(ab[[2]]>0 & ab[[2]]<length(d2))
+#       ab = lapply(ab, function(x) x[if(length(toKeep1)<length(toKeep2)) toKeep1 else toKeep2  ])
+#       iCor = cor(d[ab[[1]]] , d2[ab[[2]]]) #"pear"
+#       # iCor = cor(diff(d[ab[[1]]]) , diff(d2[ab[[2]]])) #"pear" on slopes
+#       
+#       ### [MODE 2] stretch the shorter to the width of the longer #########
+#       # #is this working?
+#       # data = list("s1" = d, "s2" = d2)
+#       #
+#       # if(length(ab[[1]]) != length(ab[[2]])){
+#       #   toCorL = data[[l]][ab[[l]]]
+#       #   toCorS = approx(x=1:length(ab[[s]]),y=data[[s]][ab[[s]]],
+#       #                   xout=seq(1,length(ab[[s]]),length.out = length(ab[[l]])))$y
+#       # } else {
+#       #   toCorL = data[[1]][ab[[1]]]
+#       #   toCorS = data[[2]][ab[[2]]]
+#       # }
+#       # iCor = cor(toCorL,toCorS)
+#       
+#       
+#       ### diagnostic plot ####
+#       # rs1 = rangeRescale(d,-1,1)
+#       # rs2 = rangeRescale(d2,-1,1)
+#       # par(mfrow=c(1,2))
+#       # plot(rs1[ab[[1]]],type="l",main=iCor,ylim=c(-1,1))
+#       # lines(rs2[ab[[2]]])
+#       # #scatter
+#       # plot(d[ab[[1]]],d2[ab[[2]]]);abline(lm(d[ab[[2]]]~d2[ab[[1]]]),lty=3);
+#       # midLine(mean(d[ab[[1]]]),mean(d2[ab[[2]]]))
+#       # midLine = function(ux,uy){lines(seq(-1+ux,1+ux,length.out = 100),seq(-1+uy,1+uy,length.out = 100))}
+#       
+#       
+#       ### [FINALLY] save objects ##########
+#       xbest$sync[ii] = iCor
+#       xbest$syncBound[i+1] = T
+#       #start of each sync windows is located in the center between begin of s1 and s2 windows
+#       xStart = round(mean(min(ab[[1]]),min(ab[[2]])))
+#       xEnd = round(mean(max(ab[[1]]),max(ab[[2]])))
+#       syncvec[xStart:xEnd] = iCor
+#       xbest$syncStart[i] = xStart
+#       xbest$syncEnd[i] = xEnd
+#       
+#     }  else { #salva i dati
+#       abCum = ab
+#       iCum = ii
+#     }
+#   } # end of for
+#   
+#   #qui salva l'output ############
+#   syncvec = ts(syncvec, start=start(d), frequency = sampRate)
+#   lagvec  = ts(lagvec,  start=start(d), frequency = sampRate)
+#    # applica gli artefatti
+#   for(i in seq_len(nrow(signal$artefacts))){
+#     window(syncvec,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
+#     window(lagvec,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
+#   }
+#   signal[[outputName]]$xBest = xbest
+#   signal[[outputName]]$sync = DyadStream(syncvec, "PMBest_Sync", col=rgb(191,50,59,max=255))
+#   signal[[outputName]]$lag = DyadStream(lagvec, "PMBest_Lag", col=rgb(253,177,2,max=255))
+#   return(signal)
+#   
+# }
 
 #AMICo: Adaptive Matching Interpolated Correlation
-ppSync_dev = function(signal,minSizeSec, outputName) {
+ppSync_dev = function(signal, xbest, minSizeSec, outputName) {
   ##questa è una versione di debug e sviluppo di ppSync di rIP
   # richiede dei dati generati con rIP in un oggetto chiamato lr
   # ottimi quelli di "PACS_rIP engine.R"
@@ -464,15 +542,15 @@ ppSync_dev = function(signal,minSizeSec, outputName) {
   
   # signal = lr$all_CC_1$SC
   # minSizeSec=5 <-- can be smaller as the check is on the shorter segment?
-  if(is.null(signal[[outputName]])||is.null(signal[[outputName]]$xBest))stop("Please run peakMatch before.")
-  if(nrow(signal[[outputName]]$xBest)<2) stop("peakMatch found only one peak in the signal")
-  if(nrow(signal[[outputName]]$xBest)<10) warning("peakMatch found less than 10 peaks")
+  # if(is.null(signal[[outputName]])||is.null(signal[[outputName]]$xBest))stop("Please run peakMatch before.")
+  if(nrow(xbest)<2) stop("peakMatch found only one peak in the signal")
+  if(nrow(xbest)<10) warning("peakMatch found less than 10 peaks")
   d = signal$s1
   d2  = signal$s2
   lagSec = attr(signal[[outputName]], "lagSec")
   sampRate = sampRate(signal)
   ransamp = lagSec * sampRate
-  xbest = signal[[outputName]]$xBest
+  # xbest = signal[[outputName]]$xBest
   xbest$sync = rep(NA,nrow(xbest))
   
   #crea il vettore di lag al sample rate finale
@@ -661,10 +739,11 @@ ppSync_dev = function(signal,minSizeSec, outputName) {
       window(lagvec,realStart, realEnd ) <- NA
     }
   }
-  signal[[outputName]]$xBest = xbest
-  signal[[outputName]]$sync = DyadStream(syncvec, "PMBest_Sync", col=rgb(191,50,59,max=255))
-  signal[[outputName]]$lag = DyadStream(lagvec, "PMBest_Lag", col=rgb(253,177,2,max=255))
-  return(signal)
+  list (
+   xBest = xbest,
+   sync = DyadStream(syncvec, "PMBest_Sync"),
+   lag = DyadStream(lagvec, "PMBest_Lag")
+   )
 }
 
 ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
@@ -753,33 +832,58 @@ ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
   
 }
 
-##peakfinder è una funzione ausiliaria, è sviluppata in "peak-centered-flex-CCF_v1.93"
-#' Title
+#' Finds peaks and throughs features in a time series
 #'
-#' @param x a ts object or a numeric vector.
+#' @param x a rats, ts, or a numeric vector.
 #' @param sgol_p smoothing filter order. If NA, the filtering is disabled.
 #' @param sgol_n smoothing filter length (must be odd).
 #' @param mode should the function return only 'peaks', 'valleys', or 'both'?
-#' @param correctionRangeSeconds the range in which the real maximum/minimum value should be searched, in seconds.
-#' around the derivative shift. Should be less then the periodicity of the signal.  0.5 is good for skin conductance.
-#' @param minPeakDelta the minimum delta from valley to peak for detection. Skin conductance traditionally uses 0.05uS, or 0.03uS
+#' @param correctionRangeSeconds the range in which the real maximum/minimum
+#' value should be searched, in seconds.
+#' around the derivative shift. Should be less then the periodicity of the
+#' signal.  0.5 is good for skin conductance.
+#' @param minPeakAmplitude the minimum delta from valley to peak for detection.
+#' Skin conductance traditionally uses 0.05uS, or 0.03uS
+#' @details The function has a relatively simple yet robust implementation:
+#' after a Sgolay smoothing, the first derivative's sign changes are detected.
+#' Then, the actual minima or maxima is looked for in a given range.
+#' NOTE: the function ensures that no consecutive throughs or peaks are returned.
+#' 
 #'
-#' @return a list of: "bool" a logical vector of the same length of x with TRUE value corresponding to a match;
-#' "samples" the index of matches in x;
-#' "seconds" the position in seconds of matches (if x is a ts object);
-#' and "type" a charachter vector defining for each "samples" value if its a 'p' peak or a 'v' valley.
+#' @return a list of:
+#' \describe{
+#'   \item{bool}{a logical vector of the same length of x with TRUE
+#'    value corresponding to a match
+#'    }
+#'   \item{samples}{the position of features relatively to x's index}
+#'   \item{time}{temporal coordinates of the features (if x has a frequency attribute)}
+#'   \item{type}{a character vector defining for each "samples" value if its a 'p' peak or a 'v' valley (trough)}
+#'   \item{y}{The value of x correspoding to the detected features}
+#'   \item{amp}{the positive (v->p) and negative (p->v) amplitudes of the detected features}
+#'   \item{i}{The absolute position of the features along the signal. The values
+#'      are independent from the 'mode' argument, allowing interaction between
+#'      different calls of the function.}
+#'   
+#'   
+#' }
 #' @export
 peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both"),
-                      correctionRangeSeconds, minPeakDelta){
-  #debug
+                      correctionRangeSeconds, minPeakAmplitude){
+  ####debug
   # stop("debug")
-  # x = d2
+  # x = d1
   # sgol_p = 2
   # sgol_n = 25
   # mode="both"
   # correctionRangeSeconds = 0.5
-  # minPeakDelta = 0.05
+  # minPeakAmplitude = 0.05
   ##
+  
+  if(missing(sgol_p)) stop("in peakfinder missing sgol_p")
+  if(missing(sgol_n)) stop("in peakfinder missing sgol_n")
+  if(missing(correctionRangeSeconds)) stop("in peakfinder missing correctionRangeSeconds")
+  if(missing(minPeakAmplitude)) stop("in peakfinder missing minPeakAmplitude")
+  
   sampRate = frequency(x)
   if(is.na(sgol_p)||is.na(sgol_n)){
     smooth_x = x
@@ -844,8 +948,7 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
     if(pv[v]=="p"){
       search_interval = x[piksam[v-1]:piksam[v+1]]
       search_interval = search_interval[!is.na(search_interval)]
-      # plot(c(10,16,search_interval),t="l",main=paste(v," - sd:",round(sd(search_interval,na.rm=T),2)))
-      if(length(search_interval) == 0 || (max(search_interval)-search_interval[1])<minPeakDelta){#delta dall'onset al picco almeno 0.05uS o tutti NA
+      if(length(search_interval) == 0 || (max(search_interval)-search_interval[1])<minPeakAmplitude){#delta dall'onset al picco almeno 0.05uS o tutti NA
         # if(sd(search_interval)<IQR(x)/20){
         #se alcuni picchi vanno rimossi perch- sono essenzialmente flat
         #non ci possono essere 2 valley di seguito, quindi elimina quella col valore pi- alto
@@ -856,7 +959,7 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
       }
     }
   }
-  if(length(toDelete)>1){
+  if(length(toDelete)>0){
     piksam = piksam[-toDelete]
     pv = pv[-toDelete]
   }
@@ -881,49 +984,23 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
       }
     }
   }
-  if(length(toDelete)>1){
+  if(length(toDelete)>0){
     piksam = piksam[-toDelete]
     pv = pv[-toDelete]
   }
   
-  # 
-  # 
-  # #se ci sono tante valley, togli intanto tutte le v che hanno v sia a destra che sinistra
-  # toDelete=c()
-  # for(v in 2:(length(pv)-1)){
-  #   # lel = pv=="v"
-  #   # lele = embed(lel,2)
-  #   # err = which(lele[,2] + lele[,1]>1)
-  #   if(pv[v]=="v" && pv[v-1]=="v" && pv[v+1]=="v"){
-  #     toDelete = c(toDelete, v)
-  #   }
-  # }
-  # if(length(toDelete)>1){
-  #   piksam = piksam[-toDelete]
-  #   pv = pv[-toDelete]}
-  # 
-  # #ora ci saranno al massimo dei casi p--v--v--p
-  # #eliminale solo se poco distanti
-  # toDelete = c()
-  # for(v in 1:(length(pv)-1)){
-  #   if(pv[v]=="v" && pv[v+1] =="v"){
-  #       toDelete = c(toDelete, c(v+1,v)[which.max(c(x[piksam[v+1]],x[piksam[v]]))])
-  #   }
-  # }
-  # if(length(toDelete)>1){
-  #   piksam = piksam[-toDelete]
-  #   pv = pv[-toDelete]}
-  # 
+  is = 1:length(piksam)
   
   #tieni solo picchi e valli, se vuoi!
   if(mode=="peaks") {
     piksam = piksam[which(pv=="p")]
+    is = is[which(pv=="p")]
     pv = pv[which(pv=="p")]
+    
   } else if(mode == "valleys"){
     piksam = piksam[which(pv=="v")]
+    is = is[which(pv=="v")]
     pv = pv[which(pv=="v")]
-    
-    
   }
   
   #ricrea pikboo & piks dai sample corretti
@@ -934,10 +1011,11 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   
   list("bool" = pikboo,
        "samples" = piksam,
-       "seconds" = piks,
-       "type" = pv,
+       "time" = piks,
+       "class" = pv,
        "y" = x[piksam],
-       "amp" = c(NA,diff(x[piksam]))
+       "amp" = c(NA,diff(x[piksam])),
+       "index" = is
   )
   
 }
