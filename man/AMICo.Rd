@@ -2,21 +2,23 @@
 % Please edit documentation in R/rIP_Sync_PMBest.R
 \name{AMICo}
 \alias{AMICo}
-\title{pmBest}
+\title{Peak matching similarity of signals}
 \usage{
 AMICo(
   experiment,
   signal = "all",
-  lagSec = 20,
+  lagSec = 6,
+  weightMalus = 50,
+  match_threshold = 0.1,
+  minSizeSec = 4,
+  maxPeakDuration = "hrt",
+  interval_sec = 10,
+  algorithm = c("v1.1", "v1.0", "v2RC0.4"),
+  outputName = "AMICo",
   sgol_p = 2,
   sgol_n = 25,
-  weightMalus = 20,
-  match_threshold = 0.25,
-  minSizeSec = 1,
-  algorithm = c("v1.1", "v1.0"),
-  outputName = "AMICo",
-  correctionRangeSeconds = 0.5,
-  minPeakDelta
+  correctionRangeSeconds,
+  minPeakAmplitude
 )
 }
 \arguments{
@@ -26,22 +28,28 @@ AMICo(
 
 \item{lagSec}{}
 
-\item{sgol_p}{}
-
-\item{sgol_n}{}
-
 \item{weightMalus}{weightmalus è la percentuale di malus per il lag più estremo. Es, con weightMalus= 20 e r = 1 al massimo lag, la trasformazione diventa r' = 0.8}
 
 \item{match_threshold}{a value between 0 and 1, specifying the similarity threshold to assign a peak-peak match.}
 
 \item{minSizeSec}{the smallest allowed window size. very small windows may artificially inflate synchrony.}
 
-\item{correctionRangeSeconds}{parameter passed to peakFinder, seconds of manual correction for derivative based peak-finding}
+\item{maxPeakDuration}{}
 
-\item{minPeakDelta}{parameter passed to peakFinder, minimum valley-peak delta to detect a peak}
+\item{interval_sec}{in AMICO2, how long should unmatched sequences be?}
 
-\item{scaledCorrelation}{logical. If TRUE, correlations will be scaled using the whole signals range, and be much more robust}
+\item{algorithm}{character. The version of AMICo algorithm.}
+
+\item{...}{Further arguments passed to peakFinder. Specifically, 
+sgol_p, sgol_n, correctionRangeSeconds and minPeakAmplitude must be set
+according to the signal type.}
 }
 \description{
-pmBest
+Peak matching similarity of signals
+}
+\details{
+Good values for skin conductance are correctionRangeSeconds = 0.5,
+minPeakAmplitude = 0.05.
+
+The difference in algorithms can be found in the changelog
 }

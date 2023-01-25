@@ -286,7 +286,10 @@ readDyadSignals = function(
     signalList = lapply(seq_along(s1Col), function(i) {
       DyadSignal(name=signalNames[i], s1=ts(session[,s1Col[i]],frequency=sampRate,start=start[nSession]),
                  s2=ts(session[,s2Col[i]],frequency=sampRate,start=start[nSession]),
-                 sampRate = sampRate, s1Name = s1Name, s2Name = s2Name)
+                 sampRate = sampRate, s1Name = s1Name, s2Name = s2Name,
+                 sessionId=sess[[nSession]],
+                 dyadId=dyadIds[[nSession]],
+                 groupId=group[[nSession]])
     })
     #generates sessions
     ses = DyadSession(groupId = group[[nSession]], sessionId= sess[[nSession]], dyadId = dyadIds[[nSession]],

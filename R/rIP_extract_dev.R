@@ -54,14 +54,13 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
   # print(missing(sync))
   # if(!missing(sync)) print(str(sync))
   ##DEBUG
-  # x = d$all_CC_4
+  # x = lr2[[3]]
   # signal="SC"
   # x$SC$artefacts = rbind(data.frame(start=c(160,300), end=c(200,400)),x[[signal]]$artefacts)
-  # 
-  # sync="PMdev"
+  # sync="vintage"
   # stream = "sync"
-  # category="PACS"
-  # categoryIndex="PACS"
+  # category="IM"
+  # categoryIndex="micro"
   # mergeEpochs = F
   # artefact.rm=T
   ###
@@ -214,11 +213,12 @@ extractEpochs.DyadExperiment = function(experiment, signal, sync, stream, catego
       stop("category, categoryIndex, stream, must all be specified")
   }
   epochsName = paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},stream)),collapse = "")
-  goodNames = names(session[[signal]])[!sapply(session[[signal]],is.sync) & !sapply(session[[signal]],is.DyadStream)]
-  if(! epochsName %in% goodNames) stop(epochsName, " was not found in session. Have you run epochStream() beforehand. Found names: ", goodNames )
-  
+
   #check names
   keepNames = unique(unlist(lapply (experiment, function(session){
+    goodNames = names(session[[signal]])[!sapply(session[[signal]],is.sync) & !sapply(session[[signal]],is.DyadStream)]
+    if(! epochsName %in% goodNames) stop(epochsName, " was not found in session. Have you run epochStream() beforehand. Found names: ", goodNames )
+    
     names(session[[signal]][[epochsName]])
   })))
   keepNames = sort(keepNames)

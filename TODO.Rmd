@@ -7,16 +7,19 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 # ULTRA IMPORTANT KNOWLEDGE
-  * puoi debuggare i missing e le chiamate stampanod:
+  * puoi debuggare gli argomenti missing e le chiamate stampando:
   __print(match.call())__
   * marker nel codice:
     * @TSBUG
+      * cerca tss tse ts start end startend sampRate( 
     * @OBSOLETE
 
 
 ## Git
-  * merge di dev4 con master
-  * nuovo branch con tempo in millesimi e/o frazioni di secondo in timemaster
+  * nuova versione
+     * tempo in millesimi e/o frazioni di secondo in timemaster
+     * rats
+     * rifai amico senza tanti cazzi ma comprando direttamente triangoli p-v-hpa
 
 ## physiology
   * recupera tutte le funzioni avanzate sviluppate per VRperGenere
@@ -53,6 +56,7 @@ knitr::opts_chunk$set(echo = TRUE)
     * huts: human time series
     * dyats: time series of the dyadsync package
   * rats deve sostituire DyadStream
+  * se decidi di mantenere DyadStream controlla window<-.DyadStream replacement method. this stinks!
   
 ### rats CLASS DOCUMENTATION
   * rats are legion: there is no singular form "rat"
@@ -83,26 +87,29 @@ knitr::opts_chunk$set(echo = TRUE)
   * sampRate() diventa frequency()
   * sccf sarebbe meglio wccs "window cross corr of slopes"
   * aggiungi '...' a PMBest e CCFBest, per accomodare i parametri di eventuali altri algoritmi di calcolo.
-  * metti attribute "SEssionName" o simile dentro a DyadSignal e DyadStream per tnere traccia
+  * metti attribute "SEssionName" o simile dentro a DyadStream per tnere traccia
   * rinomina i files in modo sensato
   * elimina i commenti e le cose obsolete. Sto segnando con @OBSOLETE le parti da rimuovere e/o spostare in obsolenscence.R
   * c'è un bug in print.DyadStream:  Error in `[.default`(x, (length(x) - 100):length(x)) : only 0's may be mixed with negative subscripts. Probabilmente con streams molto brevi.
-  * cambia gli inutili mapply (Map) in cicli for!
+  * controlla gli argomenti missing nelle funzioni parallelizzate. In particolare
+    AMICo, e filter
+    
+  
   
   
 
 ## Performance
-  * Parallelize -> http://dept.stat.lsa.umich.edu/~jerrick/courses/stat701/notes/parallel.html
   * usa il profiler per trovare bottlenecks: https://support.rstudio.com/hc/en-us/articles/218221837-Profiling-R-code-with-the-RStudio-IDE
    
-   
 
-## AMICo algorithm
 
-  * in xbest di PMbest ci sono delle (rare) occorrenze in cui lo stesso picco viene usato 2 volte, che è grave.
+## Backlog
+  * in xbest di AMICo v1.1  ci sono delle (rare) occorrenze in cui lo stesso picco viene usato 2 volte, che è grave.
   * errori (rari) in PMBest (su diadi random): 
     * In cor(rs1, rs2, use = "c") : la deviazione standard è zero
     * In s2p\$bool + s2v\$bool :  longer object length is not a multiple of shorter object length
+
+  
 
   
 ### migliorie all'indice

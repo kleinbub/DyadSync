@@ -14,6 +14,7 @@ scale.ts = function(x, center = TRUE, scale = TRUE){
 #' @param x a ts object
 #' @export
 tss = function(x){UseMethod("tss",x)}
+#' @export
 tss.ts = function(x){return(tsp(x)[1L])}
 #start(x)[1]*frequency(x)+start(x)[2]-1
 
@@ -23,6 +24,7 @@ tss.ts = function(x){return(tsp(x)[1L])}
 #' @param x a ts object
 #' @export
 tse = function(x){UseMethod("tse",x)}
+#' @export
 tse.ts = function(x){return(tsp(x)[2L])}
 # end(x)[1]*frequency(x)+end(x)[2]-1
 
@@ -31,6 +33,7 @@ tse.ts = function(x){return(tsp(x)[2L])}
 #'
 #' @export
 duration = function(x){UseMethod("duration",x)}
+#' @export
 duration.ts = function(x){return(tse(x)-tss(x))}
 
 

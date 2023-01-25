@@ -38,19 +38,44 @@ signalFilter = function (x, FUN, newAttributes=NULL, signals="all", ...) {
 }
 #' @export
 signalFilter.DyadExperiment = function (x, FUN, newAttributes=NULL, signals="all", ...) {
+  
+  # progresbar
+  nSessions = length(x)
+  pb <- progress::progress_bar$new(
+    format = "Calculation::percent [:bar] :elapsed | ETA: :eta",
+    total = nSessions,    # number of iterations
+    width = 60, 
+    show_after=0 #show immediately
+  )
+  
+  progress_letter <- rep(LETTERS[1:10], 10)  # token reported in progress bar
+  
+  # allowing progress bar to be used in foreach -----------------------------
+  progress <- function(n){
+    pb$tick(tokens = list(letter = progress_letter[n]))
+  } 
+  
+  opts <- list(progress = progress)
+  
+  
   #for each session
-  cores=parallel::detectCores()
-  cl <- parallel::makeCluster(cores[1]-1) #not to overload your computer
-  doParallel::registerDoParallel(cl)
+  cores=parallel::detectCores()-1
+  cat(paste0("\r\nPerforming parallelized computation of ",
+             deparse(substitute(FUN)), " using ",cores," cores.\r\n")) 
+  
+  cl <- parallel::makeCluster(cores[1]) #not to overload your computer
+  doSNOW::registerDoSNOW(cl)
   `%dopar%` <- foreach::`%dopar%`
   `%do%` <- foreach::`%do%`
+  pb$tick(0)
   
   experiment2 <- foreach::foreach(
-    nSession = 1:length(x),
-    .combine = c) %dopar% { 
-      session = x[[nSession]]
+    iSession = 1:nSessions,
+    .combine = c,
+    .options.snow = opts) %dopar% { 
+      session = x[[iSession]]
       session = signalFilter(session, FUN=FUN, newAttributes=newAttributes, signals=signals, ...)
-      session[["namex"]] = names(x)[nSession]
+      session[["namex"]] = names(x)[iSession]
       list(session)
     }
   for(i in 1:length(experiment2)){
@@ -66,6 +91,8 @@ signalFilter.DyadExperiment = function (x, FUN, newAttributes=NULL, signals="all
   experiment2 = cloneAttr(x,experiment2)
   
   parallel::stopCluster(cl)
+  cat("\r\nDone ;)\r\n")
+  
   return(experiment2)
 }
 
@@ -187,7 +214,7 @@ setArtefacts.DyadSignal <- function(x, startEnd) {
   sel$end   = timeMaster(sel$end,   out="s")
   
   #check for artefact start lower than signal start
-  if(any(sel$start < tss(x))){
+  if(any(sel$start < tss(x))){ # @TSBUG
     warning("artefacts times beginning before signal's start time were trimmed")
     sel[sel$start < tss(x),] = round(xstart(x))
   }

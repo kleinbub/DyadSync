@@ -330,20 +330,25 @@ is.DyadCategory = function(x) inherits(x,"DyadCategory") && length(x)
 ##   -end
 ##   -duration
 ##   -class: list DyadSession
-DyadSignal = function(name="some signal",s1=NULL,s2=NULL,sampRate=NULL, s1Name, s2Name){
+DyadSignal = function(name="some signal",s1=NULL,s2=NULL,sampRate=NULL,
+                      s1Name, s2Name,sessionId,dyadId,groupId){
   x = list(
     s1 = DyadStream(stream = s1, name=s1Name, frequency = sampRate),
     s2 = DyadStream(stream = s2, name=s2Name, frequency = sampRate),
     artefacts = data.frame("start"=c(),"end"=c())
   )
   attributes(x) = c(attributes(x),list(
-    name = name,
-    sampRate = sampRate,
-    filter = "raw",
-    s1Name = s1Name,
-    s2Name = s2Name,
-    start = start(s1), #start-end-duration of s1 and s2 are the same by design
-    end = end(s1)
+    "name" = name,
+    "sessionId" = sessionId,
+    "dyadId" = dyadId,
+    "groupId" = groupId,
+    "s1Name" = s1Name,
+    "s2Name" = s2Name,
+    "sampRate" = sampRate,
+    "filter" = "raw",
+    "start" = start(s1), #start-end-duration of s1 and s2 are the same by design
+    "end" = end(s1)
+    
   ))
   class(x) = append(class(x),"DyadSignal")
   return(x)
@@ -461,10 +466,13 @@ print.DyadStream = function (x, ...) {
             "\nEnd: ", format(tsp(x)[2L]), "\nFrequency: ", deparse(fr.x), 
             "\n")
   cat0("Duration: ",length(x), " samples, ",length(x)/frequency(x), " seconds\n\n")
-  cat(x[1:100], sep = "\t")
-  cat("\n...\n")
-  cat(x[(length(x)-100):length(x)], sep = "\t") 
-  
+  if(length(x)>200){
+    cat(x[1:100], sep = "\t")
+    cat("\n...\n")
+    cat(x[(length(x)-100):length(x)], sep = "\t") 
+  } else {
+    cat(x, sep="\t")
+  }
 }
 
 #' Time Windows
@@ -490,6 +498,15 @@ window.DyadStream = function(x, duration, ...){
   classAttr(res) = classAttr(x)
   attr(res,"duration") = length(res)/frequency(res)
   res
+}
+#' @export
+"window<-.DyadStream" = function(x, value, ...){
+  l = list(...)
+  if (! all.equal( names(l),c("start", "end"))) stop("start and end must be specified")
+  y = as.ts(x)
+  window(y, start=l$start, end=l$end) <- value
+  y = cloneAttr(x, y)
+  y
 }
 
 

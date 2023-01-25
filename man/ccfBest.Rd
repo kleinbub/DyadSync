@@ -6,7 +6,7 @@
 \usage{
 ccfBest(
   x,
-  signals = "all",
+  signal = "SC",
   lagSec,
   winSec,
   incSec,
