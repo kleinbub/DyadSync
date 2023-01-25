@@ -6,14 +6,29 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+## v.1.2.0.9001
+#### 2022/12/01
+#### **WARNING: This version is not going to be backward compatible with most scripts!**
+  * peakFinder \$seconds renamed to \$time
+  * peakFinder \$type renamed to \$class
+  * DyadSignal now maintains attributes of dyad session group ids
+  * AMICo v2 RC 0.4 is 
+  * removed possibility of running sync analyses on multiple signals, as each signal
+    requires ad hoc settings.
+  * ccfBest now is parallelized
+  * metadata (es:groupId) are now saved also in child objects, such as dyadSignals
+
+## v.1.1.0
+#### 2022/11/23
+  * merged dev4 branch and generally stable version
+
 ## v.1.0.0.9024
 #### 2022/11/23
   * renamed groupIndex to categoryIndex and streamKey to stream
   * renamed PMbest to AMICo
   * parallelized AMICo
   * general clean up and obsolescence file
-
-
 
 ## v.1.0.0.9023
 #### 2022/09/20

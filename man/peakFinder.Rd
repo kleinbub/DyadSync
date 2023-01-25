@@ -2,7 +2,7 @@
 % Please edit documentation in R/rIP_Sync_PMBest.R
 \name{peakFinder}
 \alias{peakFinder}
-\title{Title}
+\title{Finds peaks and throughs features in a time series}
 \usage{
 peakFinder(
   x,
@@ -10,11 +10,11 @@ peakFinder(
   sgol_n = 25,
   mode = c("peaks", "valleys", "both"),
   correctionRangeSeconds,
-  minPeakDelta
+  minPeakAmplitude
 )
 }
 \arguments{
-\item{x}{a ts object or a numeric vector.}
+\item{x}{a rats, ts, or a numeric vector.}
 
 \item{sgol_p}{smoothing filter order. If NA, the filtering is disabled.}
 
@@ -22,17 +22,38 @@ peakFinder(
 
 \item{mode}{should the function return only 'peaks', 'valleys', or 'both'?}
 
-\item{correctionRangeSeconds}{the range in which the real maximum/minimum value should be searched, in seconds.
-around the derivative shift. Should be less then the periodicity of the signal.  0.5 is good for skin conductance.}
+\item{correctionRangeSeconds}{the range in which the real maximum/minimum
+value should be searched, in seconds.
+around the derivative shift. Should be less then the periodicity of the
+signal.  0.5 is good for skin conductance.}
 
-\item{minPeakDelta}{the minimum delta from valley to peak for detection. Skin conductance traditionally uses 0.05uS, or 0.03uS}
+\item{minPeakAmplitude}{the minimum delta from valley to peak for detection.
+Skin conductance traditionally uses 0.05uS, or 0.03uS}
 }
 \value{
-a list of: "bool" a logical vector of the same length of x with TRUE value corresponding to a match;
-"samples" the index of matches in x;
-"seconds" the position in seconds of matches (if x is a ts object);
-and "type" a charachter vector defining for each "samples" value if its a 'p' peak or a 'v' valley.
+a list of:
+\describe{
+  \item{bool}{a logical vector of the same length of x with TRUE
+   value corresponding to a match
+   }
+  \item{samples}{the position of features relatively to x's index}
+  \item{time}{temporal coordinates of the features (if x has a frequency attribute)}
+  \item{type}{a character vector defining for each "samples" value if its a 'p' peak or a 'v' valley (trough)}
+  \item{y}{The value of x correspoding to the detected features}
+  \item{amp}{the positive (v->p) and negative (p->v) amplitudes of the detected features}
+  \item{i}{The absolute position of the features along the signal. The values
+     are independent from the 'mode' argument, allowing interaction between
+     different calls of the function.}
+  
+  
+}
 }
 \description{
-Title
+Finds peaks and throughs features in a time series
+}
+\details{
+The function has a relatively simple yet robust implementation:
+after a Sgolay smoothing, the first derivative's sign changes are detected.
+Then, the actual minima or maxima is looked for in a given range.
+NOTE: the function ensures that no consecutive throughs or peaks are returned.
 }
