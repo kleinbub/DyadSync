@@ -38,15 +38,17 @@ CCFBest = function(sync, lag, ccf_matrix, lagSec, winSec, incSec, accelSec, weig
 }                    
 
 #peakMatch
-newAMICo = PMBest = function(sync, lag, xBest, lagSec, sgol_p, sgol_n, weightMalus)
+#' an AMICo analysis contains 3 objects:
+#' a sync, and lag vector, containing synchrony and lag at the same frequency
+#' of the original time series
+#' and xBest, which is a table with the matched peaks positions and their similarity
+#' also there are many attributes that save how the analysis was run
+newAMICo = function(sync, lag, xBest, args)
 {
   x = list("sync"=sync, "lag"=lag, "xBest"=xBest)
   class(x) = c("AMICo","PMBest") #@OBSOLETE pmbest
-  attributes(x) = c(attributes(x), list(
-      "lagSec"   = lagSec,
-      "sgol_p"   = sgol_p,
-      "sgol_n"   = sgol_n,
-      "weightMalus" = weightMalus
-  ))
+  attributes(x) = c(attributes(x), args)
   return(x) 
 }
+
+
