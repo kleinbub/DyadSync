@@ -16,6 +16,9 @@ scale.ts = function(x, center = TRUE, scale = TRUE){
 tss = function(x){UseMethod("tss",x)}
 #' @export
 tss.ts = function(x){return(tsp(x)[1L])}
+#' @export
+tss.DyadSignal = function(x){return(start(x)[1L])}
+
 #start(x)[1]*frequency(x)+start(x)[2]-1
 
 #' Time Series End
@@ -27,6 +30,8 @@ tse = function(x){UseMethod("tse",x)}
 #' @export
 tse.ts = function(x){return(tsp(x)[2L])}
 # end(x)[1]*frequency(x)+end(x)[2]-1
+#' @export
+tse.DyadSignal = function(x){return(end(x)[1L])}
 
 #' Duration of a ts object in time units
 #' @param x a ts object
