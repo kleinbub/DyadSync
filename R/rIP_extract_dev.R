@@ -200,15 +200,15 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
 #' @description  This function extracts the selected epochs from every session of a "DyadExperiment" object and puts them in
 #'  a simple list. Categories must be created with epochStream() beforehand.
 #' @export
-extractEpochs = function(experiment, signal, sync, stream, category, categoryIndex, by, epochStreamName, ...){
+extractEpochs = function(experiment, signal, sync, stream, category, categoryIndex, by, ...){
   if(!missing("by")) stop("by is not implemented yet.")
   UseMethod("extractEpochs",experiment) 
 }
 
 #' @export
-extractEpochs.DyadExperiment = function(experiment, signal, sync, stream, category, categoryIndex, by, epochStreamName,   ...){
+extractEpochs.DyadExperiment = function(experiment, signal, sync, stream, category, categoryIndex, by,   ...){
   #deleteme @OBSOLETE
-  if(!missing(epochStreamName)) stop("epochStreamName is obsolete. Specify sync, stream, category, categoryIndex instead.")
+  # if(!missing(epochStreamName)) stop("epochStreamName is obsolete. Specify sync, stream, category, categoryIndex instead.")
   if(missing(category) | missing(categoryIndex) | missing(stream)){
       stop("category, categoryIndex, stream, must all be specified")
   }
