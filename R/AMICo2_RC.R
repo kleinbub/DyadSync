@@ -799,7 +799,10 @@ AMICo2 = function(signal, lagSec,
       
       
       # finallyt instantiate new sync class object
-      return(newAMICo(syncvec,lagvec,xbest,args))
+      sync = DyadStream(syncvec,"AMICo2.0", start = time(signal$s1)[xbest$a[1]], frequency=frequency(signal))
+      lag  = DyadStream(lagvec,"AMICo2.0", start = time(signal$s1)[xbest$a[1]], frequency=frequency(signal))
+      
+      return(newAMICo(sync,lag, xbest, args))
       
     }
     
