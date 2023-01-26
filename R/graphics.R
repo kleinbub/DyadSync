@@ -691,3 +691,61 @@ plot.DyadSignal = function(x, sync=NA, rescale = c("none","win", "fixed"), ...) 
   }
   
 }
+
+#' Plot characters
+#' 
+#' if it contains a colors list :-)
+#'
+#' @param x 
+#' @param ... 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+plot.character = function(x, ...){
+  if(all(substr(x,1,1)=="#")){
+    #these are colors!
+    n = length(x)
+    nr =1 
+    nc= n
+    if(n > 5) {
+      nr=ceiling(n/5)
+      nc =5
+    }
+    mata = matrix(1:(nc*nr),ncol=nc, byrow=T)
+    oldPar = par()
+    par(mar=c(0,0,0,0))
+    plot(-1000, xlim=c(0,nc),ylim=c(nr,0), ...)
+    rect(xleft   = 1:nc-1,
+         xright  = 1:nc,
+         ytop    = rep(1:nr-1, each=nc),
+         ybottom = rep(1:nr  , each=nc),
+         col=x, border="#ffffff"
+         )
+    text( x = 1:nc-0.4,
+          y = rep(1:nr-0.85, each=nc),
+          labels = c(t(mata)),
+          col="#ffffff"
+    )
+    text( x = 1:nc-0.6,
+          y = rep(1:nr-0.85, each=nc),
+          labels = c(t(mata)),
+          col="#000000"
+    )
+    text( x = 1:nc-0.5,
+          y = rep(1:nr-0.25, each=nc),
+          labels = x,
+          col="#ffffff"
+    )
+    text( x = 1:nc-0.5,
+          y = rep(1:nr-0.15, each=nc),
+          labels = x,
+          col="#000000"
+    )
+    par = oldPar
+    
+  } else {
+    NextMethod()
+  }
+}

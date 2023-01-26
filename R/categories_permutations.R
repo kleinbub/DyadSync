@@ -48,8 +48,8 @@ categoryPerm = function(x,
                         parameterFunction = c("mean","median")[2],
                         #graphic settings
                         xlim = "auto") {
-
-
+  
+  
   d3 = x
   if(absolute){
     for(i in 1:length(d3)){
@@ -64,7 +64,8 @@ categoryPerm = function(x,
                    category=category,categoryIndex=categoryIndex, mergeEpochs = F, artefact.rm=F)
   
   resName = paste0(c(toupper(category), "_", totitle(c(sync,stream))),collapse = "")
-  ex2 = extractEpochs (d4, signal=signal, epochStream=resName)
+  ex2 = extractEpochs (d4, signal=signal, sync=sync, stream=stream,
+                       category=category, categoryIndex=categoryIndex)
   
   
   ## keep only selected categories
@@ -168,62 +169,62 @@ categoryPerm = function(x,
     res = numeric(sum(durReal))
     madness = matrix(0,nrow=nIter,ncol=512)
     # system.time({
-      for(k in 1:nIter){
-        #randomizza l'ordine delle durate
-        durRand = sample(durReal)
-        xstart = xend = c(1,numeric(length(durRand)-1))
-        for(i in 2:n) {
-          xstart[i] = xstart[i-1]+ durRand[[i-1]]
-          xend[i-1] = xstart[i-1] +durRand[[i-1]] -1
-        }
-        xend[n] = xstart[n] + durRand[n]-1 #fix the last line
-        
-        #genera paddings casuali
-        maxgap = max_from - sum(durRand)
-        
-        seed = runif(n,0,1)
-        pads = floor(seed/sum(seed)*maxgap)
-        if(sum(pads)>maxgap || sum(pads)<maxgap-n) warning("casual paddings had weird length")
-        
-        #sposta xstart e xend
-        rstart = xstart; rend =xend
-        for(i in 1:n) {
-          rstart[i:n] = rstart[i:n] + pads[i]
-          rend[i:n] = rend[i:n] + pads[i]
-        }
-        rstart
-        rend
-        sum(rend-rstart)
-        
-        #ruota full_from a caso
-        if(rotate) {
-          rfrom_seed = round(runif(1,1,max_from))
-          rfrom = shift(full_from, rfrom_seed)
-        } else rfrom = full_from
-        
-        
-        #crea un vettore di n finestre
-        rfsplit = vector("list",n)
-        for(i in 1:n){
-          #seleziona da rfrom (ruotato) i valori delle finestre random
-          rfsplit[[i]] = rfrom[(rstart[i]):(rend[i])]
-          
-        }
-        
-        #estrai il parametro dalle finestre random
-        epochMediansRand = as.numeric(unlist(lapply(rfsplit, summar,na.rm=T)))
-        epochMediansRand = epochMediansRand[!is.na(epochMediansRand)]
-        cohenlist[k] = fastcohen(epochMediansReal,epochMediansRand)
-        
-        parlist[k]   =  param(epochMediansRand, na.rm=T)
-        parlist2[k]  =  sd(epochMediansRand, na.rm=T)
-        if(xlim=="auto"){
-          randDen = density(epochMediansRand)
-        } else {
-          randDen = density(epochMediansRand, from = xlim[1], to = xlim[2])
-        }
-        madness[k,]  =  randDen$y
+    for(k in 1:nIter){
+      #randomizza l'ordine delle durate
+      durRand = sample(durReal)
+      xstart = xend = c(1,numeric(length(durRand)-1))
+      for(i in 2:n) {
+        xstart[i] = xstart[i-1]+ durRand[[i-1]]
+        xend[i-1] = xstart[i-1] +durRand[[i-1]] -1
       }
+      xend[n] = xstart[n] + durRand[n]-1 #fix the last line
+      
+      #genera paddings casuali
+      maxgap = max_from - sum(durRand)
+      
+      seed = runif(n,0,1)
+      pads = floor(seed/sum(seed)*maxgap)
+      if(sum(pads)>maxgap || sum(pads)<maxgap-n) warning("casual paddings had weird length")
+      
+      #sposta xstart e xend
+      rstart = xstart; rend =xend
+      for(i in 1:n) {
+        rstart[i:n] = rstart[i:n] + pads[i]
+        rend[i:n] = rend[i:n] + pads[i]
+      }
+      rstart
+      rend
+      sum(rend-rstart)
+      
+      #ruota full_from a caso
+      if(rotate) {
+        rfrom_seed = round(runif(1,1,max_from))
+        rfrom = shift(full_from, rfrom_seed)
+      } else rfrom = full_from
+      
+      
+      #crea un vettore di n finestre
+      rfsplit = vector("list",n)
+      for(i in 1:n){
+        #seleziona da rfrom (ruotato) i valori delle finestre random
+        rfsplit[[i]] = rfrom[(rstart[i]):(rend[i])]
+        
+      }
+      
+      #estrai il parametro dalle finestre random
+      epochMediansRand = as.numeric(unlist(lapply(rfsplit, summar,na.rm=T)))
+      epochMediansRand = epochMediansRand[!is.na(epochMediansRand)]
+      cohenlist[k] = fastcohen(epochMediansReal,epochMediansRand)
+      
+      parlist[k]   =  param(epochMediansRand, na.rm=T)
+      parlist2[k]  =  sd(epochMediansRand, na.rm=T)
+      if(xlim=="auto"){
+        randDen = density(epochMediansRand)
+      } else {
+        randDen = density(epochMediansRand, from = xlim[1], to = xlim[2])
+      }
+      madness[k,]  =  randDen$y
+    }
     # })
     
     exRan[[tipo2]] = parlist
@@ -256,7 +257,7 @@ categoryPerm = function(x,
     }
     breaks = seq(xmin,xmax,by=(xmax-xmin)/40)
     
-
+    
     ## big nice plot
     plotData = hist(parlist, breaks = breaks, plot = F)
     maxY = max(plotData$counts)
@@ -291,7 +292,7 @@ categoryPerm = function(x,
     text (parReal, maxY+maxY/100*2, paste("p-value =", format(round(pval,4),nsmall = 4) ), cex = 0.8, col=2, font=2 )
     text (parReal, maxY+maxY/100*6, paste0("Observed ", parameterFunction," = ",round(parReal,3)), cex = 0.8, col=2, font=2 )
     
-
+    
     
     
     # text(parReal,510, "real data",col=2)
@@ -311,8 +312,8 @@ categoryPerm = function(x,
     dev.off()
     
   }
-
-
-
-
+  
+  
+  
+  
 }
