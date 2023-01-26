@@ -772,6 +772,19 @@ AMICO2 = function(signal, lagSec,
         lagvec[a:b]  = xbest$similarity[i]
       }
       
+      # applica gli artefatti
+      for(i in seq_len(nrow(signal$artefacts)) ){ 
+        #@TSBUG
+        #in alcune installazioni di R c'è un bug per cui window(x xstart(x), xend(x)) risulta 1 sample più lungo di x
+        if(signal$artefacts[i,"end"] != signal$artefacts[i,"start"]){
+          
+          realEnd = c(signal$artefacts[i,"end"]-1, frequency(syncvec))
+          realStart = c(signal$artefacts[i,"start"], 1)
+          window(syncvec,realStart, realEnd ) <- NA
+          window(lagvec,realStart, realEnd ) <- NA
+        }
+      }
+      
       #' XBEST guide:
       #' row: the peak number of s1 wich was matched
       #' col: the peak number of s2
