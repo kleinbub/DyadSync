@@ -1,0 +1,3 @@
+*.Rd linguist-language=R
+man/* linguist-documentation
+vignettes/* linguist-documentation
