@@ -23,7 +23,7 @@
 #' @export
 #'
 #' @examples
-AMICO2 = function(signal, lagSec, 
+AMICo2 = function(signal, lagSec, 
                   weightMalus = 50, match_threshold = 0.0, minSizeSec=4,
                   outputName = "AMICo2", maxPeakDuration = "hrt",
                   interval_sec = 15, sgol_p,sgol_n,correctionRangeSeconds,minPeakAmplitude )

@@ -116,7 +116,7 @@ AMICo = function(experiment, signal="all", lagSec=6, #@OBSOLETE 2022 pmBest dive
         #I am using v2 which already implements peakmatch and ppsync in the same
         #function
 
-        synchro = AMICO2(xsignal, lagSec=lagSec, 
+        synchro = AMICo2(xsignal, lagSec=lagSec, 
                             weightMalus=weightMalus, match_threshold=match_threshold,
                         minSizeSec=minSizeSec,interval_sec=interval_sec,
                             outputName=outputName, maxPeakDuration=maxPeakDuration,
@@ -168,6 +168,7 @@ AMICo = function(experiment, signal="all", lagSec=6, #@OBSOLETE 2022 pmBest dive
   return(experiment2)
 }
 
+#' @export
 AMICo1 = function(signal,lagSec,weightMalus,match_threshold, outputName, algorithm,
                   minSizeSec,...) {
   args <- c(as.list(environment()), list(...),
