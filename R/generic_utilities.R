@@ -382,10 +382,10 @@ merge.list = function(x,y) {
 
 #' Calculate number of windows in a time-series with a given duration
 #'
-#' @param x either the duration in seconds of a time-series, or a ts object
+#' @param x either the duration in seconds of a time-series, or a rats or ts object
 #' @param winSec the width of each window, in seconds
 #' @param incSec the amount of increment between each window (incSec == winSec gives non-overlapping windows)
-#' @param sampRate the number of samples per second (i.e. frequency)
+#' @param SR the number of samples per second (i.e. frequency)
 #' @param return either "number", which returns the number of windows, or "all" which returns a data.frame with the start and end of each window.
 #' @param verbose should all the windows be printed?
 #' @param flex if true the first and last windows are stretched so to have exactly length(x)/inc resulting windows
@@ -394,18 +394,18 @@ merge.list = function(x,y) {
 #' @export
 #'
 #' @examples
-nwin = function(x, winSec, incSec, sampRate=frequency(x), return=c("number", "all"), flex=FALSE, verbose = FALSE) {
+nwin = function(x, winSec, incSec, SR=frequency(x), return=c("number", "all"), flex=FALSE, verbose = FALSE) {
   if(length(x)>1){
     len = length(x)
   } else {
     if(x%%1 != 0) stop = "in nwin, x must be integer"
-    len = x*sampRate
+    len = x*SR
   }
 
 
-  # sampRate = 10
-  inc=incSec *sampRate;
-  win=winSec*sampRate;
+  # SR = 10
+  inc=incSec *SR;
+  win=winSec*SR;
 
 
   #la vera santa formula:
@@ -429,14 +429,14 @@ nwin = function(x, winSec, incSec, sampRate=frequency(x), return=c("number", "al
 
     cat("\r\n Number of windows:",n_win)
     cat("\r\n Number of samples used:",(n_win-1)*inc+win)
-    cat("\r\n Number of seconds used:",((n_win-1)*inc+win)/sampRate)
+    cat("\r\n Number of seconds used:",((n_win-1)*inc+win)/SR)
     cat0("\r\n Proportion of len used: ",((n_win-1)*inc+win)/len*100,"%\r\n")
 
     actual = 0;iterations = 0;
     while ( actual+win<=len) {
       iterations = iterations+1
       cat0('\r\nW',lead0(iterations, nchar(n_win))," | Samples: ", lead0(actual+1,digits),' - ',lead0(actual+win,digits),
-           " | Seconds: ", lead0(actual+1/sampRate,digits),' - ',lead0((actual+win)/sampRate,digits))
+           " | Seconds: ", lead0(actual+1/SR,digits),' - ',lead0((actual+win)/SR,digits))
       actual = actual+inc;
       #cat(actual+win,"\n\r")
     }
@@ -454,18 +454,18 @@ nwin = function(x, winSec, incSec, sampRate=frequency(x), return=c("number", "al
 #' @param windowsList
 #' @param winSec 
 #' @param incSec 
-#' @param sampRate 
+#' @param SR 
 #'
 #' @return
 #' @export
 #'
 #' @examples
-winInter = function(windowsList, winSec, incSec, sampRate){
+winInter = function(windowsList, winSec, incSec, SR){
   warning("This function is a mess, please ask some developer to refactor it!")
   if(class(windowsList)!="list") {windowsList = list(windowsList)}
-  #cat("Interpolating",incSec*sampRate,"sample between each HRV datapoint (linear) \r\n")
-  inc=incSec*sampRate
-  win= winSec*sampRate
+  #cat("Interpolating",incSec*SR,"sample between each HRV datapoint (linear) \r\n")
+  inc=incSec*SR
+  win= winSec*SR
   nList=length(windowsList)
   Map(function(daba,i){
     #prog(i,nList)
@@ -485,7 +485,7 @@ winInter = function(windowsList, winSec, incSec, sampRate){
 #' @param a a numerical vector, resulting from a windowing
 #' @param winSec the size of the window used to calculate a, in seconds
 #' @param incSec the increment of each window used to calculate a, in seconds
-#' @param sampRate the number of samples per second of the destination time-series
+#' @param SR the number of samples per second of the destination time-series
 #' @param midPoints if true, the value are considered to be at the center of the window, and the result is padded right by half window
 #'
 #' @return
@@ -493,15 +493,15 @@ winInter = function(windowsList, winSec, incSec, sampRate){
 #'
 #' @examples
 
-# approxByWin = function(a, winSec, incSec, sampRate=frequency(x), midPoints=T){
+# approxByWin = function(a, winSec, incSec, SR=frequency(x), midPoints=T){
 #   # a = res
 #   # winSec=4
 #   # incSec = 1
-#   # sampRate  = 100
+#   # SR  = 100
 #   warning("I think this function has issues!")
 # 
-#   inc=incSec*sampRate
-#   win= winSec*sampRate
+#   inc=incSec*SR
+#   win= winSec*SR
 # 
 #   halfWin = ceiling(win/2)
 #   if(midPoints)
@@ -519,4 +519,20 @@ winInter = function(windowsList, winSec, incSec, sampRate){
 #   return(out)
 # }
 
+
+#' Set argument/attribute to a list without overwriting existing values
+#' 
+#' This is most useful when dealing with ... and setting default behaviours that 
+#' can be overweritten by ...
+#'
+#' @param arg 
+#' @param value 
+#' @param argList 
+#'
+#' @return
+
+setArg = function(arg, value, argList){
+  if(is.null(argList[[arg]])) argList[[arg]] = value
+  argList
+}
 

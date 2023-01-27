@@ -3,7 +3,6 @@
 #' please go there to make edits
 #' 
 
-
 # lr,signal = "SC",lagSec=4,match_threshold=0.25,
 # minSizeSec=5,weightMalus = 35,algorithm = "v1.1",outputName = "PMdev",minPeakDelta = 0.05
 
@@ -74,8 +73,8 @@ AMICo2 = function(signal, lagSec,
     
     d1 = signal$s1
     d2 = signal$s2
-    sampRate = frequency(signal)
-    ransamp = lagSec * sampRate
+    SR = frequency(signal)
+    ransamp = lagSec * SR
     #setup weighting of similarity for distance.
     malus = weightMalus  / 100
     maxMalus = 1-weightMalus/100
@@ -298,10 +297,10 @@ AMICo2 = function(signal, lagSec,
             # maxPeakDuration è specificato e diverso da zero
             # controlla se c'è una valley prima, altrimenti tieni quel valore
             
-            peakD1 = pv1$samples[I] + maxPeakDuration*sampRate
+            peakD1 = pv1$samples[I] + maxPeakDuration*SR
             b1 = min(pv1$samples[I+1], peakD1)
             
-            peakD2 = pv2$samples[J] + maxPeakDuration*sampRate
+            peakD2 = pv2$samples[J] + maxPeakDuration*SR
             b2 = min(pv2$samples[J+1], peakD2)
             
             
@@ -363,14 +362,14 @@ AMICo2 = function(signal, lagSec,
             
             #original series (lagged)
             plot (time(d1)[a1:b1],      d1[a1:b1]-yfix1,t="l",col=cols1, ylim=c(0,ymax),xlim=range(time(d1)[newx1]))
-            lines(time(d2)[a2:b2]-lagv/sampRate, d2[a2:b2]-yfix2,t="l",col=cols2)
+            lines(time(d2)[a2:b2]-lagv/SR, d2[a2:b2]-yfix2,t="l",col=cols2)
             #peaks
             points(time(d1)[p1]     ,d1[p1]-yfix1,pch=17,cex=3,col=cols1)
-            points(time(d2)[p2]-lagv/sampRate,d2[p2]-yfix2,pch=17,cex=3,col=cols2)
+            points(time(d2)[p2]-lagv/SR,d2[p2]-yfix2,pch=17,cex=3,col=cols2)
             
             # valori trasformati
             lines(time(d1)[newx1],      toCor1-yfix1,t="l",col=cols1,lwd=2,lty=2)
-            lines(time(d2)[newx2]-lagv/sampRate, toCor2-yfix2,t="l",col=cols2,lwd=2,lty=2)
+            lines(time(d2)[newx2]-lagv/SR, toCor2-yfix2,t="l",col=cols2,lwd=2,lty=2)
             
             #similarity:
             center = time(d1)[trunc(a1+ (b1-a1)/2)]
@@ -607,8 +606,8 @@ AMICo2 = function(signal, lagSec,
       # warning("to do")
       
       ampz1 = ampz2 = c()
-      intsamp = interval_sec*sampRate
-      minsize = minSizeSec*sampRate
+      intsamp = interval_sec*SR
+      minsize = minSizeSec*SR
       
       for(i in 2:nrow(xbest)){
         if(i==2 && nrow(xbest) != xbestrealn) stop("resetta xbest")
@@ -772,18 +771,7 @@ AMICo2 = function(signal, lagSec,
         lagvec[a:b]  = xbest$similarity[i]
       }
       
-      # applica gli artefatti
-      for(i in seq_len(nrow(signal$artefacts)) ){ 
-        #@TSBUG
-        #in alcune installazioni di R c'è un bug per cui window(x xstart(x), xend(x)) risulta 1 sample più lungo di x
-        if(signal$artefacts[i,"end"] != signal$artefacts[i,"start"]){
-          
-          realEnd = c(signal$artefacts[i,"end"]-1, frequency(syncvec))
-          realStart = c(signal$artefacts[i,"start"], 1)
-          window(syncvec,realStart, realEnd ) <- NA
-          window(lagvec,realStart, realEnd ) <- NA
-        }
-      }
+
       
       #' XBEST guide:
       #' row: the peak number of s1 wich was matched
@@ -794,15 +782,21 @@ AMICo2 = function(signal, lagSec,
       #' a2, p2, b2: the same for s2
       #' a, b: the average start and end between s1 and s2
       #' ta, tb: the time corresponding to a and b
-      #' 
-      
-      
-      
+
       # finallyt instantiate new sync class object
-      sync = DyadStream(syncvec,"AMICo2.0", start = time(signal$s1)[xbest$a[1]], frequency=frequency(signal))
-      lag  = DyadStream(lagvec,"AMICo2.0", start = time(signal$s1)[xbest$a[1]], frequency=frequency(signal))
+      sync = rats(syncvec, start = start(d1),
+                  frequency=frequency(signal), timeUnit="second",
+                  valueUnit="0-1")
+      lags = rats(lagvec,  start = start(d1),
+                  frequency=frequency(signal), timeUnit="second",
+                  valueUnit="seconds")
+      # applica gli artefatti
+      for(i in seq_len(nrow(signal$artefacts)) ){ 
+        window(sync, signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
+        window(lags, signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
+      }
       
-      return(newAMICo(sync,lag, xbest, args))
+      return(newAMICo(sync,lags, xbest, args))
       
     }
     
@@ -918,6 +912,7 @@ crazyCor = function(x,y){
 
 normCor = function(x,y,xmax=max(x)-min(x),ymax=max(y)-min(x)){
   #https://www.youtube.com/watch?v=ngEC3sXeUb4
+  #this is actually the cosine similarity
   if(length(x)!=length(y))stop("x and y must have same length")
   x = rangeRescale(x-min(x),0,1, 0, xmax)
   y = rangeRescale(y-min(y),0,1, 0, ymax)

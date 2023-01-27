@@ -1,3 +1,5 @@
+###NOT @ratsOK ç_ç
+
 ##     ___                 _   ___ _
 ##    /   \_   _  __ _  __| | / __\ | __ _ ___ ___
 ##   / /\ / | | |/ _` |/ _` |/ /  | |/ _` / __/ __|
@@ -93,7 +95,7 @@ basicPlot.DyadSignal = function(x, ...) {
   plot((x$s1),xaxt="n" ,ylab="uS", ...)
   par(mar=c(3.5,2.5,0,0))
   plot(time(x$s2),x$s2,col="red",xaxt="n",t="l",xlab="", cex.main = 0.001, ...)
-  tSteps = round(time(x$s2)[seq(1, length(time(x$s2)),by=sampRate(x)*60 )])
+  tSteps = round(time(x$s2)[seq(1, length(time(x$s2)),by=frequency(x)*60 )])
   axis(1,at = tSteps, labels = timeMaster(tSteps,"min"),tick = T,las=2 )
 }
 
@@ -312,7 +314,7 @@ plotSignal = function (lineList, path="test.svg", boxList=NULL, connect=T, stack
       if(grepl("CCF",attr(x,"name"))){
         x
       } else {
-        znorm(x)
+        scale(x)
       }
     })
   } else if (scale=="windowed") {ll = lapply(ll, stepCenter, winSec=winScaleSec)
@@ -590,10 +592,7 @@ rescaleByWin = function(x, winSec, rangeMin, rangeMax){
   x2
 }
 
-setArg = function(arg, value, argList){
-  if(is.null(argList[[arg]])) argList[[arg]] = value
-  argList
-}
+
 
 #' Plot a DyadSignal object
 #'

@@ -1,8 +1,24 @@
+################################################################################
+#                                _              _                      
+#                      _ __ __ _| |_ ___    ___| | __ _ ___ ___ 
+#                     | '__/ _` | __/ __|  / __| |/ _` / __/ __|
+#            /\//\//\/  | | (_| | |_\__ \ | (__| | (_| \__ \__ \
+#           |/\//\//\/|_|  \__,_|\__|___/  \___|_|\__,_|___/___/
+#                                                               
+################################################################################
+#             _   _               _   _   _                         _        
+#    _ _ __ _| |_(_)___ _ _  __ _| | | |_(_)_ __  ___   ___ ___ _ _(_)___ ___
+#   | '_/ _` |  _| / _ \ ' \/ _` | | |  _| | '  \/ -_) (_-</ -_) '_| / -_|_-<
+#   |_| \__,_|\__|_\___/_||_\__,_|_|  \__|_|_|_|_\___| /__/\___|_| |_\___/__/
+#                                                                            
+################################################################################
+#'
 #' State of the file:
 #' this is a v0.2 let's say, in which instead of having a $x $y sructure, I am using
 #' a y and attr(y, 'time') format. this is good because x * 10 is preserved. 
 
-#' An ideal time series object to represent pyhisio signals should have the following:
+#' An ideal time series object to represent pyhisio signals should have the
+#' following information:
 #' start_date, 
 #' start, end, duration (milliseconds)
 #' sampling per second (Hz)
@@ -61,9 +77,12 @@
 #' @export
 #'
 #' @examples
-rats = function(data, start, end, duration, frequency, period,
+#' 
+#' 
+#' 
+rats = function(data, start=0, end, duration, frequency, period,
                 windowed = list(winSec=NULL, incSec=NULL, flex=NULL),
-                timeUnit, valueUnit){
+                timeUnit="cycle", valueUnit=NULL){
   
   # ######debug
   # start=0
@@ -147,6 +166,9 @@ rats = function(data, start, end, duration, frequency, period,
   class(res) = "rats"
   return(res)
 }
+
+#' @export
+is.rats = function(x){inherits(x,"rats") && length(x)}
 
 #' Subsets rats by time
 #' Intervals always include the 'start' and exclude the 'end' values.
@@ -322,9 +344,9 @@ print.rats = function(x, vals=20, digits= 4){
 
 
 #' @export
-start.rats = tss.rats = function(x){attr(x,"start")}
+start.rats = function(x){attr(x,"start")}
 #' @export
-end.rats   = tse.rats = function(x){attr(x,"end")}
+end.rats   = function(x){attr(x,"end")}
 #' @export
 duration.rats = function(x){attr(x,"duration")}
 #' @export
@@ -364,8 +386,8 @@ valueUnit.rats = function(x){attr(x,"valueUnit")}
 #' l = list(a1,a2,a3)
 #' print(l)
 c.rats = function(...){
-  
   l = list(...)
+  if(length(l)==1) return(l[[1]])
   
   if(length(unique(sapply(l,class)))>1) stop("Only rats can be combined together.")
   lfreq = unique(sapply(l,frequency))
@@ -409,10 +431,49 @@ c.rats = function(...){
   
 }
 
+#' Title
+#'
+#' @param x 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 na.omit.rats = function(x){
-  na.omit(x)
+  #if nas are at beginning or end return a rats, else return cheese
+  k = unclass(x)
+  
+  nna = which(!is.na(x))
+  tk = time(x)[nna]
+  k = k[nna]
+ 
+  if(length(unique(diff(tk)))==1) {
+    #nas where only at the beginning and end
+    k = rats(k, start = tk[1], frequency = frequency(x),
+             windowed = attr(x,"windowed"), timeUnit = timeUnit(x),
+             valueUnit = valueUnit(x) )
+  } else {
+    attributes(k) = list(
+      "x" = tk,
+      "na.removed" = which(is.na(x)),
+      start=tk[1],
+      valueUnit = valueUnit(x)
+    )
+    class(k) = "cheese"
+  }
+  
+  return(k)
 }
 
+#' Title
+#'
+#' @param x 
+#' @param ... 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 plot.rats = function(x, ...){
   l  = list(...)
 
@@ -426,6 +487,41 @@ plot.rats = function(x, ...){
   if(all(is.na(k$y))) k$y = as.numeric(x$y)
   if(!is.numeric(k$y)) stop("Only numerical rats can be plotted right now.")
   do.call("plot",l)
+}
+
+#' @export
+as.rats = function(x){
+  UseMethod("as.rats",x)
+}
+#' @export
+as.rats.ts = function(x){
+  xstart = start(x)
+  if(length(xstart)==2){
+    xstart = xstart[1]+ (xstart[2]-2)* 1/frequency(x)
+  } else if(length(startx)==1){
+    xstart = xstart[1]
+  } else stop("unknown error")
+  k = x
+  attributes(k) = NULL
+  rats(k, start=xstart, frequency = frequency(x))
+}
+#' @export
+as.rats.zooreg = function(x){
+  k = x
+  attributes(k) = NULL
+  rats(k, start=start(x), frequency = frequency(x))
+}
+#' @export
+as.ts.rats = function(x){
+  k = x
+  attributes(k) = NULL
+  ts(k, start=start(x), frequency = frequency(x))
+}
+#' @export
+as.zooreg.rats = as.zoo.rats = function(x) {
+  k = x
+  attributes(k) = NULL
+  zooreg(k,order.by =time(x), frequency = frequency(x))
 }
 
 

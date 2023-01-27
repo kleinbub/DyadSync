@@ -1,3 +1,53 @@
+#' Safe Object Attribute Lists
+#' @description a wrapper for \code{\link[base]{attributes}} which accesses and sets an object's attributes
+#' with the exception of protected ones, currently: \code{c("names", "comment", "dim", "dimnames", "row.names", "tsp")}
+#' @param x an object
+#' @param value an appropriate named list of attributes, or NULL.
+#' @return asd
+#' @examples 
+#' a <- list("a"=1,"b"=2,"c"=3)
+#' attr(a, "foo") <- "bar"
+#' #extracts as well names
+#' attributes(a) 
+#' #extracts only foo
+#' classAttr(a) 
+#' #overwrites only foo
+#' classAttr(a) <- list("bar"="foo") 
+#' 
+#' @export
+#' 
+classAttr = function(x){
+  attributes(x)[!names(attributes(x)) %in% LOCK_ATTR]
+}
+#' @rdname classAttr
+#' @export
+`classAttr<-` = function(x,value){
+  if(!is.list(value)||is.null(value)) stop("attributes must be a list or NULL")
+  if(!is.null(attr(x,"tsp")))
+    LOCK_ATTR = c(LOCK_ATTR,"tsp") #don't overwrite new tsp, but allow inheriting if missing
+  value <- value[!names(value)%in%LOCK_ATTR]
+  attributes(x) <- c(attributes(x)[LOCK_ATTR],value)
+  x
+}
+LOCK_ATTR = c("names", "dim", "dimnames", "row.names")
+
+#' clone attributes
+#'
+#' @param from 
+#' @param to 
+#'
+#' @return the object 'to' with the attributes of 'from'. This does not overwrites
+#' protected attributes: "names", "dim", "dimnames", "row.names", "tsp"
+#' @export
+
+cloneAttr = function(from, to){
+  classAttr(to) <- classAttr(from)
+  to
+}
+
+
+
+
 #' Title
 #'
 #' @param x 
@@ -29,14 +79,13 @@ sessionId.DyadExperiment = function(x){
 }
 
 #' @export
-sessionId.DyadSession = function(x){
-  attr(x,"sessionId")
+sessionId.default = function(x){
+  if("sessionId" %in% names(attributes(x)))
+    attr(x,"sessionId")
+  else stop("This object doesn't have a sessionId attribute.\n")
 }
 
-#' @export
-sessionId.DyadSignal = function(x){
-  attr(x,"sessionId")
-}
+
 ## ## DYAD ID
 ## get
 
@@ -52,15 +101,11 @@ dyadId.DyadExperiment = function(x){
 }
 
 #' @export
-dyadId.DyadSession = function(x){
-  attr(x,"dyadId")
+dyadId.default = function(x){
+  if("dyadId" %in% names(attributes(x)))
+    attr(x,"dyadId")
+  else stop("This object doesn't have a dyadId attribute.\n")
 }
-
-#' @export
-dyadId.DyadSignal = function(x){
-  attr(x,"dyadId")
-}
-
 
 
 
@@ -78,13 +123,10 @@ groupId.DyadExperiment = function(x){
 }
 
 #' @export
-groupId.DyadSession = function(x){
-  attr(x,"groupId")
-}
-
-#' @export
-groupId.DyadSignal = function(x){
-  attr(x,"groupId")
+groupId.default = function(x){
+  if("groupId" %in% names(attributes(x)))
+    attr(x,"groupId")
+  else stop("This object doesn't have a groupId attribute.\n")
 }
 
 #' @export
@@ -122,4 +164,9 @@ UID = function(x){
   attr(x, "groupId") <- value
   attr(x, "name")    <- name
   x
+}
+
+#' @export
+frequency.DyadSignal = function(x) {
+  attr(x,"SR")
 }

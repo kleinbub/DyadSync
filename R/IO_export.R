@@ -1,4 +1,3 @@
-
 ############################################################################################################
 ############################################################################################################
 ############################################################################################################
@@ -39,19 +38,16 @@ megaExpExport = function(dirPath, experiment, signals="all", CCF=T, onlyBest=F, 
   if(!file.exists(dirPath)){stop("Selected directory does not exists")}
   if(sum(CCF, onlyBest,original) == 0) stop("at least one export parameter must be set TRUE")
   nSessions  = length(experiment)
-  Map(function(session,iSession){
-    ##debug
-    # session = experiment$sessions[[1]]
-    # iSession = 1
-    ##
+  for(iSession in 1:nSessions){
+    session = experiment[[iSession]]
+
     prog(iSession,nSessions)
     if(signals =="all") signals = names(session)
-    signalListSR = as.vector(unlist(sapply(session[signals],function(x){c(x$sampRate,x$ccf$sampRate)})))
-    #print(str(signalListSR))
-    if(!all(signalListSR == signalListSR[1])){
+    signalListSR = sapply(session, frequency)
+    if(length(unique(signalListSR))>1 ){
       stop("Not all the output signals have the same sampling rate, please use interpolation!")
     }
-    sampRate = signalListSR[1]
+    SR = signalListSR[1]
     signalList = lapply(session[signals], function(signal){
       ##debug
       # signal = session[[8]]
@@ -83,7 +79,10 @@ megaExpExport = function(dirPath, experiment, signals="all", CCF=T, onlyBest=F, 
       }
     })
     uberDS = do.call("unequalCbind",signalList)
-    write.table(uberDS,paste0(dirPath,"\\",session$sessionId,"_",session$dyadId,"_",sampRate,"Hz.csv"),sep=";",fileEncoding = "UTF-8",row.names = F)
-  },experiment, seq_along(experiment))
+    write.table(uberDS,paste0(dirPath,"\\",session$sessionId,"_",session$dyadId,"_",SR,"Hz.csv"),sep=";",fileEncoding = "UTF-8",row.names = F)
+    
+    
+  }
+
   return(NULL)
 }

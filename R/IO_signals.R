@@ -4,65 +4,22 @@
 ##  / /_//| |_| | (_| | (_| / /___| | (_| \__ \__ \
 ## /___,'  \__, |\__,_|\__,_\____/|_|\__,_|___/___/
 ##         |___/
-############################################################################################################                                   
-## DyadIO.R
-# mega set of import/export functions
-# 
-# -readDyadExperiment() reads almost any kind of signal
-# -readCategories() reads categorial data with time markers in start and end columns
-#
-############################################################################################################
-## Changelog
-# v1.53 - videoSec e maxSeconds became start and end, and ARE used in the ts information
-# v1.52 - fixed pairBind
-# v1.51 - new naming system was bugged, recycled that from rMEA
-# v1.5  - fixed single file trycatch. NEW: idOrder & idSep parameters to correctly identify elements in
-#         filenames. 
-#         WARNING: the new naming system is pretty much untested. EXPECT issues.
-#         WARNING: pairBind must be tested
-#       - readCategories now trims whitespaces at beginning and end of character data
-# v1.4  - start=0 in all ts() calls. This IS important. Also, added videoSec to DyadSession() calls.
-#         Added a warning message if sessions are not sequential.
-# v1.3  - major edits to a lot of stuff, such as parameters. This version is NOT backward compatible.
-# v1.2  - readCategories substituted readTurns. Now should be the proper csv importer juggernaut we always
-#         dreamt of.
-# v1.1  - maxSeconds instead of maxMinutes, with individual durations
-# v1.0  - partially 'stream 1.2' compliant (turns missing)
-#
-############################################################################################################
-## ToDo
-# URGENT
-#
-# Low priority
-# -aggiusta il caso del file singolo/directory [fose fatto?]
-# -uniform videoSec and removeSec [sicuro? videoSec imposta lo start, mentre removeSec imposta il trim]
-# - 
 ############################################################################################################ 
 ## Credits
 # Author: Johann R. Kleinbub
 # Contact: johann.kleinbub@gmail.com
 ############################################################################################################ 
 
-
-
-
-
-
-
-############################################################################################################
-############################################################################################################
-############################################################################################################
 ##Data importer juggernaut
+
+############################################################################################################
+############################################################################################################
+############################################################################################################
 
 #' Title
 #'
 #' @param path 
-#' @param s1Col,s2Col the index of one or multiple columns in the data,
-#'   identifying the two dyad's members (e.g. patient and therapist) motion energy data. If multiple columns
-#'   are selected for a subject (e.g. because of multiple regions of interest per subject), their MEA values will be summed.
-#' @param s1Name,s2Name the label describing each participant. (e.g. Right/Left, or Patient/Therapist, etc).
 #' @param signalNames a vector of string defining the name of the signals (same order as s1Col, s2Col)
-#' @param sampRate the frequency (i.e. samples per second) of the signals to be imported
 #' @param start an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the first observation of each file.
 #' Note that by default time series will be set with start = 0, which is different from the default value of \code{\link[stats]{ts}}.
 #' @param end an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the last observation of each file.
@@ -74,7 +31,7 @@
 #' @param pairBind if true, every two consequent files in path get matched to a single DyadSession, useful if the data of participant
 #'                 1 and 2 are stored in separate files.
 #' @param winTerpolate a list containing two numeric values, winSec and incSec. If the data to be read has been generated through a moving
-#'                     window filter, it can be reversed to the given sampRate by setting the size (in seconds) of the window and its increment.
+#'                     window filter, it can be reversed to the given SR by setting the size (in seconds) of the window and its increment.
 #' @param namefilt a string used to select only specific files in a given path
 #' @param idOrder either NA or a character vector. idOrder is used to interpret the filenames to correctly identify and label the cases. 
 #'   If NA, no attempt to identify cases will be done. The character vector may contain one or more of the following strings in any given order: "id" (unique identifier of a dyad),
@@ -85,6 +42,12 @@
 #'   If idOrder is not NA, this will be used as separator to split the filenameas and identify "id", "session", and "group"
 #'   informations.
 #' @param ... additional options to be passed to read.table (es: skip, header, etc)
+#' @param s1Col 
+#' @param s2Col 
+#' @param s1Name 
+#' @param s2Name 
+#' @param frequency 
+#' @param signalUnit character. A descriptor of the unit of measurement of the series values.
 #'
 #' @return
 #' @export
@@ -95,10 +58,11 @@ readDyadSignals = function(
                       s1Col,s2Col, #one or multiple columns identifiyng the patient and clinician for each signal
                       s1Name, s2Name,
                       signalNames, #how to rename each signal (same order as s1Col, s2Col)
-                      sampRate,    #sampling rate at which the data is acquired
+                      SR,    #sampling rate at which the data is acquired
                       start, #
                       end,  #remove tail or pads with zeroes. Useful to cut signals when a session is over or to equalize lengths
                       duration,
+                      timeUnit, valueUnit,
                       pairBind = F, #if true, each two files in the path get matched to a single DyadSession, useful if the data of patient
                                     #and clinician are saved on separate files
                       winTerpolate = list(winSec=NULL,incSec=NULL), #if data comes from a moving windows analysis it should be
@@ -115,7 +79,7 @@ readDyadSignals = function(
   # s2Col=c(2)
   # signalNames = c("SC")
   # ###signalNames = c("start", "stop", "LFHF", "PNN50", "HF", "RRMean",  "RRsd")
-  # sampRate=20
+  # SR=20
   # ###winTerpolate = list(winSec = 30, incSec = 5)
   # winTerpolate = list(winSec = NULL, incSec = NULL)
   # 
@@ -150,7 +114,7 @@ readDyadSignals = function(
   len <- lapply(lf, function(x) length(x[[1]]))
   #check if some file are shorter than 50% of the mean length and remove them 
   removeFile = unlist(lapply(seq_along(len), function(i){if(len[[i]] / mean(unlist(len)) <0.5) {
-      warning("File ",i,': ',shortNames[i]," is shorter (",timeMaster(round(len[[i]]/sampRate),out="m"),
+      warning("File ",i,': ',shortNames[i]," is shorter (",timeMaster(round(len[[i]]/SR),out="m"),
               "s) than the 50% of the mean length", call. = F);return(i)}
     } ))
   # if(length(removeFile)>0){
@@ -205,7 +169,7 @@ readDyadSignals = function(
   if(!is.null(winTerpolate$winSec) & !is.null(winTerpolate$incSec)){
     cat("\r\nInterpolating files\r\n")
     prog(1,2)
-    lf=winInter(lf,winTerpolate$winSec,winTerpolate$incSec,sampRate)
+    lf=winInter(lf,winTerpolate$winSec,winTerpolate$incSec,SR)
     prog(2,2)
   }  
   
@@ -241,18 +205,18 @@ readDyadSignals = function(
     }
 
     
-    print(data.frame("file"=shortNames, "original"=sapply(lf,nrow),"destination"=duration*sampRate,"NAs added"=sapply(seq_along(lf), function(i){
-      if(nrow(lf[[i]])<duration[i]*sampRate) "*" else "-"
+    print(data.frame("file"=shortNames, "original"=sapply(lf,nrow),"destination"=duration*SR,"NAs added"=sapply(seq_along(lf), function(i){
+      if(nrow(lf[[i]])<duration[i]*SR) "*" else "-"
     })),row.names = F)
     
     #check if some file are  shorter than duration and add NAs
     lf <- lapply(seq_along(lf), function(i){
-      if(nrow(lf[[i]])<duration[i]*sampRate){
-        lf[[i]][(nrow(lf[[i]])+1):(duration[i]*sampRate),] = NA
+      if(nrow(lf[[i]])<duration[i]*SR){
+        lf[[i]][(nrow(lf[[i]])+1):(duration[i]*SR),] = NA
       }
       return(lf[[i]]) })
     #resize file according to settings
-    lf <- lapply(seq_along(lf),function(i){lf[[i]][1:(duration[i]*sampRate) ,]})
+    lf <- lapply(seq_along(lf),function(i){lf[[i]][1:(duration[i]*SR) ,]})
   }
   ndyads = length(lf)
   
@@ -264,7 +228,7 @@ readDyadSignals = function(
     "session" = unlist(sess),
     "group" = unlist(group),
     "start" = timeMaster(round(start),out="min"),
-    "duration" = timeMaster(floor(unlist(len)/sampRate), out="min"),
+    "duration" = timeMaster(floor(unlist(len)/SR), out="min"),
     #"max length" = timeMaster(end, out="min"),
     # "Filename" = unlist(shortNames),
     
@@ -284,9 +248,12 @@ readDyadSignals = function(
     #for each type of signal, add a new DyadSignal to the present DyadSession
     #These are defined as s1Col paTer pairs.
     signalList = lapply(seq_along(s1Col), function(i) {
-      DyadSignal(name=signalNames[i], s1=ts(session[,s1Col[i]],frequency=sampRate,start=start[nSession]),
-                 s2=ts(session[,s2Col[i]],frequency=sampRate,start=start[nSession]),
-                 sampRate = sampRate, s1Name = s1Name, s2Name = s2Name,
+      DyadSignal(name=signalNames[i],
+                 s1=rats(session[,s1Col[i]],frequency=SR,
+                         start=start[nSession], timeUnit="second", valueUnit=signalUnit),
+                 s2=rats(session[,s2Col[i]],frequency=SR,
+                         start=start[nSession], timeUnit="second", valueUnit=signalUnit),
+                 SR = SR, s1Name = s1Name, s2Name = s2Name,
                  sessionId=sess[[nSession]],
                  dyadId=dyadIds[[nSession]],
                  groupId=group[[nSession]])
@@ -307,8 +274,8 @@ readDyadSignals = function(
   #lr=lapply(lr, na.omit)
   # cat("\r\n\r\nReport:\r\n")
   # print( data.frame("names"=names(lf),
-  #                   "orig_duration_min"=timeMaster(as.numeric(unlist(len))/sampRate, out="min"),
-  #                   "final_duration_min"= timeMaster(as.numeric(unlist(lapply(lf, function(x) length(x[,s2Col[1]]))))/sampRate, out="min"),
+  #                   "orig_duration_min"=timeMaster(as.numeric(unlist(len))/SR, out="min"),
+  #                   "final_duration_min"= timeMaster(as.numeric(unlist(lapply(lf, function(x) length(x[,s2Col[1]]))))/SR, out="min"),
   #                   "orig_samp_size"=as.numeric(unlist(len)),
   #                   "final_samp_size"= as.numeric(unlist(lapply(lf, function(x) length((x[,s2Col[1]])))))
   # )

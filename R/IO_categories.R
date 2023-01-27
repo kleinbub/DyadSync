@@ -1,5 +1,4 @@
 
-
 #' Imports categorical data
 #'
 #' @param startCol character. The column containing the start of each epoch.

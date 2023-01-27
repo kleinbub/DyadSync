@@ -112,16 +112,12 @@ signalFilter.DyadSignal = function (x, FUN, newAttributes=NULL, signals=NULL, ..
   FUN = match.fun(FUN)
   ress1 = FUN(x$s1, ...)
   ress2 = FUN(x$s2, ...)
-  if(!is.ts(ress1)) ress1 = ts(ress1, start=start(x$s1), frequency=frequency(x$s1))
-  if(!is.ts(ress2)) ress2 = ts(ress2, start=start(x$s2), frequency=frequency(x$s2))
-  
-  x$s1 = cloneAttr(x$s1, ress1)
-  x$s2 = cloneAttr(x$s2, ress2)
-  # x$time = time(x$s1)
+  if(!is.rats(ress1)) ress1 = rats(ress1, start=start(x$s1), frequency=frequency(x$s1),timeUnit = timeUnit(x$s1), valueUnit = valueUnit(x$s1))
+  if(!is.rats(ress2)) ress2 = rats(ress2, start=start(x$s2), frequency=frequency(x$s2),timeUnit = timeUnit(x$s2), valueUnit = valueUnit(x$s2))
   
   attr(x,"start") = start(x$s1)
   attr(x,"end")   = end(x$s1)
-  attr(x,"sampRate") = frequency(x$s1)
+  attr(x,"SR") = frequency(x$s1)
   
   if(!is.null(newAttributes)){
     if("filter"%in%names(newAttributes)){
@@ -214,14 +210,14 @@ setArtefacts.DyadSignal <- function(x, startEnd) {
   sel$end   = timeMaster(sel$end,   out="s")
   
   #check for artefact start lower than signal start
-  if(any(sel$start < tss(x))){ # @TSBUG
+  if(any(sel$start < start(x))){ 
     warning("artefacts times beginning before signal's start time were trimmed")
-    sel[sel$start < tss(x),] = round(start(x)) # @TSBUG
+    sel[sel$start < start(x),] = start(x)
   }
   #check for artefact end greater than signal end
-  if(any(sel$end > tse(x))){
+  if(any(sel$end > end(x))){
     warning("artefacts times ending after signal's end time were trimmed")
-    sel[sel$end > tse(x),] = round(end(x))# @TSBUG
+    sel[sel$end > end(x),] = end(x)
   }
   
   
@@ -244,7 +240,7 @@ signalDecimate = function (signal, newSampRate) {stop("this function has been de
 #' resample
 #' A simple wrapper for approx, used to decimate or upsample (by linear interpolation) a time series
 #'
-#' @param x A time-series object
+#' @param x A rats object
 #' @param newSampRate the new frequency
 #' @param ... further options to be passed to approx
 #'
@@ -254,10 +250,11 @@ signalDecimate = function (signal, newSampRate) {stop("this function has been de
 #' @examples
 
 resample = function (x, newSampRate, ...) {
+  if(!is.rats(x)) stop("Only rats can be resampled")
   if(newSampRate == frequency(x)) stop("newSampRate and original signal frequency are identical.")
-  if(newSampRate == 12) warning("by default, ts() assumes frequency Values of 4 and 12 to imply a quarterly and monthly series respectively (e.g.) in print methods.")
   q = frequency(x) / newSampRate  #ratio of old vs new sr
-  ts(approx(seq_along(x),x, xout= seq(1,length(x),by=q), ... )$y, start=tss(x), frequency=newSampRate)
+  rats(approx(seq_along(x),x, xout= seq(1,length(x),by=q), ... )$y, start=start(x),
+       frequency=newSampRate,timeUnit=timeUnit(x), valueUnit=valueUnit(x))
 }
 
 
@@ -281,7 +278,7 @@ resample = function (x, newSampRate, ...) {
 #' calculated for every sample.
 #' @param remove If true, the function subtracts the rolling average from the
 #' the original signal, acting as a high-pass filter. 
-#' @param sampRate The frequency of x, i.e. samples per second
+#' @param SR The frequency of x, i.e. samples per second
 #'
 #' @return A time-series or numeric vector of the same length of x.
 #' @details The burn-in sequence has length of winSec/2 while the burn-out sequence might
@@ -292,11 +289,11 @@ resample = function (x, newSampRate, ...) {
 #' respectively the window and increment sizes in samples.
 #' @export
 
-movAv <- function(x, winSec, incSec = NA, remove=FALSE, sampRate=frequency(x) ) {
+movAv <- function(x, winSec, incSec = NA, remove=FALSE, SR=frequency(x) ) {
   
-  win = winSec*sampRate
+  win = winSec*SR
   win2 = round(win/2)
-  inc = if(is.na(incSec)) 1 else incSec*sampRate
+  inc = if(is.na(incSec)) 1 else incSec*SR
   len = length(x)
   n_win = ceiling((len-win+1)/inc)
   if(n_win<1) stop("During movAv routing the chosen window and increment led to zero windows.")
@@ -350,15 +347,15 @@ movAv <- function(x, winSec, incSec = NA, remove=FALSE, sampRate=frequency(x) ) 
     res = x-res
   }
   
-  if(is.ts(x)) res = ts(res,start=start(x),frequency = sampRate)
+  if(is.rats(x)) res = rats(res,start=start(x),frequency = sampRate,timeUnit=timeUnit(x), valueUnit=valueUnit(x))
   else res
 }
 
 
-movAvSlope = function(x,win,inc,sampRate=frequency(x)){
-  warning("this function may be broken")
-  win = win*sampRate
-  inc = inc*sampRate
+movAvSlope = function(x,win,inc,SR=frequency(x)){
+  warning("This function may be broken. Do NOT rely on these results")
+  win = win*SR
+  inc = inc*SR
   n_win = ceiling((length(x)-win+1)/inc)
   res = numeric(n_win)
   for(i in 1:nwin-1){
@@ -366,44 +363,10 @@ movAvSlope = function(x,win,inc,sampRate=frequency(x)){
     b= (i*inc +win)
     res[i] = (x[b]-x[a])/win
   }
-  ts(res, frequency = inc, start=start(x))
+  rats(res, frequency = inc, start=start(x),timeUnit=timeUnit(x), valueUnit=valueUnit(x) )
 }
 
 
-## znorm normalizes a time series. Good to compare with other TS
-#' Title
-#'
-#' @param a a DyadStream object or a numeric vector to be passed to ts()
-#'
-#' @return a DyadStream or a ts object
-#' @export
-#'
-#' @examples
-znorm = function(a){
-  if(is.DyadStream(a))
-    cloneAttr(a,ts(scale(a)[,1],frequency=frequency(a),start=start(a),end=end(a)))
-  else 
-    ts(scale(a)[,1],frequency=frequency(a),start=start(a))
-}
-
-## this function removes the moving average of a signal, but using nonoverlapping windows.
-## this is useful to plot in a horizontal panel a signal with huge trends.
-# stepCenter = function(a, winSec=60){
-#   if(is.DyadStream(a)) x=a
-#   
-#   freq = frequency(a)
-#   winSam = winSec*freq
-#   n_win = ceiling((length(a)-winSam+1)/winSam)
-#   resid = length(a)-n_win*winSam
-#   for(i in 0:(n_win-1)){
-#     al = (i*winSam +1)
-#     bl = (i*winSam +winSam)
-#     a[al:bl] = a[al:bl] - mean(a[al:bl])
-#   }
-#   if (length(resid)>0)
-#     a[(length(a)-resid+1):length(a)] = a[(length(a)-resid+1):length(a)] - mean(a[(length(a)-resid+1):length(a)])
-#   ifelse(is.DyadStream(x), cloneDyadStream(a,x) , a )
-# }
 
 
 
@@ -411,7 +374,7 @@ znorm = function(a){
 #' This is a wrapper for signal::fir1, calculating decent values of filter order
 #' based on engineering rules of thumb
 #'
-#' @param x a ts or DyadStream object
+#' @param x a rats object
 #' @param cut filter cut in Hz
 #' @param type lowpass or highpass
 #' @param NAsub signal::fir1 does not allow to have NAs. So they have to be substituted
@@ -466,7 +429,7 @@ FIR = function(x, cut, type=c("low","high"), NAsub=NA, attenDb=50, burnSec = 0, 
     plot( window(x,start=start(x),end=start(x)+len),ylim=c(0,max(x)),t="l")
     lines(window(ts(xf, start=start(x), frequency = frequency(x)),start=start(x),end=start(x)+len),col=2)
     
-    plot( window(x,start=end(x)[1]-len,end=end(x)),ylim=c(0,max(x)),t="l")
+    plot( window(x,start=end(x)-len,end=end(x)),ylim=c(0,max(x)),t="l")
     lines(ts(xf, start=start(x), frequency = frequency(x)),col=2)
     # k = freqz(bf,Fc=frequency(x))
     # freqz_plot(k)
@@ -478,8 +441,8 @@ FIR = function(x, cut, type=c("low","high"), NAsub=NA, attenDb=50, burnSec = 0, 
     burn3=round(burn/3)
     
     if(plot){
-      abline(v=c(start(x)[1]+burnSec, start(x)[1]+burnSec/3),lty=c(1,3))
-      abline(v=c(end(x)[1]-burnSec, end(x)[1]-burnSec/3),lty=c(1,3))
+      abline(v=c(start(x)+burnSec, start(x)+burnSec/3),lty=c(1,3))
+      abline(v=c(end(x)-burnSec, end(x)-burnSec/3),lty=c(1,3))
       
     }
     
@@ -529,10 +492,10 @@ FIR = function(x, cut, type=c("low","high"), NAsub=NA, attenDb=50, burnSec = 0, 
   }
   if(length(xf)!=length(x)) warning("lenght")
   
-  if(is.DyadStream(x))
-    cloneAttr(x,ts(xf,frequency=frequency(x),start=start(x),end=end(x)))
-  else 
-    ts(xf,frequency=frequency(x),start=start(x))
+  # if(is.rats(x))
+  #   cloneAttr(x,ts(xf,frequency=frequency(x),start=start(x),end=end(x)))
+  # else 
+    rats(xf,frequency=frequency(x),start=start(x),timeUnit=timeUnit(x), valueUnit=valueUnit(x))
 }
 
 # x = ts(sin(1:1000/20)+seq(-0.5,0.5,length.out = 1000), frequency = 100)

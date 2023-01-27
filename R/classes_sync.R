@@ -1,4 +1,3 @@
-
 #COSTRUTTORI DI CLASSE per oggetti contenenti analisi
 #' Checks if the object is an admitted 'sync analysis type'
 #'
@@ -46,7 +45,7 @@ CCFBest = function(sync, lag, ccf_matrix, lagSec, winSec, incSec, accelSec, weig
 newAMICo = function(sync, lag, xBest, args)
 {
   x = list("sync"=sync, "lag"=lag, "xBest"=xBest)
-  class(x) = c("AMICo","PMBest") #@OBSOLETE pmbest
+  class(x) = c("AMICo") #@OBSOLETE pmbest
   attributes(x) = c(attributes(x), args)
   return(x) 
 }

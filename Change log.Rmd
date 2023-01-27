@@ -7,6 +7,15 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## v.1.2.0.9002
+#### 2022/12/01
+#### **WARNING: This version is not yet tested**
+  * renamed all R files lol
+  * removed DyadStream
+  * all dyadstream and ts objects have been replaced by ~~rats! uwu
+  * all @TSBUG errors should have been fixed.
+    * These elements where searched: @TSBUG tss tse xstart xend tsp ts start end startend sampRate(  DyadStream    
+
 ## v.1.2.0.9001
 #### 2022/12/01
 #### **WARNING: This version is not going to be backward compatible with most scripts!**

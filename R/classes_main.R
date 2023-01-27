@@ -6,47 +6,7 @@
 ##         |___/
 ############################################################################################################  
 ## R class dyadSignal
-# Main class definitions and libraries importer
-#
-############################################################################################################ 
-## Changelog
-# v3.0 rivoluzione! tolta separazione $signals $categ; tolto $ccf e implementate classi specifiche
-#      per ogni tipo di analisi
-# v2.0 integrato in rIP package
-# v1.6 usa la nuova versione di CCF, non backward compatibile
-# v1.4 a lot of goodies :3
-# v1.3 attributes instead than lists. Not backward compatible
-# v1.1 added "DyadStream" concept
-# v1.0 stable
-#
-############################################################################################################ 
-## ToDo *asap*
-#
-# -everything should become streams. and one should add as many streams as needed, es: many ccf with various settings.
-# -every class should use attributes instead of lists, where appropriate
-## Categorial Love
-# -DyadCategory makes sense as a dataframe. but it needs adequate methods, for instance:
-# -DyadCategory to stream (category, column) : crea versione interpolata. utile principalmente solo per plottare
-# -byCat(signal, category, stream=c(patient, therapist, bestCCF, bestLag,lag0), FUN) : applica una funzione es la media ai diversi livelli
-#       del factor di uno stream. a seconda che input sia experiment, session o singal applica adeguatamente.
-# ----> queste cose sono parzialmente applicate in DyadCategory_BETA
-#
-#
-#
-# REMEMBER: ####
-# -"end" and "start" are complex. And strictly interrelated with frequency.
-# -Very important! Use start = 0, otherwise things get exotheric.
-# -Eg: a <- ts(runif(147), start=0, frequency = f)
-# -if f = 10: end(a) == c(14, 7) means "14.7" seconds [ != tsp(a)[2L] remember!]
-# -if f =  5: end(a) == c(29, 2) means "29 times full 5 items, and only the first 2 elements of the 30th cycle" (29x5 + 2 = 147)
-#   since each element is 1/5 of a cycle (0.2s) the total time is 29.4 seconds
-# -The code forces start = c(0,1)
-# start ed end ragionano come se fossero mesi. quindi start(a) == 0 1, significa il "primo mese dell'anno zero". L'idea è che la
-# frequenza abbia un significato, es 1 mese, 1 osservazione, quindi end 29 2 significa la seconda osservazione del 29 ciclo.
-# siccome il mio ciclo sono i secondi, usare come frequenza 10 o 100 rappresenta decimi e centesimi di secondo, che è sensato.
-# 
-# 
-# 
+# Main class definitions 
 ############################################################################################################ 
 ## Credits
 # Author: Johann R. Kleinbub
@@ -66,17 +26,17 @@
 ##            $DyadStream s2    |    più metadati, tra cui elementi grafici che forse sono da eliminare
 ##            $artefact         | <- un data.frame contenente le epoche (start end in secondi) da escludere
 ##            $CCFBest          | <- contenitore di analisi sincro basato sulle windowed x-cors
-##              $DyadStream sync| <- il vecchio BestCCF
-##              $DyadStream lag | <- il vecchio BestLag
+##              $rats sync      | <- il vecchio BestCCF
+##              $rats lag       | <- il vecchio BestLag
 ##              $df table       | <- la vecchia ccfMatrix
-##            $PMBest           | <- contenitore di analisi sincro basato sul Peak Matching
-##              $DyadStream sync|
-##              $DyadStream lag |
+##            $AMICo            | <- contenitore di analisi sincro basato sul Peak Matching
+##              $rats sync      |
+##              $rats lag       |
 ##              $df xBest       |
 ##        $DyadSignal "PPG"     |
-##            $DyadStream s1    |
-##            $DyadStream s2    |
-##            $DyadStream ...   |
+##            $rats s1          |
+##            $rats s2          |
+##            $rats ...         |
 ##        $DyadCategory "PACS"  | <- oltre ai segnali, una sessione contiene le categorie, che sono dataframe contenenti
 ##                              |    finestre temporali di interesse
 
@@ -106,51 +66,7 @@
 
 ## ----------------------------------------------------------
 
-#' Safe Object Attribute Lists
-#' @description a wrapper for \code{\link[base]{attributes}} which accesses and sets an object's attributes
-#' with the exception of protected ones, currently: \code{c("names", "comment", "dim", "dimnames", "row.names", "tsp")}
-#' @param x an object
-#' @param value an appropriate named list of attributes, or NULL.
-#' @return asd
-#' @examples 
-#' a <- list("a"=1,"b"=2,"c"=3)
-#' attr(a, "foo") <- "bar"
-#' #extracts as well names
-#' attributes(a) 
-#' #extracts only foo
-#' classAttr(a) 
-#' #overwrites only foo
-#' classAttr(a) <- list("bar"="foo") 
-#' 
-#' @export
-#' 
-classAttr = function(x){
-  attributes(x)[!names(attributes(x)) %in% LOCK_ATTR]
-}
-#' @rdname classAttr
-#' @export
-`classAttr<-` = function(x,value){
-  if(!is.list(value)||is.null(value)) stop("attributes must be a list or NULL")
-  if(!is.null(attr(x,"tsp")))
-    LOCK_ATTR = c(LOCK_ATTR,"tsp") #don't overwrite new tsp, but allow inheriting if missing
-  value <- value[!names(value)%in%LOCK_ATTR]
-  attributes(x) <- c(attributes(x)[LOCK_ATTR],value)
-  x
-}
-LOCK_ATTR = c("names", "dim", "dimnames", "row.names")
 
-#' c
-#'
-#' @param from 
-#' @param to 
-#'
-#' @return
-#' @export
-
-cloneAttr = function(from, to){
-  classAttr(to) <- classAttr(from)
-  to
-}
 
 
 ### DYADEXPERIMENT ###########################################
@@ -181,8 +97,6 @@ is.DyadExperiment = function(x) inherits(x,"DyadExperiment") && length(x)
   if(is.na(name)) name = paste0(paste0(name(x),collapse="-" ),"-redux")
   DyadExperiment(name,y)
 }
-
-
 
 # c.DyadExperiment sostituisce experimentMerge() e permette di unire
 # i segnali di esperimenti con la stessa struttura di sessioni.
@@ -321,7 +235,7 @@ is.DyadCategory = function(x) inherits(x,"DyadCategory") && length(x)
 
 ### DYADSIGNAL ###########################################
 ## list of DyadStreams, time, valid with attributes:
-##   -sampRate
+##   -SR
 ##   -filter 
 ##   -ccf 
 ##   -s1Name
@@ -330,11 +244,12 @@ is.DyadCategory = function(x) inherits(x,"DyadCategory") && length(x)
 ##   -end
 ##   -duration
 ##   -class: list DyadSession
-DyadSignal = function(name="some signal",s1=NULL,s2=NULL,sampRate=NULL,
+DyadSignal = function(name="some signal",s1=NULL,s2=NULL,SR=NULL,
                       s1Name, s2Name,sessionId,dyadId,groupId){
+  if(!is.rats(s1) || !is.rats(s2)) stop("both s1 and s2 must be rats")
   x = list(
-    s1 = DyadStream(stream = s1, name=s1Name, frequency = sampRate),
-    s2 = DyadStream(stream = s2, name=s2Name, frequency = sampRate),
+    s1 = s1,
+    s2 = s2,
     artefacts = data.frame("start"=c(),"end"=c())
   )
   attributes(x) = c(attributes(x),list(
@@ -344,7 +259,7 @@ DyadSignal = function(name="some signal",s1=NULL,s2=NULL,sampRate=NULL,
     "groupId" = groupId,
     "s1Name" = s1Name,
     "s2Name" = s2Name,
-    "sampRate" = sampRate,
+    "SR" = SR,
     "filter" = "raw",
     "start" = start(s1), #start-end-duration of s1 and s2 are the same by design
     "end" = end(s1)
@@ -366,25 +281,24 @@ is.DyadSignal = function(x) inherits(x,"DyadSignal") && length(x)
 #' @export
 #'
 #' @examples
-window.DyadSignal = function(x, duration, ...){
-  if(missing(duration)) duration = NULL
+window.DyadSignal = function(x, duration=NULL, ...){
   l = list(...)
   l = setArg("start",attr(x,"start"),l)
   if(!is.null(duration)){
     xend =  c(l[["start"]][1] + duration-1, frequency(x)) 
   } else xend = attr(x,"end")
   l = setArg("end",xend,l)
-  #1. find all time series in x and nested objects (ts)
+  #1. find all rats in x and nested objects
   #2. window them all
   #3. recreate meta-data
-  tss = which(unlist(lapply(x,is.ts)))
-  tss = c(tss,which(unlist(lapply(x,is.sync))))
+  my_rats = which(unlist(lapply(x,is.rats)))
+  my_rats = c(my_rats,which(unlist(lapply(x,is.sync))))
   res = x
-  for(i in tss){
-    if(is.ts  (res[[i]])) res[[i]] = do.call("window",c(list(res[[i]]),l))
+  for(i in my_rats){
+    if(is.rats  (res[[i]])) res[[i]] = do.call("window",c(list(res[[i]]),l))
     if(is.sync(res[[i]])){
-      tss2 = which(unlist(lapply(res[[i]],is.ts)))
-      for(j in tss2){
+      my_rats2 = which(unlist(lapply(res[[i]],is.rats)))
+      for(j in my_rats2){
         res[[i]][[j]] = do.call("window",c(list(res[[i]][[j]]),l))
       }
     }
@@ -398,117 +312,3 @@ window.DyadSignal = function(x, duration, ...){
 }
 
 
-### DYADSTREAM ###########################################
-## time-serie ts() with additional attributes:
-##   -name
-##   -settings 
-##   -tsp (inherited by ts)
-##   -class: list DyadSession
-#' DyadStream
-#' 
-#' @param stream a ts object or numeric vector
-#' @param name 
-#' @param ... arguments passed to ts(), typicaly frequency and start. Only used if stream is NOT a ts object.
-## Note to self: I know that presentation and content should be separated,
-## yet storing some basic graphical information in the class, allows for consistency
-## and simplicity in the upcoming plotting routines.
-#' @export
-DyadStream = function(stream, name, ...){
-  if(!is.ts(stream)){
-    stream = ts(stream, ...)
-    l = list(...)
-    if(!all(c("start","frequency")%in%names(l)) )
-      message( paste0("Stream '",name,"' was coerced to ts starting at ",
-                timeMaster(start(stream)[1],out = "hour"),", with sampRate of: ",
-                frequency(stream),"Hz, and duration of: ",timeMaster(end(stream)[1],out = "hour"),
-               ".\r\n"),
-        call.=F)
-  }
-  attributes(stream) = c(attributes(stream),
-                         list(
-                            name = name,
-                            duration = length(stream)/frequency(stream)
-                            # col=col,
-                            # lty=lty,
-                            # lwd = lwd
-                        ))
-  class(stream) = append("DyadStream",class(stream))
-  return(stream)
-}
-#' @export
-is.DyadStream = function(x){ inherits(x,"DyadStream") && length(x)
-}
-
-
-#' @export
-print.DyadStream = function (x, ...) {
-  #x <- as.ts(x)
-  Tsp <- tsp(x)
-  if (is.null(Tsp)) {
-    warning("series is corrupt, with no 'tsp' attribute")
-    print(unclass(x), ...)
-    return(invisible(x))
-  }
-  nn <- 1 + round((Tsp[2L] - Tsp[1L]) * Tsp[3L])
-  if (NROW(x) != nn) {
-    warning(gettextf("series is corrupt: length %d with 'tsp' implying %d", 
-                     NROW(x), nn), domain = NA, call. = FALSE)
-    calendar <- FALSE
-  }
-  fr.x <- frequency(x)
-  if (fr.x != 1) 
-    cat0("DyadStream '",attr(x,"name"),
-         "':\nStart: ", tsp(x)[1], " [",deparse(start(x)),"]",
-         "\nEnd: ",      tsp(x)[2], " [",deparse(end(x)),  "]",
-         "\nFrequency: ", deparse(fr.x), 
-         "\n")
-  else cat0("DyadStream '",attr(x,"name"),"':\nStart: ", format(tsp(x)[1L]), 
-            "\nEnd: ", format(tsp(x)[2L]), "\nFrequency: ", deparse(fr.x), 
-            "\n")
-  cat0("Duration: ",length(x), " samples, ",length(x)/frequency(x), " seconds\n\n")
-  if(length(x)>200){
-    cat(x[1:100], sep = "\t")
-    cat("\n...\n")
-    cat(x[(length(x)-100):length(x)], sep = "\t") 
-  } else {
-    cat(x, sep="\t")
-  }
-}
-
-#' Time Windows
-#'
-#' @param x 
-#' @param duration an alternative specification to end
-#' @param ... 
-#'
-#' @return
-#' @export
-#'
-#' @examples
-window.DyadStream = function(x, duration, ...){
-  if(missing(duration)) duration = NULL
-  l = list(...)
-  l$duration = duration
-  xstart = if(is.null(l$start)) start(x) else l$start
-  xend =  if(is.null(l$end)) end(x) else l$end
-  if(!is.null(l[["duration"]]) && is.null(l[["end"]])){
-    xend =  c(xstart[1] + duration-1, frequency(x)) 
-  }
-  res = NextMethod("window",x,start= xstart, end = xend)
-  classAttr(res) = classAttr(x)
-  attr(res,"duration") = length(res)/frequency(res)
-  res
-}
-#' @export
-"window<-.DyadStream" = function(x, value, ...){
-  l = list(...)
-  if (! all.equal( names(l),c("start", "end"))) stop("start and end must be specified")
-  y = as.ts(x)
-  window(y, start=l$start, end=l$end) <- value
-  y = cloneAttr(x, y)
-  y
-}
-
-
-#' @export
-as.ts.DyadStream = function(x){class(x) = class(x)[class(x)!="DyadStream"]; x} #this is needed to fix diff.ts() on dyadstreams

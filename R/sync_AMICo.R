@@ -5,7 +5,6 @@
 ## /___,'  \__, |\__,_|\__,_\____/|_|\__,_|___/___/
 ##         |___/
 ############################################################################################################  
-
 #
 ############################################################################################################ 
 ## changelog
@@ -39,7 +38,24 @@
 #' @details Good values for skin conductance are correctionRangeSeconds = 0.5,
 #' minPeakAmplitude = 0.05.
 #' 
-#' The difference in algorithms can be found in the changelog
+#' The difference in algorithms can be found in the changelog. Basically between
+#' 1.0 and 1.1 there is a change in peakFinder to avoid detecting micro-peaks in generally flat areas.
+#' 
+#' The difference with 2.0 is much more substantial. Instead of calculating
+#' similarities twice, in v2 the same approach is used to choose the best peak-to-peak
+#' associations and to report the final values. Also exclusively valley-peak-valley
+#' or valley-peak-halfrecovery sequences are used for the calculation.
+#' Unmatched sequences are evenly split at interval_sec intervals.
+#' 
+#' XBEST guide:
+#' row: the peak number of s1 wich was matched
+#' col: the peak number of s2
+#' similarity: some similarity computation
+#' lag: the delta between the sample of p1 and p2
+#' a1, p1, b1: sample position of onset, peak, and end of a feature
+#' a2, p2, b2: the same for s2
+#' a, b: the average start and end between s1 and s2
+#' ta, tb: the time corresponding to a and b
 #' 
 #' @return
 #' @export
@@ -212,8 +228,8 @@ peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,
   
   d = signal$s1
   d2  = signal$s2
-  sampRate = frequency(signal)
-  ransamp = lagSec * sampRate
+  SR = frequency(signal)
+  ransamp = lagSec * SR
   
   
   ### peaks-valleys detection ########
@@ -392,132 +408,6 @@ peakMatch = function(signal,lagSec=4, sgol_p = 2, sgol_n = 25, weightMalus = 30,
   xbest
 }
 
-##############################
-# ppSync = function(signal,minSizeSec, outputName) {
-#   if(is.null(signal[[outputName]])||is.null(signal[[outputName]]$xBest))stop("Please run peakMatch before.")
-#   d = signal$s1
-#   d2  = signal$s2
-#   lagSec = attr(signal[[outputName]], "lagSec")
-#   sampRate = frequency(signal)
-#   ransamp = lagSec * sampRate
-#   xbest = signal[[outputName]]$xBest
-#   xbest$sync = rep(NA,nrow(xbest))
-#   
-#   lagvec = rep(NA,length(d) )
-#   lags = xbest$lag
-#   for(i in 1:nrow(xbest)){
-#     #per il primo picco porta tutti i lag al valore del primo picco
-#     if(i==1) {lagvec[1:xbest$s1[1]] = lags[1]
-#     } else {
-#       # per tutti gli altri lag fai una interpolazione
-#       ab = (xbest$s1[i-1]+1):xbest$s1[i]
-#       lagvec[ab] = round(seq(from=lags[i-1], to=lags[i], length.out = length(ab)))
-#     }
-#   }
-#   lagvec[is.na(lagvec)] = lags[length(lags)] #fix the last values
-#   
-#   
-#   syncvec = rep(NA,length(d))
-#   abCum = list()
-#   iCum = c()
-#   deltaVec = rep(NA,nrow(xbest))
-#   xbest$syncBound = c(T,rep(F,nrow(xbest)-1))
-#   xbest$syncStart = rep(F,nrow(xbest))
-#   xbest$syncEnd   = rep(F,nrow(xbest))
-#   
-#   for(i in 1:(nrow(xbest)-1)){
-#     
-#     ab = list()
-#     ab[[1]] = xbest$s1[i]:xbest$s1[i+1]
-#     ab[[2]] = xbest$s2[i]:xbest$s2[i+1]
-#     ii = i
-#     
-#     if(length(abCum)>0){ #se ci sono dei dati lasciati indietro aggiungili ad ab
-#       ab[[1]] = c(abCum[[1]],ab[[1]])
-#       ab[[2]] = c(abCum[[2]],ab[[2]])
-#       abCum = list() # e resetta abCum
-#       ii = c(iCum, ii)
-#       iCum = c()
-#     }
-#     #if the longest of ab is at least minSizeSec length
-#     if(length(ab[[which.max(lapply(ab,length))]]) >= minSizeSec*sampRate){
-#       ## trova il segmento più corto e allungalo fino alla larghezza di quello di più lungo
-#       ## mantenendolo al centro
-#       short = s = which.min(lapply(ab,length))
-#       long =  l = which.max(lapply(ab,length))
-#       
-#       ### [MODE 1] use the width of the longer, by enlarging the WINDOW of the shorter #########
-#       delta = abs(length(ab[[1]]) - length(ab[[2]]))
-#       deltaVec[i]=delta
-#       if(delta%%2!=0){ #se delta è dispari, invece di usare delta/2 ti tocca fare delta-1 /2 e rimettere l'1 alla fine
-#         ab[[short]] = (min(ab[[short]]) - (delta-1)/2) : (max(ab[[short]]+ (delta-1)/2) +1)
-#       } else { #se pari o uguale a zero (stessa lunghezza)
-#         ab[[short]] = (min(ab[[short]]) - delta/2) : (max(ab[[short]]+ delta/2))
-#       }
-#       ## controllo che non si vada oltre ai boundaries 1:length(d)
-#       toKeep1 = which(ab[[1]]>0 & ab[[1]]<length(d))
-#       toKeep2 = which(ab[[2]]>0 & ab[[2]]<length(d2))
-#       ab = lapply(ab, function(x) x[if(length(toKeep1)<length(toKeep2)) toKeep1 else toKeep2  ])
-#       iCor = cor(d[ab[[1]]] , d2[ab[[2]]]) #"pear"
-#       # iCor = cor(diff(d[ab[[1]]]) , diff(d2[ab[[2]]])) #"pear" on slopes
-#       
-#       ### [MODE 2] stretch the shorter to the width of the longer #########
-#       # #is this working?
-#       # data = list("s1" = d, "s2" = d2)
-#       #
-#       # if(length(ab[[1]]) != length(ab[[2]])){
-#       #   toCorL = data[[l]][ab[[l]]]
-#       #   toCorS = approx(x=1:length(ab[[s]]),y=data[[s]][ab[[s]]],
-#       #                   xout=seq(1,length(ab[[s]]),length.out = length(ab[[l]])))$y
-#       # } else {
-#       #   toCorL = data[[1]][ab[[1]]]
-#       #   toCorS = data[[2]][ab[[2]]]
-#       # }
-#       # iCor = cor(toCorL,toCorS)
-#       
-#       
-#       ### diagnostic plot ####
-#       # rs1 = rangeRescale(d,-1,1)
-#       # rs2 = rangeRescale(d2,-1,1)
-#       # par(mfrow=c(1,2))
-#       # plot(rs1[ab[[1]]],type="l",main=iCor,ylim=c(-1,1))
-#       # lines(rs2[ab[[2]]])
-#       # #scatter
-#       # plot(d[ab[[1]]],d2[ab[[2]]]);abline(lm(d[ab[[2]]]~d2[ab[[1]]]),lty=3);
-#       # midLine(mean(d[ab[[1]]]),mean(d2[ab[[2]]]))
-#       # midLine = function(ux,uy){lines(seq(-1+ux,1+ux,length.out = 100),seq(-1+uy,1+uy,length.out = 100))}
-#       
-#       
-#       ### [FINALLY] save objects ##########
-#       xbest$sync[ii] = iCor
-#       xbest$syncBound[i+1] = T
-#       #start of each sync windows is located in the center between begin of s1 and s2 windows
-#       xStart = round(mean(min(ab[[1]]),min(ab[[2]])))
-#       xEnd = round(mean(max(ab[[1]]),max(ab[[2]])))
-#       syncvec[xStart:xEnd] = iCor
-#       xbest$syncStart[i] = xStart
-#       xbest$syncEnd[i] = xEnd
-#       
-#     }  else { #salva i dati
-#       abCum = ab
-#       iCum = ii
-#     }
-#   } # end of for
-#   
-#   #qui salva l'output ############
-#   syncvec = ts(syncvec, start=start(d), frequency = sampRate)
-#   lagvec  = ts(lagvec,  start=start(d), frequency = sampRate)
-#    # applica gli artefatti
-#   for(i in seq_len(nrow(signal$artefacts))){
-#     window(syncvec,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
-#     window(lagvec,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
-#   }
-#   signal[[outputName]]$xBest = xbest
-#   signal[[outputName]]$sync = DyadStream(syncvec, "PMBest_Sync", col=rgb(191,50,59,max=255))
-#   signal[[outputName]]$lag = DyadStream(lagvec, "PMBest_Lag", col=rgb(253,177,2,max=255))
-#   return(signal)
-#   
-# }
 
 #AMICo: Adaptive Matching Interpolated Correlation
 ppSync_dev = function(signal, xbest, minSizeSec, outputName) {
@@ -529,7 +419,7 @@ ppSync_dev = function(signal, xbest, minSizeSec, outputName) {
   # 1. usare la finestra più lunga causa degli errori in caso di cambio di lag:
   #   ^  ^
   # /  \/ \
-  #   ^ ^    <-qui anche se i due picchi sono uguali la cor viene bassa
+  # __^.^__    <-qui anche se i due picchi sono uguali la cor viene bassa
   # meglio se ALMENO una finestra sia sufficientemente lunga e quella breve venga interpolata
   #
   # 2. aggregando finestre diverse per avere una lunghezza minima si sminchia l'appaiamento fra picchi
@@ -549,8 +439,8 @@ ppSync_dev = function(signal, xbest, minSizeSec, outputName) {
   d = signal$s1
   d2  = signal$s2
   lagSec = attr(signal[[outputName]], "lagSec")
-  sampRate = sampRate(signal)
-  ransamp = lagSec * sampRate
+  SR = frequency(signal)
+  ransamp = lagSec * SR
   # xbest = signal[[outputName]]$xBest
   xbest$sync = rep(NA,nrow(xbest))
   
@@ -630,7 +520,7 @@ ppSync_dev = function(signal, xbest, minSizeSec, outputName) {
       # rs2x = c(rs2memx,rs2x)
     }
     
-    if(length(rs1) > minSizeSec*sampRate){
+    if(length(rs1) > minSizeSec*SR){
       # #normalizing element
       # if(scaledCorrelation){
       #   # #his is shit
@@ -725,111 +615,27 @@ ppSync_dev = function(signal, xbest, minSizeSec, outputName) {
     }
   } # end of for
   
-  #qui salva l'output ############
-  syncvec = ts(syncvec, start=start(d), frequency = sampRate)
-  lagvec  = ts(lagvec,  start=start(d), frequency = sampRate)
+  
+  # finallyt instantiate new sync class object
+  sync = rats(syncvec, start = start(d),
+              frequency=frequency(signal), timeUnit="second",
+              valueUnit="Pearson correlation")
+  lags = rats(lagvec,  start = start(d),
+              frequency=frequency(signal), timeUnit="second",
+              valueUnit="seconds")
   # applica gli artefatti
   for(i in seq_len(nrow(signal$artefacts)) ){ 
-    #@TSBUG
-    #in alcune installazioni di R c'è un bug per cui window(x xstart(x), xend(x)) risulta 1 sample più lungo di x
-    if(signal$artefacts[i,"end"] != signal$artefacts[i,"start"]){
-      
-      realEnd = c(signal$artefacts[i,"end"]-1, frequency(syncvec))
-      realStart = c(signal$artefacts[i,"start"], 1)
-      window(syncvec,realStart, realEnd ) <- NA
-      window(lagvec,realStart, realEnd ) <- NA
-    }
+    window(sync, signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
+    window(lags, signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
   }
-  list (
-   xBest = xbest,
-   sync = DyadStream(syncvec, "PMBest_Sync"),
-   lag = DyadStream(lagvec, "PMBest_Lag")
-   )
-}
-
-ppSync_sccf = function(signal, winSec = 10, incSec=1, outputName) {
-  ##questa è una versione di debug e sviluppo di ppSync di rIP
-  # le altre due versioni di ppSync hanno un approccio molto deterministico
-  # calcolando la correlazione esattamente di ciascun picco con ciascun picco
-  # tra le altre cose ha lo svantaggio di non avere un valore continuo
-  # inoltre la performance è misera confrontata con lag0
-  # qua invece uso la lag calcolata in xbest per muovere le finestre di cross-correlazione
-  # risultando una specie di ibrido fra CCFBest e PMBest
-  # ottenendo però valori continui basati su lag precisa.
   
-  #import C correlation function
-  C_cor=get("C_cor", asNamespace("stats"))
-  cat(" - wccs version of ppSync")
-  #please refer to ppSync dev.R in research folder of DyadClass
-  
-  # signal = mimic$s09_01$SC
-  # outputName = "PMsccf"
-  # minSizeSec=5 <-- can be smaller as the check is on the shorter segment?
-  if(is.null(signal[[outputName]])||is.null(signal[[outputName]]$xBest)) stop("Please run peakMatch before.")
-  
-  lagSec = attr(signal[[outputName]], "lagSec")
-  sampRate = sampRate(signal)
-  ransamp = lagSec * sampRate
-  xbest = signal[[outputName]]$xBest
-  # xbest$sync = rep(NA,nrow(xbest))
-  
-  iFile = data.frame(movAv(diff(signal$s1),5,1),
-                     movAv(diff(signal$s2),5,1))
-  
-  #crea il vettore di lag al sample rate finale
-  lagvec = rep(NA,nrow(iFile) )
-  lags = xbest$lag
-  for(i in 1:nrow(xbest)){
-    #per il primo picco porta tutti i lag al valore del primo picco
-    if(i==1) {lagvec[1:xbest$s1[1]] = lags[1]
-    } else {
-      # per tutti gli altri lag fai una interpolazione
-      ab = (xbest$s1[i-1]+1):xbest$s1[i]
-      lagvec[ab] = round(seq(from=lags[i-1], to=lags[i], length.out = length(ab)))
-    }
-  }
-  lagvec[is.na(lagvec)] = lags[length(lags)] #fix the last values
-  # lagvecsec = lagvec[seq(1,length(lagvec),by=sampRate)]
-  
-  #ora CCF!!
-  win = winSec*sampRate
-  lagSamp = lagSec*sampRate
-  inc = incSec * sampRate
-  
-  n_win = ceiling((nrow(iFile)-win-2*lagSamp+1)/inc) #calcola il numero di finestre
-  lcc=sapply(seq_len(n_win)-1, function(iWin)
-  { #-----per ciascuna finestra--------
-    # ab è il range di sample di ciascuna finestra, partendo da lagSamp invece che da 1
-    # in modo da non avere numeri negativi applicando il lag
-    ab = ((iWin*inc +1):(iWin*inc +win))+lagSamp 
-    iLag = lagvec[(iWin*inc +1)+win/2+lagSamp] #valore di lag al centro della finestra
-    # plot(ab,rangeRescale(signal$s1[ab],1,0),type="l");lines(ab,rangeRescale(signal$s2[ab],1,0),lty=3);lines(ab,rangeRescale(signal$s2[ab+iLag],1,0),lty=3,col="red")
-    xWin = iFile[ab,1];
-    yWin = iFile[ab+iLag,2] #estrai i dati della finestra in un vettore per sogg x e y
-    # plot(ab,rangeRescale(iFile[ab,1],1,0),type="l");lines(ab,rangeRescale(iFile[ab+iLag,2],1,0),lty=3)
-    if(sum(xWin!=yWin,na.rm = T)<length(xWin)/2 )  NA #controlla che ci siano almeno 3 punti !=0
-    else {
-      suppressWarnings(.Call(C_cor, xWin, yWin, 2L, FALSE))
-    }
-    
-    
-  }) #fine lapply finestre
-  
-  
-  #qui salva l'output ############
-  signal[[outputName]]$xBest = xbest
-  xStart = c(start(signal)[1] +round(winSec/2)+lagSec,start(signal)[2])
-
-  signal[[outputName]]$sync = DyadStream(lcc, "PMBest_Sync", col=rgb(191,50,59,max=255), start=xStart, frequency=1/incSec )
-  signal[[outputName]]$lag = DyadStream(lagvec, "PMBest_Lag", col=rgb(253,177,2,max=255), start=start(signal),frequency=sampRate )
-  
-  # applica gli artefatti
-  warning("artefact removal in ppSync_sccf is untested. window.DyadStream '<-' behaviour is unknown")
-  for(i in seq_len(nrow(signal$artefacts))){
-    window(signal[[outputName]]$sync,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
-    window(signal[[outputName]]$lag,signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
-  }
-  return(signal)
+  return(
+    list (
+     xBest = xbest,
+     sync = sync,
+     lags = lags
+     )
+  )
   
 }
 
@@ -885,7 +691,7 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   if(missing(correctionRangeSeconds)) stop("in peakfinder missing correctionRangeSeconds")
   if(missing(minPeakAmplitude)) stop("in peakfinder missing minPeakAmplitude")
   
-  sampRate = frequency(x)
+  SR = frequency(x)
   if(is.na(sgol_p)||is.na(sgol_n)){
     smooth_x = x
   } else {
@@ -910,7 +716,7 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   
   
   # any(diff(piksam)<= 0)
-  correctionRangeSamp = correctionRangeSeconds*sampRate
+  correctionRangeSamp = correctionRangeSeconds*SR
   for(v in seq_along(piksam)){
 
 

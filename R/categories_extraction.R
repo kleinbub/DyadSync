@@ -7,7 +7,6 @@
 
 
 
-
 #' Extract stream chunks corresponding to epochs
 #' 
 #' epochStream cycles through all sessions in an experiment.
@@ -54,32 +53,37 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
   # print(missing(sync))
   # if(!missing(sync)) print(str(sync))
   ##DEBUG
-  # x = lr2[[3]]
+  # x = d2[[1]]
   # signal="SC"
   # x$SC$artefacts = rbind(data.frame(start=c(160,300), end=c(200,400)),x[[signal]]$artefacts)
-  # sync="vintage"
+  # sync="amico2"
+  # ziobilly = x$SC$amico2$sync
+  # attributes(ziobilly) = NULL
+  # x$SC$amico2$sync = rats(ziobilly, start=start(x$SC$amico2$sync)[1], frequency = frequency(x$SC$amico2$sync))
   # stream = "sync"
   # category="IM"
   # categoryIndex="micro"
   # mergeEpochs = F
   # artefact.rm=T
+  # shift_start = -2
+  # shift_end = 2
   ###
   goodSyncs = names(x[[signal]])[sapply(x[[signal]],is.sync)]
   if(missing(sync)){
 
   }else if(! sync %in% names(x[[signal]])){
-      stop ('sync was',sync,'and should be one of: ',goodSyncs)
+      stop ('sync was ',sync,' and should be one of: ',paste(goodSyncs,collapse = " "))
   }
   resName = paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},stream)),collapse = "")
 
   #select stream according to sync and streamkey
   if(!missing(sync)){
-    goodStreams = names(x[[signal]][[sync]])[sapply(x[[signal]][[sync]],is.DyadStream)]
+    goodStreams = names(x[[signal]][[sync]])[sapply(x[[signal]][[sync]],is.rats)]
     if(length(goodStreams) == 0) stop ("'sync' argument must point to a list containing 'stream'")
-    if(!stream %in% goodStreams) stop ('stream was ',stream,' and should be one of:',goodStreams)
+    if(!stream %in% goodStreams) stop ('stream was ',stream,' and should be one of:',paste(goodStreams,collapse = " "))
     xstream = x[[signal]][[sync]][[stream]]
   } else {
-    goodStreams = names(x[[signal]])[sapply(x[[signal]],is.DyadStream)]
+    goodStreams = names(x[[signal]])[sapply(x[[signal]],is.rats)]
     if(!stream %in% goodStreams) stop ("stream was ", stream," and should be one of:",goodStreams )
     xstream = x[[signal]][[stream]]
   }
@@ -110,6 +114,7 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
   names(resList) = levels(cate[[categoryIndex]])
 
   remStream = xstream
+  i=1
   for(i in 1:nrow(cate)){ #for each epoch
     if(!is.na(cate[[categoryIndex]][i]) && !is.null(cate[[categoryIndex]][i])) {
       if(cate$start[i]>=end(xstream)[1]){
@@ -118,67 +123,46 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
       } else { #if start is before the end of xstream, as it should...
 
         #if (by applying shift_start) cate$start is before the signal start, create a NA padding
-        #@TSBUG
-        if(cate$start[i]<start(xstream)[1]){
-          padding = ts(start = cate$start[i],
-                     end = c(start(xstream)[1],0), #-> since the real signal starts at c(start(xstream)[1],1)
-                     frequency = frequency(xstream))
-          cate$start[i] = start(xstream[1])
+        if(cate$start[i]<start(xstream)){
+          padding = rats(start = cate$start[i],
+                     end = start(xstream), 
+                     frequency = frequency(xstream),
+                     timeUnit=timeUnit(xstream), valueUnit=valueUnit(xstream))
+          cate$start[i] = start(xstream)
         } else padding = NULL
 
         #if end goes beyond the xstream duration...
         if(cate$end[i] > end(xstream)[1] ){
-          message("In session ", dyadId(x),"-",sessionId(x), ", end of window ",i,": was reduced to the stream end.", call.=F)
+          message("In session ", dyadId(x),"-",sessionId(x), ", end of window ",i,": was reduced to the stream end.\n")
           cate$end[i]= end(xstream)[1]
         }
 
         # rimuovi la finestra dallo stream di segnale residuo remStream:
         window(remStream, start = cate$start[i], end = cate$end[i]) <- NA ## broken?
 
-        # ###################### SHIT
-        # asd = as.numeric(remStream)
-        # asd = ts(runif(580), start = 162.5, end = 3057.5, frequency = 0.2)
-        # window(asd, start = 200, end = 300) <- NA
-        #
-        #
-        # x = remStream
-        # xtsp <- tsp(x)
-        # m <- match.call(window, call("window",remStream, start = cate$start[i], end = cate$end[i]),expand.dots = FALSE)
-        # m$value <- NULL
-        # m$extend <- TRUE
-        # m$x <- x
-        # m[[1L]] <- quote(stats::window)
-        # xx <- eval.parent(m)
-        # xxtsp <- tsp(xx)
-        # start <- xxtsp[1L]
-        # end <- xxtsp[2L]
-        #
-        #
-        #
-        # asd = remStream
-        # asd = as.ts(asd);class(asd)
-        # window(asd, start = cate$start[i], end = cate$end[i]) <- NA
-        #
-        # ####################### END
 
         #aggiungi la finestra al vettore di resList corrispondente al livello di categoryIndex
         win = window(xstream, start = cate$start[i], end = cate$end[i])
-        if(mergeEpochs)
-          resList[[cate[[categoryIndex]][i]]] = c(resList[[cate[[categoryIndex]][i]]], c(padding,win))
-        else{
-          if(!is.null(padding)){ #se c'è da aggiungere il padding
-            win = ts(c(padding,win2),start=start(padding),end = end(win2),frequency = frequency(xstream))
-          }
-          resList[[cate[[categoryIndex]][i]]] = c(resList[[cate[[categoryIndex]][i]]], list(win))
-          names(resList[[cate[[categoryIndex]][i]]])[length(resList[[cate[[categoryIndex]][i]]])] = paste0(dyadId(x),sessionId(x),"|",cate$start[i], "-",cate$end[i])
-          }
+        win = c(padding, win)
+
+        resList[[cate[[categoryIndex]][i]]] = c(resList[[cate[[categoryIndex]][i]]], list(win))
+        names(resList[[cate[[categoryIndex]][i]]])[length(resList[[cate[[categoryIndex]][i]]])] = paste0(dyadId(x),sessionId(x),"|",cate$start[i], "-",cate$end[i])
+
       }
     }
   }
-  if(mergeEpochs)
-    resList[["remaining"]] = na.omit(as.numeric(remStream))
-  else resList[["remaining"]] = list(remStream)
-
+  if(mergeEpochs){
+    resList[["remaining"]] = list(na.omit(remStream))
+    trueResList = resList
+    resList = trueResList
+    for(i in 1:length(resList)){
+      if(length(resList[[i]])>0)
+        resList[[i]] = do.call(c, resList[[i]])
+    }
+  } else {
+    remStream = as.numeric(remStream)
+    resList[["remaining"]] = list(remStream)
+}
   #save object
   x[[signal]][[resName]] = resList
   x
@@ -216,7 +200,7 @@ extractEpochs.DyadExperiment = function(experiment, signal, sync, stream, catego
 
   #check names
   keepNames = unique(unlist(lapply (experiment, function(session){
-    goodNames = names(session[[signal]])[!sapply(session[[signal]],is.sync) & !sapply(session[[signal]],is.DyadStream)]
+    goodNames = names(session[[signal]])[!sapply(session[[signal]],is.sync) & !sapply(session[[signal]],is.rats)]
     if(! epochsName %in% goodNames) stop(epochsName, " was not found in session. Have you run epochStream() beforehand. Found names: ", goodNames )
     
     names(session[[signal]][[epochsName]])
@@ -248,103 +232,3 @@ extractEpochs.DyadExperiment = function(experiment, signal, sync, stream, catego
 
 
 
-# questa funzione al momento è ibrida e incompleta.
-# una prima parte serve ad estrarre delle finestre random dal remaining
-# allo scopo di salvarle nel EXPERIMENT
-# la seconda invece ripete la procedura 1000 volte allo scopo di fare un
-# test di permutazione
-
-# probabilmente ha senso tenere solo la seconda dal momento che la prima
-# porta ad un database gigante. Eventualmente la prima si può astrarre con funzioni
-# diverse dalla media.
-
-#' Title 
-#' Use either mimic or mean.duration and sd.duration
-#'
-#' @param mimic 
-#' @param n if missing and mimic is used, the same number of the mimicked category is used
-#' @param mean.duration 
-#' @param sd.duration 
-#' @param from 
-#' @param experiment 
-#' @param signal 
-#' @param category 
-#' @param sync 
-#' @param stream 
-# 
-# randomEpochs = function(mimic, n, mean.duration, sd.duration, from="remaining", experiment, signal= "SC", category,  sync="PMBest", stream="sync"){
-#   ##debug
-#   mimic = "3"
-#   n
-#   mean.duration
-#   sd.duration
-#   from="remaining"
-#   experiment = d3
-#   signal= "SC"
-#   sync="PMdev"
-#   stream="sync"
-#   category = "IM"
-#   from="remaining"
-#   #-----------------------
-#   mimicMode = match.arg(mimicMode)
-#   resName = paste0(c(toupper(category), "_", totitle(c(sync,stream))),collapse = "")
-#   ex = catExtractLong(experiment, signal=signal, epochStream=resName)
-#   ex2 = list(IM=do.call(c,ex[1:3]))
-#   ex2$remaining = do.call(c,ex$remaining)
-#   dur = lapply(ex, function(x)sapply(x,length))
-#   
-#   if(!from %in% names(ex)) stop ("from: ",from,"was not found in experiment")
-#   
-# 
-#   if(!missing(mimic)) {
-#     if(!missing(mean.duration) || !missing(sd.duration) ) stop ("specify either mimic or duration")
-#     if(!mimic %in% names(ex)) stop ("mimic: ",mimic,"was not found in experiment")
-#     if(missing(n)){
-#       n = length(dur[[mimic]])
-#       durList = dur[[mimic]]
-#     } else { #se mimic, e 'n' è missing entra in strict mode
-#       # e copia esattamente la durata delle finestre originali
-#       mean.duration = mean(dur[[mimic]],na.rm=T)
-#       sd.duration = sd(dur[[mimic]],na.rm=T)
-#     }
-#   }
-#   if(!exists("durList")){ #a patto che non siamo in strict-mode
-#     durList = c()
-#     while(length(durList)<n) {
-#       durList = c(durList, rnorm(n, mean.duration, sd.duration))
-#       durList = durList[durList>0]
-#       durList = sample(durList, min(length(durList),n), replace = F)
-#     }
-#     durList = round(durList)
-#   }
-#   ##ora seleziona le finestre
-#   lfrom = do.call(c,ex[[from]]) #collassa tutti i remaining (o altro from) in un unica serie
-#   newEpochs = list()
-#   for(i in 1:n){
-#     start = trunc(runif(1,1,length(lfrom)-max(durList)-1))
-#     end = start + durList[i]
-#     newEpochs[[i]] = lfrom[start:end]
-#   }
-#   boxplot(sapply(newEpochs,median),sapply(ex$`3`,median),ylim=c(0,1))
-#   
-#   #e se invece confrontassi la media reale con 1000 di quelle random?
-#   n = length(ex2$IM)
-#   dur2 = lapply(ex2, function(x)sapply(x,length))
-#   durList = dur2$IM
-#   lfrom = ex2$remaining
-#   newEpochsMean = numeric(1000)
-#   for(k in 1:1000){
-#     newEpochs = list()
-#     for(i in 1:n){
-#       start = trunc(runif(1,1,length(lfrom)-max(durList)-1))
-#       end = start + durList[i]
-#       newEpochs[[i]] = lfrom[start:end]
-#     }
-#     newEpochsMean[k] = mean(sapply(newEpochs,median))
-#   }
-#   boxplot(newEpochsMean,sapply(ex2$IM,median),ylim=c(0,1))
-#   length(newEpochsMean[newEpochsMean<mean(sapply(ex$`3`,median),na.rm=T)])
-#   
-#   
-#   
-# }

@@ -9,12 +9,6 @@
 # bootstrap and permutation tools
 #
 ############################################################################################################ 
-## changelog
-# v0.2 - updated to "no-sessions" logic
-# v0.1 - import from  _sacred_filt_lib3e
-#         
-#
-############################################################################################################ 
 ## ToDo
 # -
 #
@@ -132,17 +126,17 @@ dyadComb.DyadExperiment = function(exper, n, signals="all", verbose=F){
     for(j in 1:nSignals){
       if(is.DyadSignal(exper[[1]][[signals[j]]])){
         #estraggo lo stream raw per la sessione ed il ruolo identificati in combolist
-        jSampRate = sampRate(exper[[1]][[signals[j]]])
+        jSampRate = frequency(exper[[1]][[signals[j]]])
         olds1name = s1Name(exper[[ comboList[[j]][i,"ranx_session"] ]])
         olds2name = s2Name(exper[[ comboList[[j]][i,"ranx_session"] ]])
         
         s1raw = as.numeric(exper[[ comboList[[j]][i,"ranx_session"] ]][[signals[j]]][[comboList[[j]][i,"ranx_role"]]])
         s2raw = as.numeric(exper[[ comboList[[j]][i,"rany_session"] ]][[signals[j]]][[comboList[[j]][i,"rany_role"]]])
         # tieni la lunghezza del più corto
-        s1raw = ts(s1raw[1:min(length(s1raw),length(s2raw))], frequency = jSampRate)
-        s2raw = ts(s2raw[1:min(length(s1raw),length(s2raw))], frequency = jSampRate)
+        s1raw = rats(s1raw[1:min(length(s1raw),length(s2raw))], frequency = jSampRate, timeUnit="second")
+        s2raw = rats(s2raw[1:min(length(s1raw),length(s2raw))], frequency = jSampRate, timeUnit="second")
         #ricostruisci il dyadsignal
-        newSignal = DyadSignal(name= signals[j],s1 = s1raw, s2 = s2raw, sampRate = jSampRate,
+        newSignal = DyadSignal(name= signals[j],s1 = s1raw, s2 = s2raw, SR = jSampRate,
                                s1Name= paste0(comboList[[j]][i,"ranx_session"], if(comboList[[j]][i,"ranx_role"] =="s1") olds1name else olds2name ),
                                s2Name =paste0(comboList[[j]][i,"rany_session"], if(comboList[[j]][i,"rany_role"] =="s1") olds1name else olds2name ))
         signalList[[j]] = newSignal

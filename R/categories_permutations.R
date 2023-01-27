@@ -1,18 +1,17 @@
-
 #' Permutation tests for signals in specific epochs
 #' 
-#' given a well formatted DyadExperiment object with some calculated DyadStream (e.g. synchronization or physiology) and DyadCategory data
-#' it cuts the stream according to the categories intervals, extracts random permutations of the stream, and calculates p-values and effect sizes
+#' given a well formatted DyadExperiment object with some time series (e.g. synchronization or physiology) and DyadCategory data
+#' it cuts the series according to the categories intervals, extracts random permutations of the stream, and calculates p-values and effect sizes
 #' for the observed central values compared to random ones.
 #'
 #' @param x a DyadExperiment Object.
 #' @param plotPrefix character. path and prefix of output plots names.
 #' @param signal character. name of a DyadSignal contained in x.
 #' @param sync character. Name of a synchronization object. E.g. PMBest, or CCFBest
-#' @param stream character. Name of a DyadStream object contained within sync
+#' @param stream character. Name of a rats object contained within sync
 #' @param category character. Name of a DyadCategory object contained in x
 #' @param categoryIndex character. Name of a factor column in 'category'.
-#' @param absolute logical. should the DyadStream be transformed to absolute values?
+#' @param absolute logical. should the series be transformed to absolute values?
 #' @param minEpochSec number of seconds of minimum epoch. Shorter epochs will be deleted.
 #' @param minOccurrences min occurrences of given category to be kept. Less frequent categories will be deleted.
 #' @param keepOnly vector of characters denoting if only given categories must be analyzed. Eg: c("cat1","cat2").

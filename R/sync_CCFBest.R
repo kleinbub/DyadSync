@@ -9,7 +9,6 @@
 #
 ############################################################################################################ 
 ## changelog
-
 ############################################################################################################ 
 ## ToDo
 
@@ -48,7 +47,7 @@ ccfBest = function(x, signal="SC", lagSec,winSec,incSec,accelSec, slopes=c(NA,NA
 ccfBest.DyadExperiment = function(experiment, signal="all", lagSec,winSec,incSec,accelSec, slopes=c(NA,NA), MA=c(NA,NA), weight_type=c("center","free","off"),simplify = T, outputName = "CCFBest"){
 
   if(length(MA)!=2 || (!all(is.numeric(MA)) || !all(is.na(MA)) ) ) MA = c(NA,NA)
-  if(winSec%%2==1) warning("Using odd 'winSec' values will cause slightly uncentered correlation windows, due to ts limitations")
+  # if(winSec%%2==1) warning("Using odd 'winSec' values will cause slightly uncentered correlation windows, due to ts limitations")
   nSessions = length(experiment)
   
   ###PARALLELIZE
@@ -148,17 +147,17 @@ ccfBest.DyadSignal = function(x, lagSec,winSec,incSec,accelSec, slopes=c(NA,NA),
 
 dyadCCF = function(x,lagSec,winSec,incSec, simplify, outputName = "CCFBest"){
   if(!is(x,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
-  sampRate = sampRate(x)
+  SR = frequency(x)
   #import C correlation function
   C_cor=get("C_cor", asNamespace("stats"))
   
-  win = winSec*sampRate
-  lagSamp = lagSec*sampRate
+  win = winSec*SR
+  lagSamp = lagSec*SR
   if(!simplify)
     ran = ((-lagSamp)): ((lagSamp))
   else
-    ran = seq(-lagSamp,lagSamp, sampRate)
-  inc = incSec * sampRate
+    ran = seq(-lagSamp,lagSamp, SR)
+  inc = incSec * SR
   iFile = data.frame(x$s1,x$s2)
   n_win = ceiling((nrow(iFile)-win-lagSamp+1)/inc) #calcola il numero di finestre
   lcc=lapply(seq_len(n_win)-1, function(iWin)
@@ -187,8 +186,8 @@ dyadCCF = function(x,lagSec,winSec,incSec, simplify, outputName = "CCFBest"){
   x[[outputName]]$table = data.frame(matrix(unlist(lcc),ncol=length(ran), byrow = T, dimnames=list(paste0("w",seq_len(n_win)),paste0("lag",ran))))
   colnames(x[[outputName]]$table) = paste0("lag",ran)
   # x$ccf$ccfmat[is.na(x$ccf$ccfmat)] = 0
-  xStart = c(start(x)[1] +trunc(winSec/2),1)
-  x[[outputName]]$zero =DyadStream(x[[outputName]]$table[["lag0"]],"lagZeroSync",start=xStart,frequency=1/incSec )
+  xStart = c(start(x) +trunc(winSec/2),1)
+  x[[outputName]]$zero =rats(x[[outputName]]$table[["lag0"]],start=xStart,frequency=1/incSec, timeUnit="second", valueUnit="Pearson correlation" )
   #dimostrazione che la CCF inizia a metà della finestra!
   # plot(rangeRescale(window(x$s1,start=277,end=277+15),-1,1),type="l");abline(v=277+7.5,lty=3)
   # points(x[[outputName]]$zero)
@@ -207,7 +206,7 @@ vectorBestLag = function(x, accelSec, weight_type=c("off","center","free"), outp
   if(!is(x,"DyadSignal")) stop("Only objects of class DyadSignal can be processed by this function")
   weight_type = match.arg(weight_type, choices = c("off","center","free"))
   mat = as.matrix(x[[outputName]]$table)
-  sampRate = sampRate(x)
+  SR = frequency(x)
   
   #ora a è più corretto e funziona anche se simplify = TRUE
   colFrequency = (ncol(mat)-1)/(2*attr(x[[outputName]],"lagSec")) #quante colonne compongono un secondo?
@@ -216,7 +215,7 @@ vectorBestLag = function(x, accelSec, weight_type=c("off","center","free"), outp
   acc = colFrequency*incSec
   #a = n colonne per muovere la lag di accelSec secondi al secondo
   a = accelSec*acc
-  if(a<1) stop ("With chosen [incSec, sampRate, and simplify], accelSec must be at least:", 1/acc)
+  if(a<1) stop ("With chosen [incSec, SR, and simplify], accelSec must be at least:", 1/acc)
   if(a%%1!=0) { #if not integer
     a = max(1,round(a))
   }
@@ -272,17 +271,13 @@ vectorBestLag = function(x, accelSec, weight_type=c("off","center","free"), outp
       
       bCC[i]  = mat[i,blag[i]]
     }
-    # ##debug tools
-    # cat0("\r\nw",lead0(floor((i+15)/60)),":",lead0( (i+15)- floor((i+15)/60)*60) )
-    # cat0(" | among ",lead0(realran[1]),"-",lead0(realran[length(realran)]))
-    # cat0(" selected: ",lead0(blag[i]), "(",round(bCC[i],3)," t:",(blag[i]-lag0)/x$sampRate,")")
   }
   
   blag = (blag-lag0)/colFrequency #trasforms blag from columns to seconds
   x[[outputName]]$table = cbind(x[[outputName]]$table, "bestCCF" = bCC, "bestLag" = blag)
-  xStart = c(start(x)[1] +attr(x[[outputName]],"winSec")/2,1)
-  x[[outputName]]$sync = DyadStream(bCC,  name="bestCCF",  start=xStart, frequency= 1/incSec )
-  x[[outputName]]$lag  = DyadStream(blag, name="bestLAG", start=xStart, frequency= 1/incSec )
+  xStart = c(start(x) +attr(x[[outputName]],"winSec")/2,1)
+  x[[outputName]]$sync = rats(bCC,  start=xStart, frequency= 1/incSec, timeUnit = "second", valueUnit = "Pearson correlation" )
+  x[[outputName]]$lag  = rats(blag, start=xStart, frequency= 1/incSec, timeUnit = "second", valueUnit = "seconds" )
 
   return(x)
 }
