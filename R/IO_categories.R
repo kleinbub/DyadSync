@@ -37,6 +37,17 @@ readCategories = function(path,
   # idSep = "_"
   ##############
   
+  # path ="R/manuTest"
+  # #"..\\Minutaggi_CC\\minutaggi_Emanuele_exchange_CC"",
+  # catName = "PIRS"
+  # removeSec = 0
+  # startCol =1; endCol = 2; sep = ";"; codingCol = 3:4;
+  # idOrder = c("x", "session", "id");
+  # #idOrder = c("x"; "session"; "id"; "x");
+  # idSep = "_"
+  # 
+  
+  
   l = list(...) # l = list(sep=",")
   l = c(list(path,namefilt,idOrder,idSep),l)
   l$stringsAsFactors = FALSE
@@ -62,7 +73,7 @@ readCategories = function(path,
   cat("File name","\t","seconds removed\r\n")
   listCat = Map(function(file,iFile){
     cat(shortNames[iFile],"\t",removeSec[iFile],"\r\n")
-    
+    file = as.data.frame(file)
     #remove na shit
     file[file==""] = NA
     file = file[rowSums(is.na(file)) != ncol(file),]
