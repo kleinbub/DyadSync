@@ -90,11 +90,24 @@ rats = function(data, start=0, end, duration, frequency=1, period,
   # frequency = 10
   # duration = end-start
   # #############
+  if(missing(period)){
+    period = 1/frequency
+  } else {
+    if(missing(frequency)){
+      frequency = 1/period
+    } else {
+      #both are specified. Are they coherent?
+      if(period != 1/frequency){
+        stop("Period must be equal to 1/frequency.")
+      }
+    }
+  }
+  
   durations = c()
   if(!missing(duration)) durations = c(durations,duration)
   if(!missing(start) && !missing(end)) durations = c(durations, end-start)
   if(!missing(data) && !missing(frequency) && length(data)>0){
-    durations = c(durations, signif(duration/period,6))}
+    durations = c(durations, signif(length(data)/frequency,6))}
   if(length(unique(durations))>1) stop("duration mismatch")   
   if(length(unique(durations))==0) stop("Insufficient information to build rats") 
   duration = unique(durations)
@@ -102,23 +115,11 @@ rats = function(data, start=0, end, duration, frequency=1, period,
   if(!missing(start) &&  missing(end)) end = start + duration
   if( missing(start) && !missing(end)) start = end - duration
   
-  frequencies = c(frequency)
-  if(!missing(period) &&  missing(frequency)) frequencies = c(frequencies, 1/period)
-  if(!missing(data) && length(data)>0) frequency = 1/period
-  
-  # if(missing(period)){
-  #   period = 1/frequency
-  # } else {
-  #     if(missing(frequency)){
-  #       frequency = 1/period
-  #     } else {
-  #       #both are specified. Are they coherent?
-  #       if(period != 1/frequency){
-  #         stop("Period must be equal to 1/frequency.")
-  #       }
-  #     }
-  # }
+  # frequencies = c(frequency)
+  # if(!missing(period) &&  missing(frequency)) frequencies = c(frequencies, 1/period)
+  # if(!missing(data) && length(data)>0) frequency = 1/period
   # 
+
   # 
   # if(!missing(data) && length(data)>0){
   #   if(missing(duration) || (missing(start)&&missing(end)))
