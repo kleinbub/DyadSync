@@ -77,6 +77,25 @@ AMICo = function(experiment, signal="all", lagSec=6, #@OBSOLETE 2022 pmBest dive
   # outputName = "PMBest";
   # correctionRangeSeconds = 0.5; minPeakAmplitude = 0.05;
   
+  
+#   experiment = lr10f
+#   iSession = 1
+#   signal = "SC"
+# algorithm = "v2RC0.4"
+# match_threshold=0.1
+# lagSec=4
+# signal = "SC"
+# minSizeSec=8
+# weightMalus = 3
+# outputName = "PMdev"
+# minPeakAmplitude = 0.05
+# maxPeakDuration = "hrt"
+# interval_sec = 10
+# correctionRangeSeconds = 0.5
+# sgol_p=2
+# sgol_n=25
+
+  
 
 
   algorithm=match.arg(algorithm)
@@ -692,6 +711,8 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   if(missing(minPeakAmplitude)) stop("in peakfinder missing minPeakAmplitude")
   
   SR = frequency(x)
+  timeX = time(x)
+  attributes(x) = NULL
   if(is.na(sgol_p)||is.na(sgol_n)){
     smooth_x = x
   } else {
@@ -813,7 +834,7 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   #ricrea pikboo & piks dai sample corretti
   pikboo = rep(F,length(pikboo))
   pikboo[piksam] = T
-  piks = time(x)[piksam]
+  piks = timeX[piksam]
   
   
   list("bool" = pikboo,

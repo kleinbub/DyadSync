@@ -110,22 +110,24 @@ signalFilter.DyadSession = function (x, FUN, newAttributes=NULL, signals="all", 
 #' @export
 signalFilter.DyadSignal = function (x, FUN, newAttributes=NULL, signals=NULL, ...) {
   FUN = match.fun(FUN)
-  ress1 = FUN(x$s1, ...)
-  ress2 = FUN(x$s2, ...)
-  if(!is.rats(ress1)) ress1 = rats(ress1, start=start(x$s1), frequency=frequency(x$s1),timeUnit = timeUnit(x$s1), valueUnit = valueUnit(x$s1))
-  if(!is.rats(ress2)) ress2 = rats(ress2, start=start(x$s2), frequency=frequency(x$s2),timeUnit = timeUnit(x$s2), valueUnit = valueUnit(x$s2))
+  k = x
   
-  attr(x,"start") = start(x$s1)
-  attr(x,"end")   = end(x$s1)
-  attr(x,"SR") = frequency(x$s1)
+  k$s1 = FUN(k$s1, ...)
+  k$s2 = FUN(k$s2, ...)
+  k$s1 = rats(k$s1, start=start(x$s1), frequency=frequency(x$s1),timeUnit = timeUnit(x$s1), valueUnit = valueUnit(x$s1))
+  k$s2 = rats(k$s2, start=start(x$s2), frequency=frequency(x$s2),timeUnit = timeUnit(x$s2), valueUnit = valueUnit(x$s2))
+  
+  attr(k,"start") = start(k$s1)
+  attr(k,"end")   = end(k$s1)
+  attr(k,"SR")    = frequency(k$s1)
   
   if(!is.null(newAttributes)){
     if("filter"%in%names(newAttributes)){
-      newAttributes[["filter"]] = paste0(attributes(x)[["filter"]]," -> ",newAttributes[["filter"]])
+      newAttributes[["filter"]] = paste0(attributes(k)[["filter"]]," -> ",newAttributes[["filter"]])
     }
-    attributes(x)[names(newAttributes)] = newAttributes
+    attributes(k)[names(newAttributes)] = newAttributes
   }
-  return(x)
+  return(k)
 }
 
 
@@ -290,6 +292,8 @@ resample = function (x, newSampRate, ...) {
 #' @export
 
 movAv <- function(x, winSec, incSec = NA, remove=FALSE, SR=frequency(x) ) {
+  print(class(x))
+  x = as.rats(x)
   
   win = winSec*SR
   win2 = round(win/2)
@@ -341,13 +345,13 @@ movAv <- function(x, winSec, incSec = NA, remove=FALSE, SR=frequency(x) ) {
   res = c(res,  seq(res[length(res)], endVal, length.out = miss))
   
   #all this done, x and res should ALWAYS have the same length
-  if(length(res) != length(x)) warning("the original series and the moving average are of different lenghts, which is a bug")
+  if(length(res) != length(x)) warning("the original series and the moving average are of different lengths, which is a bug")
   
   if(remove){
     res = x-res
   }
   
-  if(is.rats(x)) res = rats(res,start=start(x),frequency = sampRate,timeUnit=timeUnit(x), valueUnit=valueUnit(x))
+  if(is.rats(x)) res = rats(res,start=start(x),frequency = SR,timeUnit=timeUnit(x), valueUnit=valueUnit(x))
   else res
 }
 
@@ -490,12 +494,12 @@ FIR = function(x, cut, type=c("low","high"), NAsub=NA, attenDb=50, burnSec = 0, 
   if(plot){
     lines(ts(xf, start=start(x), frequency = frequency(x)),col=4)
   }
-  if(length(xf)!=length(x)) warning("lenght")
+  if(length(xf)!=length(x)) warning("length")
   
   # if(is.rats(x))
   #   cloneAttr(x,ts(xf,frequency=frequency(x),start=start(x),end=end(x)))
   # else 
-    rats(xf,frequency=frequency(x),start=start(x),timeUnit=timeUnit(x), valueUnit=valueUnit(x))
+  rats(xf,frequency=frequency(x),start=start(x),timeUnit=timeUnit(x), valueUnit=valueUnit(x))
 }
 
 # x = ts(sin(1:1000/20)+seq(-0.5,0.5,length.out = 1000), frequency = 100)

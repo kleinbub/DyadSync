@@ -69,7 +69,7 @@
 #'   not overlap and are combined to a . Time intervals are half-open intervals, including the start value
 #'   but excluding the end one.
 #' * rats are familiar: syntax is intuitive for ts() or zoo() users
-#' * Holes fit in cheese, but not in rats: a rats' lenght must correspond to the rats'
+#' * Holes fit in cheese, but not in rats: a rats' length must correspond to the rats'
 #'   duration multiplied by the frequency. In other terms missing data in rats must
 #'   be represented with NA
 #'
@@ -80,67 +80,101 @@
 #' 
 #' 
 #' 
-rats = function(data, start=0, end, duration, frequency, period,
+rats = function(data, start=0, end, duration, frequency=1, period,
                 windowed = list(winSec=NULL, incSec=NULL, flex=NULL),
                 timeUnit="cycle", valueUnit=NULL){
   
   # ######debug
-  # start=0
+  # start=1.9
   # end=10
-  # frequency = 0.5
+  # frequency = 10
   # duration = end-start
   # #############
+  durations = c()
+  if(!missing(duration)) durations = c(durations,duration)
+  if(!missing(start) && !missing(end)) durations = c(durations, end-start)
+  if(!missing(data) && !missing(frequency) && length(data)>0){
+    durations = c(durations, signif(duration/period,6))}
+  if(length(unique(durations))>1) stop("duration mismatch")   
+  if(length(unique(durations))==0) stop("Insufficient information to build rats") 
+  duration = unique(durations)
   
-  if(missing(period)){
-    if(missing(frequency)){
-      stop("At least frequency or period must be specified.")
-    } else {
-      period = 1/frequency
-    }
-  } else {
-    if(!missing(frequency)){
-      if(period != 1/frequency){
-        stop("Period must be equal to 1/frequency.")
-      }
-    } else {
-      frequency = 1/period
-    }
-  }
+  if(!missing(start) &&  missing(end)) end = start + duration
+  if( missing(start) && !missing(end)) start = end - duration
   
-  #se tutti e tre, devono essere coerenti
-  if(!missing(start) && !missing(end) && !missing(duration)){
-    if(end-start != duration) stop("Duration must equal to end - start.")
-  }
-  #se abbiamo data, tutto deve essere coerente con data  
-  if(!missing(data)){
-    
-    if(!missing(start) && !missing(end)){
-      duration = end-start
-    } else if(!missing(start)){
-      end = start + length(data)/frequency
-      duration = end-start
-    } else if( !missing(start)){
-      start = end - length(data)/frequency
-      duration = end-start
-    } else stop("At least start or end must be defined along with data.")
-    
-  }
-  else{
-    if(!missing(start) && !missing(end)){
-      duration = end-start
-    } else if(!missing(start) && !missing(duration)){
-      end = start + duration
-    } else if(!missing(end) && !missing(duration)){
-      start = duration - end
-    } else stop ("at least two between start, end, and duration must be specified")
-  }
-  if(signif(duration/period,6)%%1 != 0) stop("Duration must be a multiple of sampling rate")
+  frequencies = c(frequency)
+  if(!missing(period) &&  missing(frequency)) frequencies = c(frequencies, 1/period)
+  if(!missing(data) && length(data)>0) frequency = 1/period
   
+  # if(missing(period)){
+  #   period = 1/frequency
+  # } else {
+  #     if(missing(frequency)){
+  #       frequency = 1/period
+  #     } else {
+  #       #both are specified. Are they coherent?
+  #       if(period != 1/frequency){
+  #         stop("Period must be equal to 1/frequency.")
+  #       }
+  #     }
+  # }
+  # 
+  # 
+  # if(!missing(data) && length(data)>0){
+  #   if(missing(duration) || (missing(start)&&missing(end)))
+  # } 
+  # 
+  # 
+  # if(!missing(start) && !missing(end)){
+  #   duration = end-start
+  # } else if(!missing(start)){
+  #   end = start + length(data)/frequency
+  #   duration = end-start
+  # } else if( !missing(end)){
+  #   start = end - length(data)/frequency
+  #   duration = end-start
+  # } else stop("At least start or end must be defined along with data.")
+  # 
+  # 
+  # 
+  # 
+  # #se tutti e tre, devono essere coerenti
+  # if(!missing(start) && !missing(end) && !missing(duration)){
+  #   if(end-start != duration) stop("Duration must equal to end - start.")
+  # }
+  # 
+  # #se abbiamo data, tutto deve essere coerente con data  
+  # if(!missing(data) && length(data)>0){
+  #   
+  #   if(!missing(start) && !missing(end)){
+  #     duration = end-start
+  #   } else if(!missing(start)){
+  #     end = start + length(data)/frequency
+  #     duration = end-start
+  #   } else if( !missing(end)){
+  #     start = end - length(data)/frequency
+  #     duration = end-start
+  #   } else stop("At least start or end must be defined along with data.")
+  #   
+  # } else{
+  #   if(!missing(start) && !missing(end)){
+  #     duration = end-start
+  #   } else if(!missing(start) && !missing(duration)){
+  #     end = start + duration
+  #   } else if(!missing(end) && !missing(duration)){
+  #     start = duration - end
+  #   } else if(any(is.na(c(start,end,duration)))) {
+  #     
+  #   } else stop ("at least two between start, end, and duration must be specified")
+  # }
+  # #signif serve per evitare differenze float
+  # if(signif(duration/period,6)%%1 != 0) stop("rats duration must be a multiple of sampling rate")
+  # 
   #generate the time values
   x = seq(start,end-period,by=period)
   n = length(x)
   
-  if(!missing(data)){
+  if(!missing(data) && length(data)>0){
     # if(duration*frequency != length(data)) stop("duration must equal data/frequency")
     if(length(data)>n) data= data[1:n]
     if(length(data)<n) stop("Not enough data was provided for the specified duration.")
@@ -278,7 +312,7 @@ window.rats = function(x, start, end, duration){
 #' @export
 
 length.rats = function(x){
-  if(attr(x,"n") != length(unclass(x))) stop("Actual lenght and n attribute mismatch")
+  if(attr(x,"n") != length(unclass(x))) stop("Actual length and n attribute mismatch")
   attr(x,"n")
 }
 
@@ -389,7 +423,30 @@ c.rats = function(...){
   l = list(...)
   if(length(l)==1) return(l[[1]])
   
-  if(length(unique(sapply(l,class)))>1) stop("Only rats can be combined together.")
+  #if there are same non rats, ratify them
+  nr = which(sapply(l,\(x){!is.rats(x)}))
+  rr = which(sapply(l,\(x){is.rats(x)}))
+  if(length(nr)>0) {
+    for(i in nr){
+      if(class(l[[i]]) %in% c("ts","zooreg")){
+        l[[i]] = as.rats(l[[i]])
+      } else {
+        #find the first rat behind it
+        previous = rr[which(rr<i)]
+        if(length(previous) > 0){
+          example = l[[previous[length(previous)]]]
+          old = l[[i]]
+          attributes(old) =NULL
+          l[[i]] = rats(old, start = end(example), frequency = frequency(example),
+                        timeUnit = timeUnit(example)
+          )
+        } else {
+          #there were no previous rats
+          stop("combining non rats with rats in this way is not implemented yet")
+        }
+      }
+    }
+  }
   lfreq = unique(sapply(l,frequency))
   if(length(lfreq)>1) stop("All rats must have the same frequency.")
   lunit = unique(sapply(l,timeUnit))
@@ -494,6 +551,10 @@ as.rats = function(x){
   UseMethod("as.rats",x)
 }
 #' @export
+as.rats.rats = function(x){
+  x
+}
+#' @export
 as.rats.ts = function(x){
   xstart = start(x)
   if(length(xstart)==2){
@@ -511,6 +572,14 @@ as.rats.zooreg = function(x){
   attributes(k) = NULL
   rats(k, start=start(x), frequency = frequency(x))
 }
+#' @export
+as.rats.numeric = function(x){
+  k = x
+  attributes(k) = NULL
+  rats(k, start=0, frequency = 1)
+}
+
+
 #' @export
 as.ts.rats = function(x){
   k = x

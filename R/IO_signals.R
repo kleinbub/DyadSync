@@ -70,6 +70,7 @@ readDyadSignals = function(
                       namefilt = NA,
                       idOrder= c(), # c("id","session","group","role"), #the order of identifiers in the filenames. role is only used with pairbind = T
                       idSep = "_", #the separator of identifiers in the filename
+                      signalUnit,
                       ... #additional options to be passed to read.table (es: skip, header, etc)
                       ){
 ####debug #####
