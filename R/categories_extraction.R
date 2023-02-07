@@ -127,7 +127,7 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
           padding = rats(start = cate$start[i],
                      end = start(xstream), 
                      frequency = frequency(xstream),
-                     timeUnit=timeUnit(xstream), valueUnit=valueUnit(xstream))
+                     timeUnit=timeUnit(xstream), unit=unit(xstream))
           cate$start[i] = start(xstream)
         } else padding = NULL
 
@@ -197,11 +197,13 @@ extractEpochs.DyadExperiment = function(experiment, signal, sync, stream, catego
       stop("category, categoryIndex, stream, must all be specified")
   }
   epochsName = paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},stream)),collapse = "")
+  resName =    paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},stream)),collapse = "")
+  
 
   #check names
   keepNames = unique(unlist(lapply (experiment, function(session){
     goodNames = names(session[[signal]])[!sapply(session[[signal]],is.sync) & !sapply(session[[signal]],is.rats)]
-    if(! epochsName %in% goodNames) stop(epochsName, " was not found in session. Have you run epochStream() beforehand. Found names: ", goodNames )
+    if(! epochsName %in% goodNames) stop(epochsName, " was not found in session. Have you run epochStream() beforehand? Do you need to specify sync? Found names: ", paste0(goodNames,collapse=" ") )
     
     names(session[[signal]][[epochsName]])
   })))

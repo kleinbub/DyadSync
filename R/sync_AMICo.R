@@ -638,10 +638,10 @@ ppSync_dev = function(signal, xbest, minSizeSec, outputName) {
   # finallyt instantiate new sync class object
   sync = rats(syncvec, start = start(d),
               frequency=frequency(signal), timeUnit="second",
-              valueUnit="Pearson correlation")
+              unit="Pearson correlation")
   lags = rats(lagvec,  start = start(d),
               frequency=frequency(signal), timeUnit="second",
-              valueUnit="seconds")
+              unit="seconds")
   # applica gli artefatti
   for(i in seq_len(nrow(signal$artefacts)) ){ 
     window(sync, signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA

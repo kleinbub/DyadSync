@@ -114,8 +114,8 @@ signalFilter.DyadSignal = function (x, FUN, newAttributes=NULL, signals=NULL, ..
   
   k$s1 = FUN(k$s1, ...)
   k$s2 = FUN(k$s2, ...)
-  k$s1 = rats(k$s1, start=start(x$s1), frequency=frequency(x$s1),timeUnit = timeUnit(x$s1), valueUnit = valueUnit(x$s1))
-  k$s2 = rats(k$s2, start=start(x$s2), frequency=frequency(x$s2),timeUnit = timeUnit(x$s2), valueUnit = valueUnit(x$s2))
+  k$s1 = rats(k$s1, start=start(x$s1), frequency=frequency(x$s1),timeUnit = timeUnit(x$s1), unit = unit(x$s1))
+  k$s2 = rats(k$s2, start=start(x$s2), frequency=frequency(x$s2),timeUnit = timeUnit(x$s2), unit = unit(x$s2))
   
   attr(k,"start") = start(k$s1)
   attr(k,"end")   = end(k$s1)
@@ -256,7 +256,7 @@ resample = function (x, newSampRate, ...) {
   if(newSampRate == frequency(x)) stop("newSampRate and original signal frequency are identical.")
   q = frequency(x) / newSampRate  #ratio of old vs new sr
   rats(approx(seq_along(x),x, xout= seq(1,length(x),by=q), ... )$y, start=start(x),
-       frequency=newSampRate,timeUnit=timeUnit(x), valueUnit=valueUnit(x))
+       frequency=newSampRate,timeUnit=timeUnit(x), unit=unit(x))
 }
 
 
@@ -351,7 +351,7 @@ movAv <- function(x, winSec, incSec = NA, remove=FALSE, SR=frequency(x) ) {
     res = x-res
   }
   
-  if(is.rats(x)) res = rats(res,start=start(x),frequency = SR,timeUnit=timeUnit(x), valueUnit=valueUnit(x))
+  if(is.rats(x)) res = rats(res,start=start(x),frequency = SR,timeUnit=timeUnit(x), unit=unit(x))
   else res
 }
 
@@ -367,7 +367,7 @@ movAvSlope = function(x,win,inc,SR=frequency(x)){
     b= (i*inc +win)
     res[i] = (x[b]-x[a])/win
   }
-  rats(res, frequency = inc, start=start(x),timeUnit=timeUnit(x), valueUnit=valueUnit(x) )
+  rats(res, frequency = inc, start=start(x),timeUnit=timeUnit(x), unit=unit(x) )
 }
 
 
@@ -499,7 +499,7 @@ FIR = function(x, cut, type=c("low","high"), NAsub=NA, attenDb=50, burnSec = 0, 
   # if(is.rats(x))
   #   cloneAttr(x,ts(xf,frequency=frequency(x),start=start(x),end=end(x)))
   # else 
-  rats(xf,frequency=frequency(x),start=start(x),timeUnit=timeUnit(x), valueUnit=valueUnit(x))
+  rats(xf,frequency=frequency(x),start=start(x),timeUnit=timeUnit(x), unit=unit(x))
 }
 
 # x = ts(sin(1:1000/20)+seq(-0.5,0.5,length.out = 1000), frequency = 100)

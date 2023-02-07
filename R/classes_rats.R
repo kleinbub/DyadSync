@@ -59,7 +59,7 @@
 #' windowing procedures used to create the series. 
 #' @param timeUnit character. A descriptor of the frequency cycle unit. Used only
 #' in print functions.
-#' @param valueUnit character. A descriptor of the unit of measurement of the series values. Used only
+#' @param unit character. A descriptor of the unit of measurement of the series values. Used only
 #' in print functions.
 #' 
 #' @details 
@@ -82,7 +82,7 @@
 #' 
 rats = function(data, start=0, end, duration, frequency=1, period,
                 windowed = list(winSec=NULL, incSec=NULL, flex=NULL),
-                timeUnit="cycle", valueUnit=NULL){
+                timeUnit="cycle", unit=NULL){
   
   # ######debug
   # start=1.9
@@ -91,7 +91,8 @@ rats = function(data, start=0, end, duration, frequency=1, period,
   # duration = end-start
   # #############
   if(missing(period)){
-    period = 1/frequency
+    #frequency c'è di default
+    period = 1/frequency  
   } else {
     if(missing(frequency)){
       frequency = 1/period
@@ -102,11 +103,12 @@ rats = function(data, start=0, end, duration, frequency=1, period,
       }
     }
   }
-  
+
   durations = c()
   if(!missing(duration)) durations = c(durations,duration)
   if(!missing(start) && !missing(end)) durations = c(durations, end-start)
   if(!missing(data) && !missing(frequency) && length(data)>0){
+    #qua puoi farlo se hai frequency
     durations = c(durations, signif(length(data)/frequency,6))}
   if(length(unique(durations))>1) stop("duration mismatch")   
   if(length(unique(durations))==0) stop("Insufficient information to build rats") 
@@ -114,63 +116,8 @@ rats = function(data, start=0, end, duration, frequency=1, period,
   
   if(!missing(start) &&  missing(end)) end = start + duration
   if( missing(start) && !missing(end)) start = end - duration
-  
-  # frequencies = c(frequency)
-  # if(!missing(period) &&  missing(frequency)) frequencies = c(frequencies, 1/period)
-  # if(!missing(data) && length(data)>0) frequency = 1/period
-  # 
 
-  # 
-  # if(!missing(data) && length(data)>0){
-  #   if(missing(duration) || (missing(start)&&missing(end)))
-  # } 
-  # 
-  # 
-  # if(!missing(start) && !missing(end)){
-  #   duration = end-start
-  # } else if(!missing(start)){
-  #   end = start + length(data)/frequency
-  #   duration = end-start
-  # } else if( !missing(end)){
-  #   start = end - length(data)/frequency
-  #   duration = end-start
-  # } else stop("At least start or end must be defined along with data.")
-  # 
-  # 
-  # 
-  # 
-  # #se tutti e tre, devono essere coerenti
-  # if(!missing(start) && !missing(end) && !missing(duration)){
-  #   if(end-start != duration) stop("Duration must equal to end - start.")
-  # }
-  # 
-  # #se abbiamo data, tutto deve essere coerente con data  
-  # if(!missing(data) && length(data)>0){
-  #   
-  #   if(!missing(start) && !missing(end)){
-  #     duration = end-start
-  #   } else if(!missing(start)){
-  #     end = start + length(data)/frequency
-  #     duration = end-start
-  #   } else if( !missing(end)){
-  #     start = end - length(data)/frequency
-  #     duration = end-start
-  #   } else stop("At least start or end must be defined along with data.")
-  #   
-  # } else{
-  #   if(!missing(start) && !missing(end)){
-  #     duration = end-start
-  #   } else if(!missing(start) && !missing(duration)){
-  #     end = start + duration
-  #   } else if(!missing(end) && !missing(duration)){
-  #     start = duration - end
-  #   } else if(any(is.na(c(start,end,duration)))) {
-  #     
-  #   } else stop ("at least two between start, end, and duration must be specified")
-  # }
-  # #signif serve per evitare differenze float
-  # if(signif(duration/period,6)%%1 != 0) stop("rats duration must be a multiple of sampling rate")
-  # 
+
   #generate the time values
   x = seq(start,end-period,by=period)
   n = length(x)
@@ -196,7 +143,7 @@ rats = function(data, start=0, end, duration, frequency=1, period,
                            "windowed" = as.list(windowed),
                            "n" = n,
                            "timeUnit" = timeUnit,
-                           "valueUnit" = valueUnit
+                           "unit" = unit
                       ))
   class(res) = "rats"
   return(res)
@@ -255,7 +202,7 @@ window.rats = function(x, start, end, duration){
   cutter = which(time(x) >= start & time(x) < end )
   if(length(cutter)==0) stop("No data found in the given window")
   rats(x[cutter], start=start, frequency = frequency(x), windowed = attr(x, "windowed"),
-       timeUnit = timeUnit(x), valueUnit = valueUnit(x))
+       timeUnit = timeUnit(x), unit = unit(x))
   
 }
 
@@ -287,7 +234,7 @@ window.rats = function(x, start, end, duration){
   x1 = .subset(time(x), i)
   x2 = .subset(x, i)
   rats(x2,start=x1[1],frequency = frequency(x), windowed = attr(x, "windowed"),
-       timeUnit = timeUnit(x), valueUnit = valueUnit(x))
+       timeUnit = timeUnit(x), unit = unit(x))
 }
 
 #' @export
@@ -397,9 +344,9 @@ timeUnit = function(x){UseMethod("timeUnit",x)}
 #' @export
 timeUnit.rats = function(x){attr(x,"timeUnit")}
 #' @export
-valueUnit = function(x){UseMethod("valueUnit",x)}
+unit = function(x){UseMethod("unit",x)}
 #' @export
-valueUnit.rats = function(x){attr(x,"valueUnit")}
+unit.rats = function(x){attr(x,"unit")}
 
 
 #' Combine rats
@@ -484,7 +431,7 @@ c.rats = function(...){
     finaly = c(unlist(lapply(l,function(a) a)))
     #The rat is now whole!
     return(rats(finaly, start=starts[1], frequency = lfreq,
-                windowed = lwind,timeUnit = lunit, valueUnit = lvunit))
+                windowed = lwind,timeUnit = lunit, unit = lvunit))
   }
   
 }
@@ -509,13 +456,13 @@ na.omit.rats = function(x){
     #nas where only at the beginning and end
     k = rats(k, start = tk[1], frequency = frequency(x),
              windowed = attr(x,"windowed"), timeUnit = timeUnit(x),
-             valueUnit = valueUnit(x) )
+             unit = unit(x) )
   } else {
     attributes(k) = list(
       "x" = tk,
       "na.removed" = which(is.na(x)),
       start=tk[1],
-      valueUnit = valueUnit(x)
+      unit = unit(x)
     )
     class(k) = "cheese"
   }
@@ -537,7 +484,7 @@ plot.rats = function(x, ...){
 
   if(is.null(l[["type"]])) l[["type"]]="l"
   if(is.null(l[["xlab"]])) l[["xlab"]]=paste0("Time (",timeUnit(x),")")
-  if(is.null(l[["ylab"]])) l[["ylab"]]=paste0("Values (",valueUnit(x),")")
+  if(is.null(l[["ylab"]])) l[["ylab"]]=paste0("Values (",unit(x),")")
   
   k = list(x=x$x,y=x$y)
   l = c(k,l)

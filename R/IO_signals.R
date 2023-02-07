@@ -47,7 +47,7 @@
 #' @param s1Name 
 #' @param s2Name 
 #' @param frequency 
-#' @param signalUnit character. A descriptor of the unit of measurement of the series values.
+#' @param unit character. A descriptor of the unit of measurement of the series values.
 #'
 #' @return
 #' @export
@@ -62,7 +62,7 @@ readDyadSignals = function(
                       start, #
                       end,  #remove tail or pads with zeroes. Useful to cut signals when a session is over or to equalize lengths
                       duration,
-                      timeUnit, valueUnit,
+                      timeUnit, unit,
                       pairBind = F, #if true, each two files in the path get matched to a single DyadSession, useful if the data of patient
                                     #and clinician are saved on separate files
                       winTerpolate = list(winSec=NULL,incSec=NULL), #if data comes from a moving windows analysis it should be
@@ -70,7 +70,7 @@ readDyadSignals = function(
                       namefilt = NA,
                       idOrder= c(), # c("id","session","group","role"), #the order of identifiers in the filenames. role is only used with pairbind = T
                       idSep = "_", #the separator of identifiers in the filename
-                      signalUnit,
+                      unit,
                       ... #additional options to be passed to read.table (es: skip, header, etc)
                       ){
 ####debug #####
@@ -251,9 +251,9 @@ readDyadSignals = function(
     signalList = lapply(seq_along(s1Col), function(i) {
       DyadSignal(name=signalNames[i],
                  s1=rats(session[,s1Col[i]],frequency=SR,
-                         start=start[nSession], timeUnit="second", valueUnit=signalUnit),
+                         start=start[nSession], timeUnit="second", unit=unit),
                  s2=rats(session[,s2Col[i]],frequency=SR,
-                         start=start[nSession], timeUnit="second", valueUnit=signalUnit),
+                         start=start[nSession], timeUnit="second", unit=unit),
                  SR = SR, s1Name = s1Name, s2Name = s2Name,
                  sessionId=sess[[nSession]],
                  dyadId=dyadIds[[nSession]],

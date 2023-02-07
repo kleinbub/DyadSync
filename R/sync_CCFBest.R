@@ -187,7 +187,7 @@ dyadCCF = function(x,lagSec,winSec,incSec, simplify, outputName = "CCFBest"){
   colnames(x[[outputName]]$table) = paste0("lag",ran)
   # x$ccf$ccfmat[is.na(x$ccf$ccfmat)] = 0
   xStart = c(start(x) +trunc(winSec/2),1)
-  x[[outputName]]$zero =rats(x[[outputName]]$table[["lag0"]],start=xStart,frequency=1/incSec, timeUnit="second", valueUnit="Pearson correlation" )
+  x[[outputName]]$zero =rats(x[[outputName]]$table[["lag0"]],start=xStart,frequency=1/incSec, timeUnit="second", unit="Pearson correlation" )
   #dimostrazione che la CCF inizia a metà della finestra!
   # plot(rangeRescale(window(x$s1,start=277,end=277+15),-1,1),type="l");abline(v=277+7.5,lty=3)
   # points(x[[outputName]]$zero)
@@ -276,8 +276,8 @@ vectorBestLag = function(x, accelSec, weight_type=c("off","center","free"), outp
   blag = (blag-lag0)/colFrequency #trasforms blag from columns to seconds
   x[[outputName]]$table = cbind(x[[outputName]]$table, "bestCCF" = bCC, "bestLag" = blag)
   xStart = c(start(x) +attr(x[[outputName]],"winSec")/2,1)
-  x[[outputName]]$sync = rats(bCC,  start=xStart, frequency= 1/incSec, timeUnit = "second", valueUnit = "Pearson correlation" )
-  x[[outputName]]$lag  = rats(blag, start=xStart, frequency= 1/incSec, timeUnit = "second", valueUnit = "seconds" )
+  x[[outputName]]$sync = rats(bCC,  start=xStart, frequency= 1/incSec, timeUnit = "second", unit = "Pearson correlation" )
+  x[[outputName]]$lag  = rats(blag, start=xStart, frequency= 1/incSec, timeUnit = "second", unit = "seconds" )
 
   return(x)
 }

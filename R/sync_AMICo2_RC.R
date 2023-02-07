@@ -786,10 +786,10 @@ AMICo2 = function(signal, lagSec,
       # finallyt instantiate new sync class object
       sync = rats(syncvec, start = start(d1),
                   frequency=frequency(signal), timeUnit="second",
-                  valueUnit="0-1")
+                  unit="0-1")
       lags = rats(lagvec,  start = start(d1),
                   frequency=frequency(signal), timeUnit="second",
-                  valueUnit="seconds")
+                  unit="seconds")
       # applica gli artefatti
       for(i in seq_len(nrow(signal$artefacts)) ){ 
         window(sync, signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
