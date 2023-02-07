@@ -61,7 +61,7 @@
 #' @export
 #'
 #' @examples
-AMICo = function(experiment, signal="all", lagSec=6, #@OBSOLETE 2022 pmBest diventa AMICo
+AMICo = function(experiment, signal, lagSec=6, #@OBSOLETE 2022 pmBest diventa AMICo
                   weightMalus = 50,
                   match_threshold = 0.1, minSizeSec=4,
                   maxPeakDuration = "hrt", interval_sec = 10,
@@ -96,7 +96,7 @@ AMICo = function(experiment, signal="all", lagSec=6, #@OBSOLETE 2022 pmBest dive
 # sgol_n=25
 
   
-
+  if(grepl("_", outputName)) stop("Underscores cannot be in outputName")
 
   algorithm=match.arg(algorithm)
   # if(grepl("v2",algorithm)){
@@ -664,7 +664,7 @@ ppSync_dev = function(signal, xbest, minSizeSec, outputName) {
 #' @param sgol_p smoothing filter order. If NA, the filtering is disabled.
 #' @param sgol_n smoothing filter length (must be odd).
 #' @param mode should the function return only 'peaks', 'valleys', or 'both'?
-#' @param correctionRangeSeconds the range in which the real maximum/minimum
+#' @param correctionRangeSeconds the half range in which the real maximum/minimum
 #' value should be searched, in seconds.
 #' around the derivative shift. Should be less then the periodicity of the
 #' signal.  0.5 is good for skin conductance.
