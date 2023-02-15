@@ -127,7 +127,9 @@ ccfBest.DyadExperiment = function(experiment, signal="all", lagSec,winSec,incSec
 }
 
 #' @export
-ccfBest.DyadSignal = function(x, lagSec,winSec,incSec,accelSec, slopes=c(NA,NA), MA=c(NA,NA), weight_type=c("center","free","off"),simplify = T, outputName = "CCFBest"){
+ccfBest.DyadSignal = function(x, lagSec,winSec,incSec,accelSec, slopes=c(NA,NA),
+                              MA=c(NA,NA), weight_type=c("center","free","off"),
+                              simplify = T, outputName = "CCFBest"){
   x[[outputName]] = CCFBest(NULL,NULL,NULL, lagSec,winSec,incSec,accelSec,weight_type, MA[1], MA[2],slopes)
   origs1 = x$s1 # save original signals befor applying MA and slope filters
   origs2 = x$s2
@@ -186,8 +188,7 @@ dyadCCF = function(x,lagSec,winSec,incSec, simplify, outputName = "CCFBest"){
   x[[outputName]]$table = data.frame(matrix(unlist(lcc),ncol=length(ran), byrow = T, dimnames=list(paste0("w",seq_len(n_win)),paste0("lag",ran))))
   colnames(x[[outputName]]$table) = paste0("lag",ran)
   # x$ccf$ccfmat[is.na(x$ccf$ccfmat)] = 0
-  xStart = c(start(x) +trunc(winSec/2),1)
-  x[[outputName]]$zero =rats(x[[outputName]]$table[["lag0"]],start=xStart,frequency=1/incSec, timeUnit="second", unit="Pearson correlation" )
+  x[[outputName]]$zero =rats(x[[outputName]]$table[["lag0"]],start=start(x),frequency=1/incSec, timeUnit="second", unit="Pearson correlation" )
   #dimostrazione che la CCF inizia a metà della finestra!
   # plot(rangeRescale(window(x$s1,start=277,end=277+15),-1,1),type="l");abline(v=277+7.5,lty=3)
   # points(x[[outputName]]$zero)
@@ -275,9 +276,8 @@ vectorBestLag = function(x, accelSec, weight_type=c("off","center","free"), outp
   
   blag = (blag-lag0)/colFrequency #trasforms blag from columns to seconds
   x[[outputName]]$table = cbind(x[[outputName]]$table, "bestCCF" = bCC, "bestLag" = blag)
-  xStart = c(start(x) +attr(x[[outputName]],"winSec")/2,1)
-  x[[outputName]]$sync = rats(bCC,  start=xStart, frequency= 1/incSec, timeUnit = "second", unit = "Pearson correlation" )
-  x[[outputName]]$lag  = rats(blag, start=xStart, frequency= 1/incSec, timeUnit = "second", unit = "seconds" )
+  x[[outputName]]$sync = rats(bCC,  start=start(x), frequency= 1/incSec, timeUnit = "second", unit = "Pearson correlation" )
+  x[[outputName]]$lag  = rats(blag, start=start(x), frequency= 1/incSec, timeUnit = "second", unit = "seconds" )
 
   return(x)
 }

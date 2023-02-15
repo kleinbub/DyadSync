@@ -109,13 +109,20 @@ signalFilter.DyadSession = function (x, FUN, newAttributes=NULL, signals="all", 
 
 #' @export
 signalFilter.DyadSignal = function (x, FUN, newAttributes=NULL, signals=NULL, ...) {
+  
+  ## debug
+  # x = lr100[[1]]$SC
+  # FUN = resample
+  ###
   FUN = match.fun(FUN)
   k = x
   
-  k$s1 = FUN(k$s1, ...)
-  k$s2 = FUN(k$s2, ...)
-  k$s1 = rats(k$s1, start=start(x$s1), frequency=frequency(x$s1),timeUnit = timeUnit(x$s1), unit = unit(x$s1))
-  k$s2 = rats(k$s2, start=start(x$s2), frequency=frequency(x$s2),timeUnit = timeUnit(x$s2), unit = unit(x$s2))
+  k$s1 = FUN(k$s1, ...) # k$s1 = FUN(k$s1, newSampRate=10)
+  k$s2 = FUN(k$s2, ...) # k$s2 = FUN(k$s2, newSampRate=10)
+  if(!is.rats(k$s1))
+    k$s1 = rats(k$s1, start=start(x$s1), frequency=frequency(x$s1),timeUnit = timeUnit(x$s1), unit = unit(x$s1))
+  if(!is.rats(k$s1))
+    k$s2 = rats(k$s2, start=start(x$s2), frequency=frequency(x$s2),timeUnit = timeUnit(x$s2), unit = unit(x$s2))
   
   attr(k,"start") = start(k$s1)
   attr(k,"end")   = end(k$s1)
@@ -172,12 +179,16 @@ setArtefacts.DyadExperiment <- function(x, startEnd, signal) {
       listKey = which(sapply(x,sessionId)==i & sapply(x,dyadId)==j) #questo è importante per selezionare la seduta giusta
       if(length(listKey)>1) stop("multiple matches found in session:",j,lead0(i))
       if(length(listKey)==1){
-        cat("\r\ncleaning session:",j,lead0(i),"\r\n")
+        cat("\r\ncleaning session:",j,lead0(i))
         miniSel = sel[sel$dyad == j & sel$session == i, ]
         x[[listKey]][[signal]] = setArtefacts(x[[listKey]][[signal]],miniSel)
         nClean = nClean +1
       }
     }}
+  cat("\r\n† artefacts times beginning before signal's start time were trimmed")
+  cat("\r\n* artefacts times ending after signal's end time were trimmed")
+  cat("\r\n")
+  
   if(nClean == 0) warning("no sessions were affected. Maybe check dyadId and sessionId in both DyadExperiment object and startEnd dataset")
   x
 }
@@ -205,20 +216,30 @@ setArtefacts.DyadSignal <- function(x, startEnd) {
   
   # if(!all.equal(names(sel),c('start', 'end')) ) stop("startEnd names must be 'start','end'")
   ref = 0
-  sel[grepl("start|inizio",sel[,4],ignore.case = T),4] = start(x)[1]+start(x)[2]/frequency(x)
-  sel[grepl("end|fine",sel[,4],ignore.case = T),4] = end(x)[1]+end(x)[2]/frequency(x)
+  fromStart = grepl("start|inizio",sel[,4],ignore.case = T)
+  toEnd =    grepl("end|fine",sel[,4],ignore.case = T)
   
-  sel$start = timeMaster(sel$start, out="s")
-  sel$end   = timeMaster(sel$end,   out="s")
+  suppressWarnings({
+    xstart = timeMaster(sel$start, out="s")
+    xend   = timeMaster(sel$end,   out="s")
+  })
+  xstart[fromStart] = start(x)
+  xend[toEnd] = end(x)
+  sel$start = xstart
+  sel$end = xend
+
+
   
   #check for artefact start lower than signal start
   if(any(sel$start < start(x))){ 
-    warning("artefacts times beginning before signal's start time were trimmed")
+    cat(" †")
+    # cat("† artefacts times beginning before signal's start time were trimmed")
     sel[sel$start < start(x),] = start(x)
   }
   #check for artefact end greater than signal end
   if(any(sel$end > end(x))){
-    warning("artefacts times ending after signal's end time were trimmed")
+    cat(" *")
+    # cat("* artefacts times ending after signal's end time were trimmed.")
     sel[sel$end > end(x),] = end(x)
   }
   

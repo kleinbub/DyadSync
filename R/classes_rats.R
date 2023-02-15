@@ -83,14 +83,19 @@
 rats = function(data, start=0, end, duration, frequency=1, period,
                 windowed = list(winSec=NULL, incSec=NULL, flex=NULL),
                 timeUnit="cycle", unit=NULL){
-  
+  # print(match.call())
   # ######debug
   # start=1.9
   # end=10
   # frequency = 10
   # duration = end-start
   # #############
+  
+  
+  fd = FALSE
   if(missing(period)){
+    #flag to remember if frequency was just estimated (lower priority)
+    if(missing(frequency)){fd = T }
     #frequency c'è di default
     period = 1/frequency  
   } else {
@@ -103,19 +108,70 @@ rats = function(data, start=0, end, duration, frequency=1, period,
       }
     }
   }
-
-  durations = c()
-  if(!missing(duration)) durations = c(durations,duration)
-  if(!missing(start) && !missing(end)) durations = c(durations, end-start)
-  if(!missing(data) && !missing(frequency) && length(data)>0){
-    #qua puoi farlo se hai frequency
-    durations = c(durations, signif(length(data)/frequency,6))}
-  if(length(unique(durations))>1) stop("duration mismatch")   
-  if(length(unique(durations))==0) stop("Insufficient information to build rats") 
-  duration = unique(durations)
   
-  if(!missing(start) &&  missing(end)) end = start + duration
-  if( missing(start) && !missing(end)) start = end - duration
+  #set durations:
+  if(!missing(duration)){
+    if( missing(end))                    end = start + duration
+    if( missing(start) && !missing(end)) start = end - duration
+    if(duration != end - start) stop("1Specified rats arguments led to incoherent series duration")
+    if((!missing(data) && length(data)>0) && !fd ){
+      alt_d = signif(length(data)/frequency,6)
+      if(duration != alt_d) stop("2Specified rats arguments led to incoherent series duration")
+    }
+    
+  } else {
+    durations = c()
+    if(!missing(end)) durations = c(durations, end-start)
+    if(!missing(data) && length(data)>0) durations = c(durations, signif(length(data)/frequency,6))
+    if(length(unique(durations))>1)  stop("3Specified rats arguments led to incoherent series duration")   
+    duration = durations[1]
+    if( missing(end)) end = start + duration
+    if( missing(start) && !missing(end)) start = end - duration
+    
+  }
+
+  # # if(!missing(data)){
+  # #   l = length(data)
+  # #   if(!missing(frequency)){
+  # #     if(!missing(duration) && duration != l/frequency )
+  # #       stop("Specified duration is not coherent with data and frequency")
+  # #     duration = l/frequency
+  # #     if(!missing(end)) start = end-duration else end = start+duration
+  # #   } else {
+  # #     #we can estimate missing frequency from duration and l
+  # #     #so first get the duration
+  # #     if(!missing(end) ){
+  # #       if(!missing(duration){
+  # #         start = end-duration
+  # #       }
+  # #       if(!missing(duration) && duration != end - start )
+  # #         stop("Specified duration is not coherent with start and end")
+  # #       duration = end - start
+  # #       frequency = l/duration
+  # #     }
+  # #   }
+  # # } else {
+  # #   #data not given, you must infer everything
+  # # }
+  # 
+  # durations = c()
+  # if(!missing(duration)) durations = c(durations,duration)
+  # if(!missing(end)) durations = c(durations, end-start)
+  # if(!missing(data) && length(data)>0 && (!missing(frequency)||!missing(period))){
+  #   durations = c(durations, signif(length(data)/frequency,6))}
+  # if(length(unique(durations))>1)  stop("Specified rats arguments led to incoherent series duration")   
+  # if(length(unique(durations))==0) stop("Insufficient information to build rats") 
+  # duration = unique(durations)
+  # 
+  # if( missing(end)) end = start + duration
+  # if( missing(start) && !missing(end)) start = end - duration
+  
+  #finally if you have a good duration and the data you can get frequency
+  if(!missing(data) && length(data)>0 && fd){
+    frequency =  length(data)/duration
+  }
+  
+  
 
 
   #generate the time values
@@ -200,9 +256,14 @@ window.rats = function(x, start, end, duration){
   if(start < start(x) | end > end(x)) stop("The window was outside of the rats data boundary")
   
   cutter = which(time(x) >= start & time(x) < end )
-  if(length(cutter)==0) stop("No data found in the given window")
-  rats(x[cutter], start=start, frequency = frequency(x), windowed = attr(x, "windowed"),
-       timeUnit = timeUnit(x), unit = unit(x))
+  if(length(cutter)==0) {
+    warning("The window had length zero. No windowing was performed.")
+    return(x)
+  } else {
+      return(rats(x[cutter], start=start, frequency = frequency(x), windowed = attr(x, "windowed"),
+                  timeUnit = timeUnit(x), unit = unit(x)))
+    }
+  
   
 }
 
@@ -223,14 +284,19 @@ window.rats = function(x, start, end, duration){
   if(start < start(x) | end > end(x)) stop("The window was outside of the rats data boundary")
   
   cutter = which(time(x) >= start & time(x) < end )
-  if(length(cutter)==0) stop("No data found in the given window")
-  x[cutter] = values
+  if(length(cutter)==0) {
+    warning("The window had length zero. No windowing was performed.")
+  } else {
+    x[cutter] = values
+  }
+  
   x
 }
 
 #' @export
 "[.rats" = function(x,i){
   if(length(i)>attr(x,"n")) stop("Subset out of bounds")
+  if(length(i)==0) return(numeric(0))
   x1 = .subset(time(x), i)
   x2 = .subset(x, i)
   rats(x2,start=x1[1],frequency = frequency(x), windowed = attr(x, "windowed"),
@@ -240,10 +306,15 @@ window.rats = function(x, start, end, duration){
 #' @export
 "[<-.rats" = function(x,i,values){
   if(length(i)>attr(x,"n")) stop("Subset out of bounds")
-  k = unclass(x)
-  k[i] = values
-  class(k) = "rats"
-  k
+  if(length(i)==0) {
+    return(x)
+  } else {
+    k = unclass(x)
+    k[i] = values
+    class(k) = "rats"
+    return(k)
+    }
+  
 }
 #' @export
 "$.rats" = function(x,i){
@@ -488,7 +559,6 @@ plot.rats = function(x, ...){
   
   k = list(x=x$x,y=x$y)
   l = c(k,l)
-  print(l)
   if(all(is.na(k$y))) k$y = as.numeric(x$y)
   if(!is.numeric(k$y)) stop("Only numerical rats can be plotted right now.")
   do.call("plot",l)
@@ -541,135 +611,10 @@ as.zooreg.rats = as.zoo.rats = function(x) {
   zooreg(k,order.by =time(x), frequency = frequency(x))
 }
 
+#' @export
+quantile.rats = function(x,...){quantile(x$y,...)}
 
-# microbenchmark::microbenchmark(
-#   ts  (1:100,start=0, frequency = 10)[1:10],
-#   rats(1:100,start=0, frequency = 10)[1:10]
-# )
-# profvis::profvis({
-#   x = rats(1:100,start=0, frequency = 10)
-#   x[1:10] = NA
-# 
-# })
-
-#' 
-#' 
-#' #examples
-#' ##EXAMPLE
-#' rm(list=ls())
-#' x = rats(100:120, 0, freq=365, val="uS", tim="years")
-#' x
-#' print(x,vals = "all", digits=3)
-#' str(x)
-#' plot(x, col="red")
-#' x
-#' a2 = rats(letters[1:22], start=0, end=2.1, frequency = 10)
-#' a1 = rats(sample(1:100,10),start=20, frequency=10) #end: 21
-#' a3 = rats(rep("test",13),start = 21, frequency = 10, timeUnit = "second")
-#' 
-#' asd = c(a1,a2,a3)
-#' print(asd, 50)
-#' 
-#' 
-#' 
-#' x = rats( start=0, duration=10, frequency = 0.5)
-#' print(x)
-#' str(x)
-#' library(zoo)
-#' 
-#' #empty TS
-#' x = rats( start=0, duration=10, frequency = 0.5)
-#' y = zoo(order.by = time(x),frequency = 0.5 )
-#' z = ts(start=0, end=10, frequency = 0.5)
-#' length(x);length(y);length(z)
-#' print(x);
-#' print(y);
-#' print(z)
-#' 
-#' na.omit(x)
-#' na.omit(y)
-#' na.omit(z)
-#' 
-#' x = c(x,rats(99,start=end(x), frequency = 0.5))
-#' y = c(y,zoo(99,order.by =end(y)+1, frequency = 0.5))
-#' z = c(z,ts(99,start=end(z), frequency = 0.5))
-#' 
-#' na.omit(x)
-#' na.omit(y)
-#' na.omit(z)
-#' 
-#' #full TS
-#' #' frequency 0.5
-#' #' y value: | a | b | c | d | e | f | g | h | i | j |
-#' #' sample:  | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10|
-#' #' t value: 0 | 2 | 4 | 6 | 8 | 10| 12| 14| 16| 18| 20|
-#' #'
-#' rm(x,y,z)
-#' data = letters[1:6]; freq=5
-#' x = rats(data, start=0, frequency = freq)
-#' z = ts  (data, start=0, frequency = freq)
-#' y = zoo (data, order.by = seq(0,length(data)*freq, by=1/5),frequency = freq )
-#' length(x);length(y);length(z)
-#' print(x);
-#' print(y);
-#' print(z)
-#' 
-#' start(x);start(y);start(z)
-#' end(x);end(y);end(z)
-#' 
-#' x = list(x, rats(letters[6:10], start=10, end=20, frequency = 0.5))
-#' z = list(z, ts  (letters[6:10], start=10, end=20, frequency = 0.5))
-#' y = list(y, zoo (letters[6:10], order.by = seq(10,20,by=2),frequency = 0.5 ))
-#' length(x);length(y);length(z)
-#' print(x);
-#' print(y);
-#' print(z)
-#' 
-#' start(x);start(y);start(z)
-#' end(x);end(y);end(z)
-#' 
-#' 
-#' 
-#' # small frequency
-#' #' a ts of 4 seconds, sampled 4 times per second
-#' #' frequency 4
-#' #' y value: | a | b | c | d | e | f | g | h | i | j |
-#' #' sample:  | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10|
-#' #' t value: 0 | 2 | 4 | 6 | 8 | 10| 12| 14| 16| 18| 20|
-#' #'
-#' rm(x,y,z)
-#' x = rats(letters[1:20], start=0, end=2, frequency = 10)
-#' z = ts  (letters[1:20], start=0, end=2, frequency = 10)
-#' y = zoo (letters[1:20], order.by = seq(0,10,by=1/10),frequency = 10 )
-#' length(x);length(y);length(z)
-#' str(x);
-#' str(y);
-#' str(z)
-#' 
-#' start(x);start(y);start(z)
-#' end(x);end(y);end(z)
-#' 
-#' window(x, start=0.5, end=1.5)
-#' time(window(y, start=0.5, end=1.5))
-#' window(z, start=0.5, end=1.5)
-#' 
-#' 
-#' # basic frequency
-#' #' a ts of 4 seconds, sampled 4 times per second
-#' #' frequency 4
-#' #' y value: | a | b | c | d | e | f | g | h | i | j |
-#' #' sample:  | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10|
-#' #' t value: 0 | 2 | 4 | 6 | 8 | 10| 12| 14| 16| 18| 20|
-#' #'
-#' rm(x,y,z)
-#' x = rats(letters[1:20], start=0, end=20, frequency = 1)
-#' z = ts  (letters[1:20], start=0, end=20, frequency = 1)
-#' y = zoo (letters[1:20], order.by = seq(0,20,by=1),frequency = 1 )
-#' length(x);length(y);length(z)
-#' str(x);
-#' str(y);
-#' str(z)
-#' 
-#' start(x);start(y);start(z)
-#' end(x);end(y);end(z)
-#' 
+#' @export
+as.data.frame.rats = function(x,  ...) 
+{ as.data.frame(x$y, ...)
+}
