@@ -101,7 +101,17 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F, ...){
     skipRow = options$skip
     options$skip = NULL
   } else skipRow =rep(0,nFiles)
-  lf <- mapply(function(x,iFile) {  prog(iFile,nFiles); do.call(data.table::fread,c(list(x, skip=skipRow[iFile]), options)) },filenames,seq_along(filenames),SIMPLIFY = F )
+  
+  lf = vector(mode="list",length=length(filenames))
+  for(iFile in seq_along(filenames) ){
+    x = filenames[iFile]
+    prog(iFile,nFiles)
+    r = do.call(data.table::fread, c(list(x, skip=skipRow[iFile], data.table=FALSE), options))
+    lf[[iFile]] = r
+  }
+  
+  # lf <- mapply(function(x,iFile) {
+    # prog(iFile,nFiles); do.call(data.table::fread,c(list(x, skip=skipRow[iFile], data.table=FALSE), options)) },filenames,seq_along(filenames),SIMPLIFY = F )
   if(ncol(lf[[1]])==1 && !pairBind) {print(str(lf[[1]]));stop("Import failed. Check sep?")}
   return(list("lf"=lf,
               "sess"=sess,

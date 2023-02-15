@@ -73,7 +73,7 @@ readCategories = function(path,
   cat("File name","\t","seconds removed\r\n")
   listCat = Map(function(file,iFile){
     cat(shortNames[iFile],"\t",removeSec[iFile],"\r\n")
-    file = as.data.frame(file)
+    # file = as.data.frame(file)
     #remove na shit
     file[file==""] = NA
     file = file[rowSums(is.na(file)) != ncol(file),]

@@ -46,8 +46,10 @@
 #' @param s2Col 
 #' @param s1Name 
 #' @param s2Name 
-#' @param frequency 
 #' @param unit character. A descriptor of the unit of measurement of the series values.
+#' @param SR 
+#' @param timeUnit character. A descriptor of the time unit of the series values.
+#' Defaults to seconds as in "samples per second"
 #'
 #' @return
 #' @export
@@ -62,7 +64,7 @@ readDyadSignals = function(
                       start, #
                       end,  #remove tail or pads with zeroes. Useful to cut signals when a session is over or to equalize lengths
                       duration,
-                      timeUnit, unit,
+                      unit, timeUnit="seconds", 
                       pairBind = F, #if true, each two files in the path get matched to a single DyadSession, useful if the data of patient
                                     #and clinician are saved on separate files
                       winTerpolate = list(winSec=NULL,incSec=NULL), #if data comes from a moving windows analysis it should be
@@ -70,7 +72,6 @@ readDyadSignals = function(
                       namefilt = NA,
                       idOrder= c(), # c("id","session","group","role"), #the order of identifiers in the filenames. role is only used with pairbind = T
                       idSep = "_", #the separator of identifiers in the filename
-                      unit,
                       ... #additional options to be passed to read.table (es: skip, header, etc)
                       ){
 ####debug #####
@@ -80,22 +81,35 @@ readDyadSignals = function(
   # s2Col=c(2)
   # signalNames = c("SC")
   # ###signalNames = c("start", "stop", "LFHF", "PNN50", "HF", "RRMean",  "RRsd")
-  # SR=20
   # ###winTerpolate = list(winSec = 30, incSec = 5)
   # winTerpolate = list(winSec = NULL, incSec = NULL)
   # 
-  # pairBind=T
+  # 
   # namefilt = NA
+  # pairBind=T
   # idOrder= c("id","session","x","r")
+  # pairBind=F
+  # idOrder= c("id","session","x")
   # idSep = "_"
-  # options=list("skip"=0, "sep"=";", "header"=T)
+  # options=list("skip"=0, "sep"="\t", "header"=F)
+  # 
+  # s1Col=c(3)
+  # s2Col=c(4)
+  # s1Name = "patient"
+  # s2Name = "therapist"
+  # signalNames = c("SC")
+  # start = c(vsCC)
+  # duration = c(durCC)
+  # SR=100
+  # idOrder = c("s","x","x","x","id")
+  # unit = "uS"
+  # timeUnit = "seconds"
 ######
   if(!missing(end) && !missing(duration)) stop("only one between end and duration must be specified")
   if(missing(start)) start = 0
-  if(missing(end)) end = NULL
-  if(missing(duration)) duration = NULL
   if(length(s1Col)!=length(s2Col) || length(s1Col)!=length(signalNames)) stop ("s1Col, s2Col, signalNames must have same length")
   
+  # imp = genericIO(path,namefilt,idOrder,idSep, pairBind)
   imp = genericIO(path,namefilt,idOrder,idSep, pairBind, ...)
   lf= imp$lf
   sess= imp$sess
@@ -185,14 +199,14 @@ readDyadSignals = function(
   }
   
   #end checks
-  if(!is.null(end)){ #if end is NOT missing
+  if(!missing(end)){ #if end is NOT missing
     end = timeMaster(end,out="sec")
     duration = end - start
   }  
 
   #if duration is NOT missing, or was set through 'end' procede to trim files 
-  if(!is.null(duration)){ 
-    duration = timeMaster(duration,out="sec")
+  if(!missing(duration) || !missing(end)){ 
+    duration = timeMaster(duration, out="sec")
     cat("\r\nTrimming files (samples)\r\n")
     
     if(length(duration) == 1 && ndyads>1) {
@@ -243,29 +257,50 @@ readDyadSignals = function(
   
   
   #Populates the objects
-
-  experiment = DyadExperiment(path,
-    Map(function(session,nSession){
-    #for each type of signal, add a new DyadSignal to the present DyadSession
-    #These are defined as s1Col paTer pairs.
+  sessions = vector(mode="list",length=length(lf))
+  iSession = 1
+  for(iSession in 1:length(lf)){
+    session = lf[[iSession]]
     signalList = lapply(seq_along(s1Col), function(i) {
       DyadSignal(name=signalNames[i],
                  s1=rats(session[,s1Col[i]],frequency=SR,
-                         start=start[nSession], timeUnit="second", unit=unit),
+                         start=start[iSession], timeUnit=timeUnit, unit=unit),
                  s2=rats(session[,s2Col[i]],frequency=SR,
-                         start=start[nSession], timeUnit="second", unit=unit),
+                         start=start[iSession], timeUnit=timeUnit, unit=unit),
                  SR = SR, s1Name = s1Name, s2Name = s2Name,
-                 sessionId=sess[[nSession]],
-                 dyadId=dyadIds[[nSession]],
-                 groupId=group[[nSession]])
+                 sessionId=sess[[iSession]],
+                 dyadId=dyadIds[[iSession]],
+                 groupId=group[[iSession]])
     })
     #generates sessions
-    ses = DyadSession(groupId = group[[nSession]], sessionId= sess[[nSession]], dyadId = dyadIds[[nSession]],
-                      signalList=signalList, s1Name = s1Name, s2Name = s2Name, fileName = shortNames[[nSession]] )
-    return(ses)
-    
-  },lf,seq_along(lf))
-  )
+    ses = DyadSession(groupId = group[[iSession]], sessionId= sess[[iSession]], dyadId = dyadIds[[iSession]],
+                      signalList=signalList, s1Name = s1Name, s2Name = s2Name, fileName = shortNames[[iSession]] )
+    sessions[[iSession]] = ses
+  }
+  experiment = DyadExperiment(path, sessions)
+  
+  # experiment = DyadExperiment(path,
+  #   Map(function(session,nSession){
+  #   #for each type of signal, add a new DyadSignal to the present DyadSession
+  #   #These are defined as s1Col paTer pairs.
+  #   signalList = lapply(seq_along(s1Col), function(i) {
+  #     DyadSignal(name=signalNames[i],
+  #                s1=rats(session[,s1Col[i]],frequency=SR,
+  #                        start=start[nSession], timeUnit="second", unit=unit),
+  #                s2=rats(session[,s2Col[i]],frequency=SR,
+  #                        start=start[nSession], timeUnit="second", unit=unit),
+  #                SR = SR, s1Name = s1Name, s2Name = s2Name,
+  #                sessionId=sess[[nSession]],
+  #                dyadId=dyadIds[[nSession]],
+  #                groupId=group[[nSession]])
+  #   })
+  #   #generates sessions
+  #   ses = DyadSession(groupId = group[[nSession]], sessionId= sess[[nSession]], dyadId = dyadIds[[nSession]],
+  #                     signalList=signalList, s1Name = s1Name, s2Name = s2Name, fileName = shortNames[[nSession]] )
+  #   return(ses)
+  #   
+  # },lf,seq_along(lf))
+  # )
 #   if(pairBind){
 #     names(experiment$sessions) = names(lf)
 #   } else {
