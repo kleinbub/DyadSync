@@ -1,3 +1,182 @@
+#' Peak matching similarity of signals
+#'
+#' @param experiment 
+#' @param signal the name of a DyadSignal contained in experiment 
+#' @param lagSec 
+#' @param weightMalus weightmalus è la percentuale di malus per il lag più estremo. Es, con weightMalus= 20 e r = 1 al massimo lag, la trasformazione diventa r' = 0.8
+#' @param match_threshold a value between 0 and 1, specifying the similarity threshold to assign a peak-peak match.
+#' @param minSizeSec the smallest allowed window size. very small windows may artificially inflate synchrony.
+#' @param algorithm character. The version of AMICo algorithm. 
+#' @param outputName
+#' @param ... Further arguments passed to peakFinder. Specifically, 
+#' sgol_p, sgol_n, correctionRangeSeconds and minPeakAmplitude must be set
+#' according to the signal type.
+#' @param maxPeakDuration 
+#' @param interval_sec in AMICO2, how long should unmatched sequences be?
+#'
+#' @details Good values for skin conductance are correctionRangeSeconds = 0.5,
+#' minPeakAmplitude = 0.05.
+#' 
+#' The difference in algorithms can be found in the changelog. Basically between
+#' 1.0 and 1.1 there is a change in peakFinder to avoid detecting micro-peaks in generally flat areas.
+#' 
+#' The difference with 2.0 is much more substantial. Instead of calculating
+#' similarities twice, in v2 the same approach is used to choose the best peak-to-peak
+#' associations and to report the final values. Also exclusively valley-peak-valley
+#' or valley-peak-halfrecovery sequences are used for the calculation.
+#' Unmatched sequences are evenly split at interval_sec intervals.
+#' 
+#' XBEST guide:
+#' row: the peak number of s1 wich was matched
+#' col: the peak number of s2
+#' similarity: some similarity computation
+#' lag: the delta between the sample of p1 and p2
+#' a1, p1, b1: sample position of onset, peak, and end of a feature
+#' a2, p2, b2: the same for s2
+#' a, b: the average start and end between s1 and s2
+#' ta, tb: the time corresponding to a and b
+#' 
+#' @return
+#' @export
+#'
+#' @examples
+AMICo = function(experiment, signal, lagSec=6, #@OBSOLETE 2022 pmBest diventa AMICo
+                 weightMalus = 50,
+                 match_threshold = 0.1, minSizeSec=4,
+                 maxPeakDuration = "hrt", interval_sec = 10,
+                 algorithm=c("v2RC0.4"),
+                 outputName = "AMICo",
+                 sgol_p=2,sgol_n=25,correctionRangeSeconds,minPeakAmplitude){
+  
+  #debug
+  # experiment = lr; signal="SC"; lagSec=4;
+  # sgol_p = 2; sgol_n = 25;  weightMalus = 35;
+  # match_threshold = 0.25; minSizeSec=1;
+  # algorithm=c("AMICo_v1.0");
+  # outputName = "PMBest";
+  # correctionRangeSeconds = 0.5; minPeakAmplitude = 0.05;
+  
+  
+  #   experiment = lr
+  #   iSession = 1
+  #   signal = "SC"
+  # algorithm = "v2RC0.4"
+  # match_threshold=0.1
+  # lagSec=4
+  # signal = "SC"
+  # minSizeSec=8
+  # weightMalus = 3
+  # outputName = "PMdev"
+  # minPeakAmplitude = 0.05
+  # maxPeakDuration = "hrt"
+  # interval_sec = 10
+  # correctionRangeSeconds = 0.5
+  # sgol_p=2
+  # sgol_n=25
+
+  
+  if(grepl("_", outputName)) stop("Underscores cannot be in outputName")
+  
+  algorithm=match.arg(algorithm)
+  # if(grepl("v2",algorithm)){
+  #   warning("V2 is not yet fully implemented. some hidden paramenters are default")
+  # }
+  if(!is(experiment,"DyadExperiment")) stop("Only objects of class DyadExperiment can be processed by this function")
+  
+  nSessions = length(experiment)
+  
+  # progresbar
+  pb <- progress::progress_bar$new(
+    format = "Calculation::percent [:bar] :elapsed | ETA: :eta",
+    total = nSessions,    # number of iterations
+    width = 60, 
+    show_after=0 #show immediately
+  )
+  
+  progress_letter <- rep(LETTERS[1:10], 10)  # token reported in progress bar
+  
+  # allowing progress bar to be used in foreach -----------------------------
+  progress <- function(n){
+    pb$tick(tokens = list(letter = progress_letter[n]))
+  } 
+  
+  opts <- list(progress = progress)
+  
+  
+  #parallelization
+  warningsFile = "AMICoWarnings"
+  if (file.exists(warningsFile)) {
+    unlink(warningsFile)
+  }
+  cores=parallel::detectCores()-1
+  cat(paste0("\r\nPerforming parallelized computation of AMICo ",algorithm," using ",cores," cores.\r\n")) #verified!
+  cat(paste0("\r\nHigh Sync at positive lags implies that the ",s2Name(experiment[[1]]),
+             " follows the ", s1Name(experiment[[1]]),"\r\n")) #verified!
+  cl <- parallel::makeCluster(cores[1], outfile=warningsFile) #not to overload your computer
+  doSNOW::registerDoSNOW(cl)
+  `%dopar%` <- foreach::`%dopar%`
+  `%do%` <- foreach::`%do%`
+  pb$tick(0)
+  #Questo è un loop parallelo sulle sessions.
+  #il return del ciclo deve essere un oggetto DyadSession
+  experiment2 <- foreach::foreach(
+    iSession = 1:nSessions,
+    .options.snow = opts, .errorhandling='pass'
+  ) %dopar% { 
+    
+    xsignal = experiment[[iSession]][[signal]]
+    
+    if(grepl("v2",algorithm)){
+      #I am using v2 which already implements peakmatch and ppsync in the same
+      #function
+      
+      synchro = .AMICo2(xsignal, lagSec=lagSec, 
+                       weightMalus=weightMalus, match_threshold=match_threshold,
+                       minSizeSec=minSizeSec,interval_sec=interval_sec,
+                       outputName=outputName, maxPeakDuration=maxPeakDuration,
+                       sgol_p=sgol_p,sgol_n=sgol_n,
+                       correctionRangeSeconds=correctionRangeSeconds,
+                       minPeakAmplitude=minPeakAmplitude )
+    } else {
+      stop()
+      
+    }
+    experiment[[iSession]][[signal]][[outputName]] = synchro
+    return(experiment[[iSession]])
+  }
+  parallel::stopCluster(cl) 
+  
+  #restore session names and attributes
+  for(iSession in 1:nSessions){
+    if(!is.null(experiment2[[iSession]][["message"]])){
+      write(paste0("QQQZ",experiment2[[iSession]][["message"]],"\n"),file=warningsFile,append=TRUE)
+    }
+    experiment2[[iSession]] = cloneAttr(experiment[[iSession]],experiment2[[iSession]])
+  }
+  
+  
+  cat("\r\nDone ;)\r\n")
+  names(experiment2) = names(experiment)
+  experiment2 = cloneAttr(experiment, experiment2)
+  
+  
+  if (file.exists(warningsFile)) {
+    wr = readLines(warningsFile)
+    wr = wr[grepl("QQQZ",wr,fixed = T)]
+    if(length(wr)>0){
+      cat("\r\nIssues:\r\n")
+      for(i in 1:length(wr)){
+        cat(substr(wr[i], start = 5, stop=10000), "\r\n")
+      }
+      stop("Please fix the issues before proceding.")
+    }
+    unlink(warningsFile)
+  }
+  
+  return(experiment2)
+}
+
+
 #' v2RC0.4
 #' This is just a packetized version of Amico_2_v4.R
 #' please go there to make edits
@@ -8,25 +187,46 @@
 
 #' Title
 #'
+
 #' @param signal 
+#'
 #' @param lagSec 
 #' @param weightMalus 
 #' @param match_threshold 
 #' @param minSizeSec 
 #' @param outputName 
-#' @param interval_sec 
 #' @param maxPeakDuration 
-#' @param ... Further arguments passed to peakFinder
+#' @param interval_sec 
+#' @param sgol_p 
+#' @param sgol_n 
+#' @param correctionRangeSeconds 
+#' @param minPeakAmplitude 
 #'
 #' @return
-#' @export
 #'
 #' @examples
-AMICo2 = function(signal, lagSec, 
+.AMICo2 = function(signal, lagSec, 
                   weightMalus = 50, match_threshold = 0.0, minSizeSec=4,
                   outputName = "AMICo2", maxPeakDuration = "hrt",
-                  interval_sec = 15, sgol_p,sgol_n,correctionRangeSeconds,minPeakAmplitude )
+                  interval_sec = 15, sgol_p,sgol_n,
+                  correctionRangeSeconds,
+                  minPeakAmplitude )
 {
+  
+  ##DEBUG
+  # signal = lr$all_CC_0001$SC
+  # stop("debug")
+  # lagSec=4;
+  # sgol_p = 2; sgol_n = 25;  weightMalus = 35;
+  # match_threshold = 0.25; minSizeSec=1;
+  # outputName = "PMBest_test";
+  # correctionRangeSeconds = 0.5; minPeakAmplitude = 0.05;
+  # debug = TRUE
+  # cols1 = 2; cols2 ="deepskyblue"
+  # maxPeakDuration = "hrt";
+  # interval_sec = 15
+  # 
+  
   args <- c(as.list(environment()), #list(...),
             list(
               sessionId=sessionId(signal),
@@ -34,34 +234,6 @@ AMICo2 = function(signal, lagSec,
               groupId=groupId(signal))
   )
   args["signal"] = NULL
-  
-
-  
-  
-  # stop("debug")
-  # lagSec=4;
-  # sgol_p = 2; sgol_n = 25;  weightMalus = 35;
-  # match_threshold = 0.25; minSizeSec=1;
-  # algorithm=c("v1.1");
-  # outputName = "PMBest_test";
-  # correctionRangeSeconds = 0.5; minPeakAmplitude = 0.05;
-  # iSession = 1
-  # debug = TRUE
-  # cols1 = 2; cols2 ="deepskyblue" 
-  # maxPeakDuration = "hrt";
-  # interval_sec = 15
-  
-  
-  # lagSec=6;
-  # sgol_p = 2; sgol_n = 25;  weightMalus = 50;
-  # match_threshold = 0.0; minSizeSec=4;
-  # outputName = "PMBest_test";
-  # correctionRangeSeconds = 0.5;
-  # minPeakAmplitude = 0.05;
-  # minPeakDuration = "hrt";
-  # maxPeakDuration = "hrt"; #can be either a value in seconds, NA, or "hrt".
-  # 
-  
   
   debug = F
   # cols1 = 2; cols2 ="deepskyblue" 
@@ -384,6 +556,7 @@ AMICo2 = function(signal, lagSec,
           
           
           thisCor = res4
+          thisCor = res3
           ## WEIGHT CORRELATION
           
           # weight for distance
@@ -579,8 +752,7 @@ AMICo2 = function(signal, lagSec,
     xbest = data.frame(best)
     xbest = xbest[order(xbest$row),]
     xbest = xbest[xbest$col!=0 & xbest$row !=0,]
-    xbest$lag =   pp2$samples[xbest$col]-
-      pp1$samples[xbest$row]
+    xbest$lag =   pp2$samples[xbest$col]- pp1$samples[xbest$row]
     xbest$a1 =    pp1$start_sample[xbest$row]
     xbest$p1 =    pp1$samples[xbest$row]
     xbest$b1 =    pp1$end_sample[xbest$row]
@@ -595,210 +767,232 @@ AMICo2 = function(signal, lagSec,
       # cat(mess, file=stdout())
       warning(mess)
       return(newAMICo(sync = NA,NA,xbest,args))
-    } else {
-      ############################################################################################
-      #' now now now
-      #' we know the similarity in proximity of the peaks. What about in between?
-      #' Proposal [a]: we use the same logic! interpolate the inbetweens, normalize them
-      #' and calculate the similarity. 
-      
-      # something special for the parts before the first peak
-      # warning("to do")
-      
-      ampz1 = ampz2 = c()
-      intsamp = interval_sec*SR
-      minsize = minSizeSec*SR
-      
-      for(i in 2:nrow(xbest)){
-        if(i==2 && nrow(xbest) != xbestrealn) stop("resetta xbest")
-        #inbetween of series 1
-        ba1 = xbest$b1[i-1]:xbest$a1[i]
-        ba2 = xbest$b2[i-1]:xbest$a2[i]
-        if (all(c(length(ba1),length(ba2)) == 1)){
-          # non c'è niente da interpolare!
-          # Nothing to look here, move on.
-        } else if (all(c(length(ba1),length(ba2)) > minsize)){
-          #ok qua c'è da fare! entrambe le due serie hanno del materiale in mezzo
-          # stop()
+    }
+    ############################################################################################
+    #' now now now
+    #' we know the similarity in proximity of the peaks. What about in between?
+    #' Proposal [a]: we use the same logic! interpolate the inbetweens, normalize them
+    #' and calculate the similarity. 
+    
+    # something special for the parts before the first peak
+    # warning("to do")
+    
+    ampz1 = ampz2 = c()
+    intsamp = interval_sec*SR
+    minsize = minSizeSec*SR
+    
+    for(i in 2:nrow(xbest)){
+      if(i==2 && nrow(xbest) != xbestrealn) stop("resetta xbest")
+      #inbetween of series 1
+      ba1 = xbest$b1[i-1]:xbest$a1[i]
+      ba2 = xbest$b2[i-1]:xbest$a2[i]
+      if (all(c(length(ba1),length(ba2)) == 1)){
+        # non c'è niente da interpolare!
+        # Nothing to look here, move on.
+      } else if (all(c(length(ba1),length(ba2)) > minsize)){
+        #ok qua c'è da fare! entrambe le due serie hanno del materiale in mezzo
+        # stop()
+        
+        ampz1[i] = max(d1[ba1]-min(d1[ba1]))
+        ampz2[i] = max(d2[ba2]-min(d2[ba2]))
+        
+        
+        if(DEBUG){
+          par(mfrow=c(1,1))
           
-          ampz1[i] = max(d1[ba1]-min(d1[ba1]))
-          ampz2[i] = max(d2[ba2]-min(d2[ba2]))
+          plot(time(d1)[ba1],d1[ba1]-min(d1[ba1]), col=cols1,t="l",
+               ylim=c(0,max(c(d1$y[ba1],d2$y[ba2]))),
+               xlim=c(min(c(time(d1)[ba1],time(d2)[ba2])),max(c(time(d1)[ba1],time(d2)[ba2]))))
+          lines(time(d2)[ba2],d2[ba2]-min(d2[ba2]), col=cols2)
+        }
+        #1 dividi per intervalli di max interval_sec creando n split (contando sul più breve)
+        # if(any(time(d1)[ba1]>40*60+55)) stop()
+        
+        #duration of the shortest segment
+        minl = min(length(ba1),length(ba2))
+        #in how many splits can we split the shortest?
+        splits = max(1,floor(minl/intsamp))
+        
+        #durations of the splits
+        sdur1 = floor(length(ba1)/splits) #durata split s1
+        sdur2 = floor(length(ba2)/splits) #durata split s2
+        sdurmax = max(sdur1, sdur2)       #durata split finale
+        s=1
+        for(s in 1:splits){
+          # stop("Qualcosa di sbagliato qua, start end di amico2 sync è sbagliato")
+          # i sample dello split corrente
+          sba1 = ba1[(1:sdur1)+(s-1)*sdur1]
+          sba2 = ba2[(1:sdur2)+(s-1)*sdur2]
           
+          #2 interpola ciascuna finestra alla stessa lunghezza
+          ib1 = approx(x = 1:sdur1, y = d1[sba1], xout=seq(1, sdur1, length.out=sdurmax))$y
+          ib2 = approx(x = 1:sdur2, y = d2[sba2], xout=seq(1, sdur2, length.out=sdurmax))$y
           
           if(DEBUG){
-            par(mfrow=c(1,1))
+            par(mfrow=c(2,1))
             
-            plot(time(d1)[ba1],d1[ba1]-min(d1[ba1]), col=cols1,t="l",
-                 ylim=c(0,max(c(d1[ba1],d2[ba2]))),
-                 xlim=c(min(c(time(d1)[ba1],time(d2)[ba2])),max(c(time(d1)[ba1],time(d2)[ba2]))))
-            lines(time(d2)[ba2],d2[ba2]-min(d2[ba2]), col=cols2)
-          }
-          #1 dividi per intervalli di max interval_sec creando n split (contando sul più breve)
-          # if(any(time(d1)[ba1]>40*60+55)) stop()
-          
-          #duration of the shortest segment
-          minl = min(length(ba1),length(ba2))
-          #in how many splits can we split the shortest?
-          splits = max(1,floor(minl/intsamp))
-          
-          #durations of the splits
-          sdur1 = floor(length(ba1)/splits) #durata split s1
-          sdur2 = floor(length(ba2)/splits) #durata split s2
-          sdurmax = max(sdur1, sdur2)       #durata split finale
-          s=1
-          for(s in 1:splits){
-            
-            # i sample dello split corrente
-            sba1 = ba1[(1:sdur1)+(s-1)*sdur1]
-            sba2 = ba2[(1:sdur2)+(s-1)*sdur2]
-            
-            #2 interpola ciascuna finestra alla stessa lunghezza
-            ib1 = approx(x = 1:sdur1, y = d1[sba1], xout=seq(1, sdur1, length.out=sdurmax))$y
-            ib2 = approx(x = 1:sdur2, y = d2[sba2], xout=seq(1, sdur2, length.out=sdurmax))$y
-            
-            if(DEBUG){
-              par(mfrow=c(2,1))
-              
-              plot(rangeRescale(d1[ba1]-min(d1[ba1]),0,1,0,max1),
-                   main=round(cor(ib1, ib2),3), ylim=c(0,1))
-              lines(1:sdurmax+(s-1)*sdurmax, rangeRescale(ib1-min(d1[ba1]),0,1,0,max1), col=cols1, lty=2,lwd=3)
-              lines((1:sdur1)+(s-1)*sdur1, rangeRescale(d1[sba1]-min(d1[ba1]),0,1,0,max1))
-              
-              
-              points(rangeRescale(d2[ba2]-min(d2[ba2]),0,1,0,max2))
-              lines(1:sdurmax+(s-1)*sdurmax, rangeRescale(ib2-min(d2[ba2]),0,1,0,max2), col=cols2, lty=2,lwd=3)
-              lines((1:sdur2)+(s-1)*sdur2, rangeRescale(d2[sba2]-min(d2[ba2]),0,1,0,max2))
-              
-              mtext(paste("norm cor:", round(normCor(ib1, ib2, max1, max2),3),
-                          "simple:",round(sigCor(ib1, ib2,max1,max2),3)#,
-                          # "mutin:",round(mutin(ib1, ib2,max1,max2),3)
-              ))
-              
-            }
-            
-            #4 calcola similarity (nomrlizza + RMSD delle derivate)
-            #dal momento che non ci sono picchi qua, il massimo teorico è 
-            # minpeak delta
-            # res = peakCor(ib1, ib2, max(ib1), max(ib2),diff=T)
-            # res = crazyGold(ib1,ib2)
-            res = normCor(ib1,ib2,max1,max2 )
-            
-            # print(crazyGold(ib1, ib2))
-            
-            # plot(ib2-min(ib2),ib1-min(ib1))
-            # sum(residuals(lm(I(ib2-min(ib2))~I(ib1-min(ib1))))^2)
-            
-            # weight for distance
-            weightCor = res * weights_val[abs(length(sba1)-length(sba2))+ransamp+1]
-            
-            # weight for stretching
-            
-            x = max(sdur1,sdur2)/min(sdur1,sdur2)
-            y =1/(1 + (x/200)^3.18)^(25*10^5)
-            weightCor = weightCor * y
-            if(DEBUG){
-              mtext(paste("weighted:",round(weightCor,3)) )
-            }
-            
-            # #entrambe le due serie hanno del materiale in mezzo
-            # #però almeno una è troppo corta. Mettiamo tutto a NA
-            # if(min(length(sba1),length(sba2))<minsize*0.7){
-            #   weightCor = NA
-            # }
+            plot(rangeRescale(d1$y[ba1]-min(d1$y[ba1]),0,1,0,max1), t="l",
+                 main=round(cor(ib1, ib2),3), ylim=c(0,1))
+            lines(1:sdurmax+(s-1)*sdurmax, rangeRescale(ib1-min(d1[ba1]),0,1,0,max1), col=cols1, lty=2,lwd=3)
+            lines((1:sdur1)+(s-1)*sdur1, rangeRescale(d1[sba1]-min(d1[ba1]),0,1,0,max1))
             
             
-            #5 crea delle righe aggiuntive in xbest con questi valori
-            p1 = sba1[round(sdur1/2)]
-            p2 = sba2[round(sdur2/2)]
-            xbest=rbind(xbest,data.frame(
-              "row" = NA,
-              "col" = NA,
-              "similarity" = weightCor,
-              "lag" = p2 - p1,
-              "a1"  = sba1[1],
-              "p1"  = p1,
-              "b1"  = sba1[length(sba1)],
-              "a2"  = sba2[1],
-              "p2"  = p2,
-              "b2"  = sba2[length(sba2)]
+            points(rangeRescale(d2[ba2]-min(d2[ba2]),0,1,0,max2))
+            lines(1:sdurmax+(s-1)*sdurmax, rangeRescale(ib2-min(d2[ba2]),0,1,0,max2), col=cols2, lty=2,lwd=3)
+            lines((1:sdur2)+(s-1)*sdur2, rangeRescale(d2[sba2]-min(d2[ba2]),0,1,0,max2))
+            
+            mtext(paste("norm cor:", round(normCor(ib1, ib2, max1, max2),3),
+                        "simple:",round(sigCor(ib1, ib2,max1,max2),3)#,
+                        # "mutin:",round(mutin(ib1, ib2,max1,max2),3)
             ))
             
           }
           
-        } else {
-          #'  qua entrambe le serie sono più lunghe di 1, ma sono troppo corte per calcolare
-          #' la sincro. Oppure una valley è usata 2 volte, mentre l'altro segnale ha della roba in mezzo
-          #' 
-          #'     /\  /\
-          #' s1 /  \/  \
-          #' 
-          #'    /\     /\
-          #' s2/  v\__/  \
-          #' 
-          #' In alternativa possiamo semplicemente stretchare i due punti del segnale
-          #' con la roba in mezzo al loro midpoint:
-          midpoint = round(mean(ba2))
-          xbest$b2[i-1] = midpoint
-          xbest$a2[i] = midpoint
+          #4 calcola similarity (nomrlizza + RMSD delle derivate)
+          #dal momento che non ci sono picchi qua, il massimo teorico è 
+          # minpeak delta
+          # res = peakCor(ib1, ib2, max(ib1), max(ib2),diff=T)
+          # res = crazyGold(ib1,ib2)
+          res = normCor(ib1,ib2,max1,max2 )
           
-          midpoint = round(mean(ba1))
-          xbest$b1[i-1] = midpoint
-          xbest$a1[i] = midpoint
+          # print(crazyGold(ib1, ib2))
+          
+          # plot(ib2-min(ib2),ib1-min(ib1))
+          # sum(residuals(lm(I(ib2-min(ib2))~I(ib1-min(ib1))))^2)
+          
+          # weight for distance
+          # weightCor = res * weights_val[abs(length(sba1)-length(sba2))+ransamp+1]
+          
+          # ransamp = lagSec * SR
+          # #setup weighting of similarity for distance.
+          # malus = weightMalus  / 100
+          # maxMalus = 1-weightMalus/100
+          # wx = (-ransamp):+ransamp
+          # weights_val = rangeRescale(dnorm(wx, mean=0, sd=1000),0,malus ) + maxMalus
+          
+          vlag = round(mean(sba1)-mean(sba2))
+          if(abs(vlag)>ransamp) vlag = ransamp * sign(vlag)
+          weightCor = res * weights_val[vlag+ransamp+1]
+
+          # weight for stretching
+          
+          x = max(sdur1,sdur2)/min(sdur1,sdur2)
+          y =1/(1 + (x/200)^3.18)^(25*10^5)
+          weightCor = weightCor * y
+          if(DEBUG){
+            mtext(paste("weighted:",round(weightCor,3)) )
+          }
+          
+          # #entrambe le due serie hanno del materiale in mezzo
+          # #però almeno una è troppo corta. Mettiamo tutto a NA
+          # if(min(length(sba1),length(sba2))<minsize*0.7){
+          #   weightCor = NA
+          # }
+          if(is.na(weightCor)) stop()
+          
+          #5 crea delle righe aggiuntive in xbest con questi valori
+          p1 = sba1[round(sdur1/2)]
+          p2 = sba2[round(sdur2/2)]
+          xbest=rbind(xbest,data.frame(
+            "row" = NA,
+            "col" = NA,
+            "similarity" = weightCor,
+            "lag" = p2 - p1,
+            "a1"  = sba1[1],
+            "p1"  = p1,
+            "b1"  = sba1[length(sba1)],
+            "a2"  = sba2[1],
+            "p2"  = p2,
+            "b2"  = sba2[length(sba2)]
+          ))
+          
         }
-      } 
-      
-      # something special for the parts after the last peak
-      # warning("to do")
-      
-      
-      ############################################################################################
-      
-      #' Now xbest is done. Create the 2 interpolated series, sync & lag
-      syncvec = lagvec = rep(NA,length(d1))
-      xt = time(d1)
-      xbest = xbest[order(xbest$a1 ),]
-      for(i in 1:nrow(xbest)){
-        #midpoint between s1 and s2
-        # a = round(mean(xt[xbest[i,"a1"]], xt[xbest[i,"a2"]]))
-        # b = round(mean(xt[xbest[i,"b1"]], xt[xbest[i,"b2"]]))
-        xbest$a[i] = round(mean(c(xbest[i,"a1"], xbest[i,"a2"])))
-        xbest$b[i] = round(mean(c(xbest[i,"b1"], xbest[i,"b2"])))
-        xbest$ta[i]= xt[xbest$a[i]]
-        xbest$tb[i]= xt[xbest$b[i]]
-        a = round(xbest$ta[i])
-        b = round(xbest$tb[i])
-        syncvec[a:b] = xbest$similarity[i]
-        lagvec[a:b]  = xbest$similarity[i]
+        
+      } else {
+        #'  qua entrambe le serie sono più lunghe di 1, ma sono troppo corte per calcolare
+        #' la sincro. Oppure una valley è usata 2 volte, mentre l'altro segnale ha della roba in mezzo
+        #' 
+        #'     /\  /\
+        #' s1 /  \/  \
+        #' 
+        #'    /\     /\
+        #' s2/  v\__/  \
+        #' 
+        #' In alternativa possiamo semplicemente stretchare i due punti del segnale
+        #' con la roba in mezzo al loro midpoint:
+        midpoint = round(mean(ba2))
+        xbest$b2[i-1] = midpoint
+        xbest$a2[i] = midpoint
+        
+        midpoint = round(mean(ba1))
+        xbest$b1[i-1] = midpoint
+        xbest$a1[i] = midpoint
       }
-      
-
-      
-      #' XBEST guide:
-      #' row: the peak number of s1 wich was matched
-      #' col: the peak number of s2
-      #' similarity: some similarity computation
-      #' lag: the delta between the sample of p1 and p2
-      #' a1, p1, b1: sample position of onset, peak, and end of a feature
-      #' a2, p2, b2: the same for s2
-      #' a, b: the average start and end between s1 and s2
-      #' ta, tb: the time corresponding to a and b
-
-      # finallyt instantiate new sync class object
-      sync = rats(syncvec, start = start(d1),
-                  frequency=frequency(signal), timeUnit="second",
-                  unit="0-1")
-      lags = rats(lagvec,  start = start(d1),
-                  frequency=frequency(signal), timeUnit="second",
-                  unit="seconds")
-      # applica gli artefatti
-      for(i in seq_len(nrow(signal$artefacts)) ){ 
-        window(sync, signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
-        window(lags, signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
-      }
-      
-      return(newAMICo(sync,lags, xbest, args))
-      
+    } 
+    
+    # something special for the parts after the last peak
+    # warning("to do")
+    
+    
+    ############################################################################################
+    
+    #' Now xbest is done. Create the 2 interpolated series, sync & lag
+    syncvec = lagvec = rep(NA,length(d1))
+    xt = time(d1)
+    xbest = xbest[order(xbest$a1 ),]
+    i=1
+    for(i in 1:nrow(xbest)){
+      #midpoint between s1 and s2
+      # a = round(mean(xt[xbest[i,"a1"]], xt[xbest[i,"a2"]]))
+      # b = round(mean(xt[xbest[i,"b1"]], xt[xbest[i,"b2"]]))
+      xbest$a[i] = round(mean(c(xbest[i,"a1"], xbest[i,"a2"])))
+      xbest$b[i] = round(mean(c(xbest[i,"b1"], xbest[i,"b2"])))
+      xbest$ta[i]= xt[xbest$a[i]]
+      xbest$tb[i]= xt[xbest$b[i]]
+      # a = round(xbest$ta[i])
+      # b = round(xbest$tb[i])
+      syncvec[xbest$a[i]:xbest$b[i]] = xbest$similarity[i]
+      lagvec [xbest$a[i]:xbest$b[i]] = xbest$similarity[i]
     }
+    
+    ###DELETE THIS
+    # hhr = 25080:25380
+    # hh1 = rangeRescale(d1[hhr], 0,1)
+    # hh2 = rangeRescale(d2[hhr], 0,1)
+    # hhs = rangeRescale(syncvec[hhr], 0,1)
+    # plot(hh1$x, hh1$y, t="l");
+    # lines(hh2$x,hh2$y,col=3)
+    # lines(hh2$x,hhs,col=2)
+    # 
+    ###
+
+    
+    #' XBEST guide:
+    #' row: the peak number of s1 wich was matched
+    #' col: the peak number of s2
+    #' similarity: some similarity computation
+    #' lag: the delta between the sample of p1 and p2
+    #' a1, p1, b1: sample position of onset, peak, and end of a feature
+    #' a2, p2, b2: the same for s2
+    #' a, b: the average start and end between s1 and s2
+    #' ta, tb: the time corresponding to a and b
+
+    # finallyt instantiate new sync class object
+    sync = rats(syncvec, start = start(d1),
+                frequency=frequency(signal), timeUnit="second",
+                unit="0-1")
+    lags = rats(lagvec,  start = start(d1),
+                frequency=frequency(signal), timeUnit="second",
+                unit="seconds")
+    # applica gli artefatti
+    for(i in seq_len(nrow(signal$artefacts)) ){ 
+      window(sync, signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
+      window(lags, signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
+    }
+    
+    return(newAMICo(sync,lags, xbest, args))
+      
+    
     
 }
 
