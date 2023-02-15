@@ -15,47 +15,42 @@ knitr::opts_chunk$set(echo = TRUE)
     * @OBSOLETE
 
 
+## NEXT STEPS & CRITICAL BUGS
+  * amico2 ha dei buchi weight linea 863 prova mean
+  * interval_sec diventa maxSize e con minSize devono essere implementati anche
+    nella prima parte con i picchi veri. NB cè gia maxPeakDuration
+  * peakfinder trova amp negative
+
 ## Git
-  * nuova versione
-     * tempo in millesimi e/o frazioni di secondo in timemaster
-     * rats
-     * rifai amico senza tanti cazzi ma comprando direttamente triangoli p-v-hpa
+
 
 ## physiology
   * recupera tutte le funzioni avanzate sviluppate per VRperGenere
+  
   
 ## mechanics
   * fai funzionare byWin
   * ottimizza ccfBest e omologa l'output di ccfBest e pmBest. In particolar modo 
     ci sia il tempo per le finestre di ccfBest
+  * fai una nuova funzione: filterArtefacts() che applica una FUN sulle finestre specificate da setArtefacts(), ad es settando a NA, o smoothando. Metti anche come filtro una possibile label per scriminare diversi artefatti. flat, wiggle, motion, etc.
+
   *  I have introduced the concept of "flex" in the windowing procedures. "flex" means that instead of
        removing the first and last half windows, initial and ending parts are processed with windows of 
        decreasing size
     *  this has broken at least nwin, winInter, and the new functions approxbywin and byWin
     *  prova a vedere l'implementazione in FIR()
-  * nuova funzione: filterArtefacts() che applica una FUN sulle finestre specificate da setArtefacts(), ad es settando a NA, o smoothando. Metti anche come filtro una possibile label per scriminare diversi artefatti. flat, wiggle, motion, etc.
 
-## BUGS & various mishaps
+## minor BUGS & various mishaps
  * cloneAttr e classAttr cambiano solo alcuni attributi, ha senso?
-   usando peraltro una variabile    globale LOCK_ATTR. 
+   usando peraltro una variabile globale LOCK_ATTR. 
    Forse in R internals c'è una guida per dire come fare meglio?
  
     
 ## XSTREAM TS sobstitution
 
   
-## rats CLASS DOCUMENTATION
-  * ts continua a dare problemi.  abbandona sta merda!  
-  * ho iniziato a segnare con @TSBUG i punti dove ci sono le bestemmie  
-    * tutte le approssimazioni start()[1] end()[1] sono inaccettabili. controlla se e dove sostituire con tss, tse
-  * ho scritto una classe in fixing_ts.R si chiama rats e funziona da dio
-    * bisogna scrivere tutti i methodi, vedi: methods(class="ts")
-    *
+## rats CLASS 
   * __NB: stream means data available over time. This is not the case. find better names.__
-    * rats: rational time series
-    * huts: human time series
-    * dyats: time series of the dyadsync package
-  * rats deve sostituire DyadStream
   * se decidi di mantenere DyadStream controlla window<-.DyadStream replacement method. this stinks!
   
 ### rats CLASS DOCUMENTATION
@@ -67,13 +62,14 @@ knitr::opts_chunk$set(echo = TRUE)
   * rats are familiar: syntax is intuitive for ts() or zoo() users
 
 
-
 ## Permutations
   * implementa misure di effect size robuste per le permutations:
     https://garstats.wordpress.com/2016/05/02/robust-effect-sizes-for-2-independent-groups/
+  * parallelize permutations
+
     
 ## Category extraction
-  * se voglio usare più di un groupIndex, ad es IM_tipo e IM_livello, queste si sovrascrivono in epochStream. Devi sempre indicare signal="SC", sync="PMdev",streamKey = "sync", category="IM",groupIndex="micro".
+  * (forse fatto?) se voglio usare più di un groupIndex, ad es IM_tipo e IM_livello, queste si sovrascrivono in epochStream. Devi sempre indicare signal="SC", sync="PMdev",streamKey = "sync", category="IM",groupIndex="micro". 
   * DyadCategory to stream (category, column) : crea versione interpolata. utile principalmente solo per plottare
   * byCat(signal, category, stream=c(patient, therapist, bestCCF, bestLag,lag0), FUN) : applica una funzione es la media ai diversi livelli del factor di uno stream. a seconda che input sia experiment, session o singal applica adeguatamente.
 
@@ -82,21 +78,16 @@ knitr::opts_chunk$set(echo = TRUE)
   * scrivi funzioni generiche per long plot
 
   
-  
 ## double check & cleanup
-  * read dyad categories non usa stesso nome diadi (uid) di dati fisio (maybe fixed?)
   * setArtefacts richiede che dyad sia char con leading zero. tipo "01" funziona invece 1L no.
-  * sampRate() diventa frequency()
   * sccf sarebbe meglio wccs "window cross corr of slopes"
   * aggiungi '...' a PMBest e CCFBest, per accomodare i parametri di eventuali altri algoritmi di calcolo.
-  * metti attribute "SEssionName" o simile dentro a DyadStream per tnere traccia
-  * rinomina i files in modo sensato
   * elimina i commenti e le cose obsolete. Sto segnando con @OBSOLETE le parti da rimuovere e/o spostare in obsolenscence.R
-  * c'è un bug in print.DyadStream:  Error in `[.default`(x, (length(x) - 100):length(x)) : only 0's may be mixed with negative subscripts. Probabilmente con streams molto brevi.
   * controlla gli argomenti missing nelle funzioni parallelizzate. In particolare
     AMICo, e filter
+  * finisci di eliminare dyadstream. Non esiste più. solo rats
+
     
-  
   
   
 
@@ -110,8 +101,8 @@ knitr::opts_chunk$set(echo = TRUE)
   * errori (rari) in PMBest (su diadi random): 
     * In cor(rs1, rs2, use = "c") : la deviazione standard è zero
     * In s2p\$bool + s2v\$bool :  longer object length is not a multiple of shorter object length
+  * tempo in millesimi e/o frazioni di secondo in timemaster
 
-  
 
   
 ### migliorie all'indice

@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
   * all dyadstream and ts objects have been replaced by ~~rats! uwu
   * all @TSBUG errors should have been fixed.
     * These elements where searched: @TSBUG tss tse xstart xend tsp ts start end startend sampRate(  DyadStream    
+  * categoriesPermutation has been given parallelization treatment, better plot, and now can export the data
 
 ## v.1.2.0.9001
 #### 2022/12/01

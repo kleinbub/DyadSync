@@ -368,22 +368,24 @@ display: none;
 <ul>
 <li><span class="citation">@TSBUG</span>
 <ul>
-<li>cerca tss tse ts start end startend sampRate(</li>
+<li>cerca tss tse ts start end startend sampRate( tsp DyadStream xstart
+xend</li>
 </ul></li>
 <li><span class="citation">@OBSOLETE</span></li>
 </ul></li>
 </ul>
+<div id="next-steps-critical-bugs" class="section level2">
+<h2>NEXT STEPS &amp; CRITICAL BUGS</h2>
+<ul>
+<li>amico2 ha dei buchi weight linea 863 prova mean</li>
+<li>interval_sec diventa maxSize e con minSize devono essere
+implementati anche nella prima parte con i picchi veri. NB cè gia
+maxPeakDuration</li>
+<li>peakfinder trova amp negative</li>
+</ul>
+</div>
 <div id="git" class="section level2">
 <h2>Git</h2>
-<ul>
-<li>nuova versione
-<ul>
-<li>tempo in millesimi e/o frazioni di secondo in timemaster</li>
-<li>rats</li>
-<li>rifai amico senza tanti cazzi ma comprando direttamente triangoli
-p-v-hpa</li>
-</ul></li>
-</ul>
 </div>
 <div id="physiology" class="section level2">
 <h2>physiology</h2>
@@ -394,22 +396,23 @@ p-v-hpa</li>
 <div id="mechanics" class="section level2">
 <h2>mechanics</h2>
 <ul>
-<li>fai funzionare byWin</li>
-<li>ottimizza ccfBest e omologa l’output di ccfBest e pmBest. In
-particolar modo ci sia il tempo per le finestre di ccfBest</li>
-<li>I have introduced the concept of “flex” in the windowing procedures.
-“flex” means that instead of removing the first and last half windows,
-initial and ending parts are processed with windows of decreasing size *
-this has broken at least nwin, winInter, and the new functions
-approxbywin and byWin * prova a vedere l’implementazione in FIR()</li>
-<li>nuova funzione: filterArtefacts() che applica una FUN sulle finestre
-specificate da setArtefacts(), ad es settando a NA, o smoothando. Metti
-anche come filtro una possibile label per scriminare diversi artefatti.
-flat, wiggle, motion, etc.</li>
+<li><p>fai funzionare byWin</p></li>
+<li><p>ottimizza ccfBest e omologa l’output di ccfBest e pmBest. In
+particolar modo ci sia il tempo per le finestre di ccfBest</p></li>
+<li><p>fai una nuova funzione: filterArtefacts() che applica una FUN
+sulle finestre specificate da setArtefacts(), ad es settando a NA, o
+smoothando. Metti anche come filtro una possibile label per scriminare
+diversi artefatti. flat, wiggle, motion, etc.</p></li>
+<li><p>I have introduced the concept of “flex” in the windowing
+procedures. “flex” means that instead of removing the first and last
+half windows, initial and ending parts are processed with windows of
+decreasing size * this has broken at least nwin, winInter, and the new
+functions approxbywin and byWin * prova a vedere l’implementazione in
+FIR()</p></li>
 </ul>
 </div>
-<div id="bugs-various-mishaps" class="section level2">
-<h2>BUGS &amp; various mishaps</h2>
+<div id="minor-bugs-various-mishaps" class="section level2">
+<h2>minor BUGS &amp; various mishaps</h2>
 <ul>
 <li>cloneAttr e classAttr cambiano solo alcuni attributi, ha senso?
 usando peraltro una variabile globale LOCK_ATTR. Forse in R internals
@@ -419,35 +422,15 @@ c’è una guida per dire come fare meglio?</li>
 <div id="xstream-ts-sobstitution" class="section level2">
 <h2>XSTREAM TS sobstitution</h2>
 </div>
-<div id="rats-class-documentation" class="section level2">
-<h2>rats CLASS DOCUMENTATION</h2>
+<div id="rats-class" class="section level2">
+<h2>rats CLASS</h2>
 <ul>
-<li>ts continua a dare problemi. abbandona sta merda!<br />
-</li>
-<li>ho iniziato a segnare con <span class="citation">@TSBUG</span> i
-punti dove ci sono le bestemmie
-<ul>
-<li>tutte le approssimazioni start()[1] end()[1] sono inaccettabili.
-controlla se e dove sostituire con tss, tse</li>
-</ul></li>
-<li>ho scritto una classe in fixing_ts.R si chiama rats e funziona da
-dio
-<ul>
-<li>bisogna scrivere tutti i methodi, vedi: methods(class=“ts”)</li>
-<li></li>
-</ul></li>
 <li><strong>NB: stream means data available over time. This is not the
-case. find better names.</strong>
-<ul>
-<li>rats: rational time series</li>
-<li>huts: human time series</li>
-<li>dyats: time series of the dyadsync package</li>
-</ul></li>
-<li>rats deve sostituire DyadStream</li>
+case. find better names.</strong></li>
 <li>se decidi di mantenere DyadStream controlla window&lt;-.DyadStream
 replacement method. this stinks!</li>
 </ul>
-<div id="rats-class-documentation-1" class="section level3">
+<div id="rats-class-documentation" class="section level3">
 <h3>rats CLASS DOCUMENTATION</h3>
 <ul>
 <li>rats are legion: there is no singular form “rat”</li>
@@ -463,15 +446,22 @@ intervals, including the start value but excluding the end one.</li>
 <h2>Permutations</h2>
 <ul>
 <li>implementa misure di effect size robuste per le permutations: <a href="https://garstats.wordpress.com/2016/05/02/robust-effect-sizes-for-2-independent-groups/" class="uri">https://garstats.wordpress.com/2016/05/02/robust-effect-sizes-for-2-independent-groups/</a></li>
+<li>parallelize permutations</li>
 </ul>
 </div>
 <div id="category-extraction" class="section level2">
 <h2>Category extraction</h2>
 <ul>
-<li>se voglio usare più di un groupIndex, ad es IM_tipo e IM_livello,
-queste si sovrascrivono in epochStream. Devi sempre indicare
+<li>(forse fatto?) se voglio usare più di un groupIndex, ad es IM_tipo e
+IM_livello, queste si sovrascrivono in epochStream. Devi sempre indicare
 signal=“SC”, sync=“PMdev”,streamKey = “sync”,
 category=“IM”,groupIndex=“micro”.</li>
+<li>DyadCategory to stream (category, column) : crea versione
+interpolata. utile principalmente solo per plottare</li>
+<li>byCat(signal, category, stream=c(patient, therapist, bestCCF,
+bestLag,lag0), FUN) : applica una funzione es la media ai diversi
+livelli del factor di uno stream. a seconda che input sia experiment,
+session o singal applica adeguatamente.</li>
 </ul>
 </div>
 <div id="graphics" class="section level2">
@@ -483,24 +473,16 @@ category=“IM”,groupIndex=“micro”.</li>
 <div id="double-check-cleanup" class="section level2">
 <h2>double check &amp; cleanup</h2>
 <ul>
-<li>read dyad categories non usa stesso nome diadi (uid) di dati fisio
-(maybe fixed?)</li>
 <li>setArtefacts richiede che dyad sia char con leading zero. tipo “01”
 funziona invece 1L no.</li>
-<li>sampRate() diventa frequency()</li>
 <li>sccf sarebbe meglio wccs “window cross corr of slopes”</li>
 <li>aggiungi ‘…’ a PMBest e CCFBest, per accomodare i parametri di
 eventuali altri algoritmi di calcolo.</li>
-<li>metti attribute “SEssionName” o simile dentro a DyadStream per tnere
-traccia</li>
-<li>rinomina i files in modo sensato</li>
 <li>elimina i commenti e le cose obsolete. Sto segnando con <span class="citation">@OBSOLETE</span> le parti da rimuovere e/o spostare in
 obsolenscence.R</li>
-<li>c’è un bug in print.DyadStream: Error in <code>[.default</code>(x,
-(length(x) - 100):length(x)) : only 0’s may be mixed with negative
-subscripts. Probabilmente con streams molto brevi.</li>
 <li>controlla gli argomenti missing nelle funzioni parallelizzate. In
 particolare AMICo, e filter</li>
+<li>finisci di eliminare dyadstream. Non esiste più. solo rats</li>
 </ul>
 </div>
 <div id="performance" class="section level2">
@@ -520,6 +502,7 @@ stesso picco viene usato 2 volte, che è grave.</li>
 <li>In s2p$bool + s2v$bool : longer object length is not a multiple of
 shorter object length</li>
 </ul></li>
+<li>tempo in millesimi e/o frazioni di secondo in timemaster</li>
 </ul>
 <div id="migliorie-allindice" class="section level3">
 <h3>migliorie all’indice</h3>

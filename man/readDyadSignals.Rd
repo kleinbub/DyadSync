@@ -15,8 +15,8 @@ readDyadSignals(
   start,
   end,
   duration,
-  timeUnit,
-  valueUnit,
+  unit,
+  timeUnit = "seconds",
   pairBind = F,
   winTerpolate = list(winSec = NULL, incSec = NULL),
   namefilt = NA,
@@ -38,6 +38,8 @@ readDyadSignals(
 
 \item{signalNames}{a vector of string defining the name of the signals (same order as s1Col, s2Col)}
 
+\item{SR}{}
+
 \item{start}{an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the first observation of each file.
 Note that by default time series will be set with start = 0, which is different from the default value of \code{\link[stats]{ts}}.}
 
@@ -48,6 +50,11 @@ If the data is longer or shorter, remove tail
 
 \item{duration}{an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the duration of each file.
 If the data is longer or shorter, remove tail or pads with zeroes. Only one between end or duration should be specified.}
+
+\item{unit}{character. A descriptor of the unit of measurement of the series values.}
+
+\item{timeUnit}{character. A descriptor of the time unit of the series values.
+Defaults to seconds as in "samples per second"}
 
 \item{pairBind}{if true, every two consequent files in path get matched to a single DyadSession, useful if the data of participant
 1 and 2 are stored in separate files.}
@@ -68,10 +75,6 @@ If idOrder is not NA, this will be used as separator to split the filenameas and
 informations.}
 
 \item{...}{additional options to be passed to read.table (es: skip, header, etc)}
-
-\item{frequency}{}
-
-\item{signalUnit}{character. A descriptor of the unit of measurement of the series values.}
 }
 \description{
 Title

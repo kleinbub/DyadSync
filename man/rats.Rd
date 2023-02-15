@@ -17,11 +17,11 @@ rats(
   start = 0,
   end,
   duration,
-  frequency,
+  frequency = 1,
   period,
   windowed = list(winSec = NULL, incSec = NULL, flex = NULL),
   timeUnit = "cycle",
-  valueUnit = NULL
+  unit = NULL
 )
 }
 \arguments{
@@ -46,7 +46,7 @@ windowing procedures used to create the series.}
 \item{timeUnit}{character. A descriptor of the frequency cycle unit. Used only
 in print functions.}
 
-\item{valueUnit}{character. A descriptor of the unit of measurement of the series values. Used only
+\item{unit}{character. A descriptor of the unit of measurement of the series values. Used only
 in print functions.}
 }
 \description{
@@ -76,7 +76,7 @@ the temporal information, and the values. These latter can be numeric or not.
   not overlap and are combined to a . Time intervals are half-open intervals, including the start value
   but excluding the end one.
 * rats are familiar: syntax is intuitive for ts() or zoo() users
-* Holes fit in cheese, but not in rats: a rats' lenght must correspond to the rats'
+* Holes fit in cheese, but not in rats: a rats' length must correspond to the rats'
   duration multiplied by the frequency. In other terms missing data in rats must
   be represented with NA
 }

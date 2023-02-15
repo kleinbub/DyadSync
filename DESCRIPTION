@@ -1,14 +1,14 @@
 Package: DyadSync
 Type: Package
 Title: Synchronization of physiological and behavioral time-series of two interacting persons.
-Version: 1.2.0.9001
+Version: 1.2.0.9002
 Date: 2022-11-23
 Author: Johann R. Kleinbub
 Maintainer: Johann R. Kleinbub <johann.kleinbub@gmail.com>
 Description: A suite of tools useful to import, visualize and analyze dyadic data of various form. The current version contains tools for electrodermal activity. 
 URL: https://github.com/kleinbub/DyadSync http://www.kleinbub.it 
 BugReports: https://github.com/kleinbub/DyadSync/issues
-Imports: grDevices, graphics, methods, stats, utils, signal, hdrcde, parallel, doSNOW, foreach, data.table, progress
+Imports: grDevices, graphics, methods, stats, utils, signal, hdrcde, parallel, doSNOW, foreach, data.table, progress, effsize
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
