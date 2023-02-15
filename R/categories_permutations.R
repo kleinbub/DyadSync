@@ -1,11 +1,6 @@
-#' Permutation tests for signals in specific epochs
-#' 
-#' given a well formatted DyadExperiment object with some time series (e.g. synchronization or physiology) and DyadCategory data
-#' it cuts the series according to the categories intervals, extracts random permutations of the stream, and calculates p-values and effect sizes
-#' for the observed central values compared to random ones.
-#'
 #' @param x a DyadExperiment Object.
-#' @param plotPrefix character. path and prefix of output plots names.
+#'
+#' @param plotPrefix character. path and prefix of output plots names. If NA, no plot will be drawn.
 #' @param signal character. name of a DyadSignal contained in x.
 #' @param sync character. Name of a synchronization object. E.g. PMBest, or CCFBest
 #' @param stream character. Name of a rats object contained within sync
@@ -18,10 +13,16 @@
 #' @param nIter integer. Number of random extractions.
 #' @param rotate if true windows are extracted from a randomly shifted timeseries. This is better TRUE.
 #' @param extract_from Either "all", or "remaining". Should new extractions be done randomly from the whole stream or only on non-categorized parts.
-#' @param summarizingFunction String. the function used to summarize each epoch's time-series to a single value. Suggested: median.
-#' @param parameterFunction  String. the function used to summarize all epochs's single values. Suggested: median.
-#' @param xlim either "auto" or a numeric vector of length 2 to set the plot scale.
-#'
+#' @param epochSummaryFUN String. the function used to summarize EACH epoch's time-series to a single value. Suggested: median.
+#' @param centralityFUN  String. A centrality function used to synthetize the distribution of ALL epochs. Suggested: median.
+#' @param dispersionFUN  String. A dispersion function used to synthetize the distribution of ALL epochs. Suggested: MAD
+#' @param returnData logical. Should the data be returned?
+#' @param credibilityMass 
+#' @param nLines 
+#' @param xlim either "auto" or a numeric vector of length 2 to set the plot scale and density boundaries.
+#' @param ... 
+#' 
+#' @details Credible intervals are calculated with \link[hdr]{hdrcde} function
 #' @return
 #' @export
 #'
@@ -38,16 +39,53 @@ categoryPerm = function(x,
                         minOccurrences, #
                         
                         absolute = FALSE,
+                        returnData = FALSE,
                         
                         #randomization settings
                         nIter = 1000,
                         rotate = TRUE, 
                         extract_from = c("all", "remaining")[2], 
-                        summarizingFunction = c("mean","median")[2],
-                        parameterFunction = c("mean","median")[2],
+                        epochSummaryFUN = c("mean","median")[2],
+                        centralityFUN = c("mean","median")[2],
+                        dispersionFUN = c("sd","mad")[2],
+                        
+                        #analyses settings
+                        credibilityMass = 0.89,
+                        
                         #graphic settings
-                        xlim = "auto") {
+                        nLines=200,
+                        xlim = "auto",
+                        ...) {
   
+  
+  ####DEBUG
+  # rm(list=ls())
+  # load("A:/OneDrive - Università degli Studi di Padova/__Ricerche/2022_IM_paper/IM_engine_2023_amico2_v2.RData")
+  # plotPrefix = paste0("permplottest_")
+  # signal="SC"
+  # sync="PMdev"
+  # stream="sync"
+  # category = "IM"
+  # categoryIndex = "tipo"
+  # # keepOnly = c("SI") #
+  # minEpochSec = 3 #
+  # minOccurrences = 5 #
+  # returnData = TRUE
+  # absolute = FALSE
+  # credibilityMass = 0.89
+  # stop("debug")
+  # #randomization settings
+  # nIter = 10000
+  # rotate = TRUE
+  # extract_from = c( "remaining")
+  # epochSummaryFUN = c("median")
+  # centralityFUN = "median"
+  # dispersionFUN = "mad"
+  # #graphic settings
+  # xlim = c(-1,1)
+  # d3=d2
+  # keepOnly = c()
+  ###
   
   d3 = x
   if(absolute){
@@ -86,8 +124,11 @@ categoryPerm = function(x,
     (mean(a)-mean(b))/sqrt(((length(a)-1)*sd(a)^2 +  (length(b)-1)*sd(b)^2 )/(length(a)+ length(b)-2 ) )
   }
   
-  summar = eval(parse(text=summarizingFunction))
-  param  = eval(parse(text=parameterFunction))
+
+  p_summaryFUN = eval(parse(text=epochSummaryFUN))
+  p_centralityFUN  = eval(parse(text=centralityFUN))
+  p_dispersionFUN  = eval(parse(text=dispersionFUN))
+  
   
   # na.omit.safe = function
   #remove epochs shorter than minEpochSec seconds
@@ -125,25 +166,36 @@ categoryPerm = function(x,
   
   exRan = vector("list",length(toPlot))
   names(exRan) = toPlot
+  
   for(tipo2 in toPlot){
-    # tipo2 = "ASS" ## <-----------------------------------------------####
-    print(tipo2)
+    # tipo2 = toPlot[2] ## <-----------------------------------------------####
+    # print(tipo2)
     #remove NAs
     ex2[[tipo2]] = ex2[[tipo2]][sapply(ex2[[tipo2]], function(x){!all(is.na(x))})] #da FALSE solo se tutta la finestra è NA
-    
     #n seq di tipo CODIFICA
     n = length(ex2[[tipo2]])
+    
+    for(i in 1:n){
+      #elimina valori mancanti
+      ex2[[tipo2]][[i]] = ex2[[tipo2]][[i]][!is.na(ex2[[tipo2]][[i]])]
+    }
+    #elimina occorrenze se togliendo gli NA siamo più corti di minEpochSec
+    ex2[[tipo2]] = ex2[[tipo2]][unlist(lapply(ex2[[tipo2]],length)) > minEpochSec*samplesPerSec]
+    
+    
+
     
     #1 crea sequenze di finestre consecutive dalle duration
     durations = lapply(ex2, function(x)sapply(x,length))
     durReal = durations[[tipo2]]
     
     #calcola mediana su ciascuna finestra dei dati reali
-    epochMediansReal = as.numeric(unlist(lapply(ex2[[tipo2]], summar, na.rm=T)))
-    epochMediansReal = epochMediansReal[!is.na(epochMediansReal)]
+    obsEpochSummary = as.numeric(unlist(lapply(ex2[[tipo2]], p_summaryFUN)))
+    obsEpochSummary = obsEpochSummary[!is.na(obsEpochSummary)]
     
     #calcola statistica centrale sui dati reali
-    parReal = param(epochMediansReal,na.rm=T)
+    obsCentrality = p_centralityFUN(obsEpochSummary)
+    obsDispersion = p_dispersionFUN(obsEpochSummary)
     
     if(extract_from =="all") {
       #estrai tutti i segnali sync delle sedute e togli i NA
@@ -161,14 +213,45 @@ categoryPerm = function(x,
     }
     max_from = length(full_from)
     
-    #setup empy containers
-    cohenlist = numeric(nIter)
-    parlist = numeric(nIter)
-    parlist2 = numeric(nIter)
-    res = numeric(sum(durReal))
-    madness = matrix(0,nrow=nIter,ncol=512)
-    # system.time({
-    for(k in 1:nIter){
+    
+    ####### SETUP PARALLELIZATION
+    # progresbar
+    pb <- progress::progress_bar$new(
+      format = "Calculation::percent [:bar] :elapsed | ETA: :eta",
+      total = nIter,    # number of iterations
+      width = 60, 
+      show_after=0 #show immediately
+    )
+    
+    progress_letter <- rep(LETTERS[1:10], 10)  # token reported in progress bar
+    
+    # allowing progress bar to be used in foreach -----------------------------
+    progress <- function(n){
+      pb$tick(tokens = list(letter = progress_letter[n]))
+    } 
+    
+    opts <- list(progress = progress)
+    
+    
+    #parallelization
+    warningsFile = "MyWarnings"
+    if (file.exists(warningsFile)) {
+      unlink(warningsFile)
+    }
+    cores=parallel::detectCores()-1
+    cat(paste0("\r\nPerforming parallelized permutations of '",tipo2,"' categories using ",cores," cores.\r\n")) #verified!
+    cl <- parallel::makeCluster(cores[1], outfile=warningsFile) #not to overload your computer
+    doSNOW::registerDoSNOW(cl)
+    `%dopar%` <- foreach::`%dopar%`
+    `%do%` <- foreach::`%do%`
+    pb$tick(0)
+    resList <- foreach::foreach(
+      k = 1:nIter,
+      .options.snow = opts, .errorhandling='pass'
+    ) %dopar% {
+      
+      ################# HERE THE PARALLEL JOB
+      
       #randomizza l'ordine delle durate
       durRand = sample(durReal)
       xstart = xend = c(1,numeric(length(durRand)-1))
@@ -207,112 +290,230 @@ categoryPerm = function(x,
       for(i in 1:n){
         #seleziona da rfrom (ruotato) i valori delle finestre random
         rfsplit[[i]] = rfrom[(rstart[i]):(rend[i])]
-        
+        #elimina valori mancanti
+        rfsplit[[i]] = rfsplit[[i]][!is.na(rfsplit[[i]])]
       }
+      #elimina occorrenze se togliendo gli NA siamo più corti di minEpochSec
+      rfsplit = rfsplit[unlist(lapply(rfsplit,length)) > minEpochSec*samplesPerSec]
       
       #estrai il parametro dalle finestre random
-      epochMediansRand = as.numeric(unlist(lapply(rfsplit, summar,na.rm=T)))
-      epochMediansRand = epochMediansRand[!is.na(epochMediansRand)]
-      cohenlist[k] = fastcohen(epochMediansReal,epochMediansRand)
+      #ora dovremmo avere la garanzia di avere dati senza NA, rendendo inutili gli na.rm=T
+      randEpochSummary = as.numeric(unlist(lapply(rfsplit, p_summaryFUN)))
+      randEpochSummary = randEpochSummary[!is.na(randEpochSummary)]
       
-      parlist[k]   =  param(epochMediansRand, na.rm=T)
-      parlist2[k]  =  sd(epochMediansRand, na.rm=T)
-      if(xlim=="auto"){
-        randDen = density(epochMediansRand)
+      randEpochSummary = as.numeric(unlist(lapply(rfsplit, p_summaryFUN)))
+      randEpochSummary = randEpochSummary[!is.na(randEpochSummary)]
+      
+      if(length(xlim)==1 && xlim=="auto"){
+        randDen = density(randEpochSummary)
       } else {
-        randDen = density(epochMediansRand, from = xlim[1], to = xlim[2])
+        randDen = density(randEpochSummary, from = xlim[1], to = xlim[2])
       }
-      madness[k,]  =  randDen$y
+      
+      return(list(
+        cohe = fastcohen(obsEpochSummary,randEpochSummary),
+        cliff = effsize::cliff.delta(obsEpochSummary,randEpochSummary)$estimate,
+        par1 = p_centralityFUN(randEpochSummary),
+        par2 = p_dispersionFUN(randEpochSummary),
+        randDen = randDen,
+        randEpochSummary = randEpochSummary
+        
+      ))
+      
     }
-    # })
+    parallel::stopCluster(cl) 
     
-    exRan[[tipo2]] = parlist
+    #Check for issues
+    for(i in 1:nIter){
+      if(!is.null(resList[[i]][["message"]])){
+        write(paste0("QQQZ",resList[[i]][["message"]],"\n"),file=warningsFile,append=TRUE)
+      }
+    }
+    
+    if (file.exists(warningsFile)) {
+      wr = readLines(warningsFile)
+      wr = wr[grepl("QQQZ",wr,fixed = T)]
+      if(length(wr)>0){
+        cat("\r\nIssues:\r\n")
+        for(i in 1:length(wr)){
+          cat(substr(wr[i], start = 5, stop=10000), "\r\n")
+        }
+        stop("Please fix the issues before proceding.")
+      }
+      unlink(warningsFile)
+    }
+    
+    
+    cat("\rExtracting values ...")
+    #extract output elements
+    cohenlist = unlist(lapply(resList, \(x){x$cohe}))
+    cohenlist = cohenlist[!is.na(cohenlist)]
+    
+    clifflist = unlist(lapply(resList, \(x){x$cliff}))
+    clifflist = clifflist[!is.na(clifflist)]
+    
+    ranCentraList  = unlist(lapply(resList, \(x){x$par1}))
+    ranDisperList  = unlist(lapply(resList, \(x){x$par2}))
+    
+    randDenX = lapply(resList, \(x){x$randDen$x})
+    randDenX = do.call("rbind",randDenX)
+    randDenX = apply(randDenX,2,mean)
+    
+    minRandX = quantile(unlist(lapply(resList, \(x){min(x$randDen$x)})),0.05)
+    maxRandX = max(unlist(lapply(resList, \(x){max(x$randDen$x)})),0.95)
+    
+    
+    randDenY = lapply(resList, \(x){x$randDen$y})
+    randDenY = do.call("rbind",randDenY)
+    randDenY = apply(randDenY,2,mean)
+    maxRandY = max(unlist(lapply(resList, \(x){max(x$randDen$y)})))
+    
+    pval =(length(ranCentraList[ranCentraList>=obsCentrality])+1)/(nIter+1)
+    
+    
+    exRan[[tipo2]] = list(
+      
+      cohensList = cohenlist,
+      cohensHDR  = hdrcde::hdr(cohenlist,credibilityMass*100)$hdr,
+      cohensBest = hdrcde::hdr(cohenlist,credibilityMass*100)$mode,
+      
+      cliffsList = clifflist,
+      cliffsHDR  = hdrcde::hdr(clifflist,credibilityMass*100)$hdr,
+      cliffsBest = hdrcde::hdr(clifflist,credibilityMass*100)$mode,
+      
+      ranCentraList = ranCentraList,
+      ranCentraHDR = hdrcde::hdr(ranCentraList,credibilityMass*100)$hdr,
+      
+      ranDisperList = ranDisperList,
+      ranDisperHDR  = hdrcde::hdr(ranDisperList,credibilityMass*100)$hdr,
+      
+      randEpochSummary = unlist(lapply(resList, \(x){x$randEpochSummary})),
+      
+      obsEpochs = ex2[[tipo2]],
+      obsEpochSummary = obsEpochSummary,
+      obsCentrality = obsCentrality,
+      obsDispersion = obsDispersion,
+      
+      pvalue = pval,
+      epochSummaryFUN = epochSummaryFUN,
+      centralityFUN   = centralityFUN,
+      dispersionFUN   = dispersionFUN
+
+    )
+
+    
+    
+
+
+    
+    cat("\rInitializing graphical output...")
+    
+    
     
     #needed functions
     plotHDI <- function( sampleVec , credMass=0.95, y=10, h.len = 5, ...){
       hdi = as.numeric(hdrcde::hdr( sampleVec , credMass*100)$hdr)
-      x1 = hdi[1]; x2 = hdi[2]
       xpar = par()[["xpd"]]
+      #there can be multiple intervals in multimodal distributions
+      ni = length(hdi)/2
       par(xpd=NA)
-      segments(x1,y,x2,y,...)
-      segments(x1,y-h.len/2,x1,y+h.len/2,...)
-      segments(x2,y-h.len/2,x2,y+h.len/2,...)
+      if(ni%%1 != 0){
+        #if there is an odd number of hdi intervals, simplify to the broader range
+        #but throw a warning
+        ni=1
+        hdi = c(hdi[1], hdi[length(hdi)])
+        warning("Multiple and odd HDR intervals were collapsed to one.")
+      }
+      for(i in 1:ni){
+        x1 = hdi[1+2*(i-1)]; x2 = hdi[2+2*(i-1)]
+        segments(x1,y,x2,y,...)
+        segments(x1,y-h.len/2,x1,y+h.len/2,...)
+        segments(x2,y-h.len/2,x2,y+h.len/2,...)
+      }
       par(xpd=xpar)
       
     }
     
-    png(paste0(plotPrefix,"_",tipo2,"_",minEpochSec,"s_",nIter,"perm.png"),width = 85*2, height = 60*2, units = "mm",res = 300, type="cairo")
+    png(paste0(plotPrefix,"_",tipo2,"_",minEpochSec,"s_",nIter,"perm.png"),width = 60*3, height = 60*3, units = "mm",res = 300, type="cairo")
     # par(mfrow=c(1,1),mar=c(5,4,1,1)+0.1,cex=0.9)
     par(cex=0.9, mar=c(5, 4, 4, 4) + 0.1)
-    par(xpd=NA)
+    # par(xpd=NA)
     
-    if(xlim=="auto"){
-      xmin = min(randDen$x, parReal)
-      xmax = max(randDen$x, parReal)
+    if(length(xlim)==1 && xlim=="auto"){
+      xmin = min(randDenX, obsCentrality)#, minRandX )
+      xmax = max(randDenX, obsCentrality)#, maxRandX)
       
     } else {
       xmin = xlim[1]
       xmax = xlim[2]
     }
-    breaks = seq(xmin,xmax,by=(xmax-xmin)/40)
     
+    breaks = seq(min(min(ranCentraList),xmin),
+                 max(max(ranCentraList),xmax),by=(xmax-xmin)/40)
     
-    ## big nice plot
-    plotData = hist(parlist, breaks = breaks, plot = F)
-    maxY = max(plotData$counts)
-    # maxY = max(plotData$density)
+    realDen = density(obsEpochSummary,from=xmin,to=xmax)
+    maxY = max(realDen$y)
+    #histogram of estimated parameters for random
+    plotData = hist(ranCentraList, breaks = breaks, plot = F)
+    plotData$density = rangeRescale( plotData$density, 0, -maxY)
+    toK = which(plotData$density!=0)
+    plotData = lapply(plotData, \(x)x[toK])
+    # maxY = max(plotData$counts)
+    minY = min(plotData$density)
+    # maxY = max()
     
-    
-    hist(parlist,breaks = breaks,
-         main=paste0(categoryIndex,"-", tipo2,"\nDistribution of ",nIter," ",parameterFunction,"s of ",n, " random epochs each"),
-         xlab=paste(summarizingFunction, stream),
-         cex.main = 0.9, col=rgb(1,1,1,1),
-         ylim = c(0,maxY*1.2),
+    plot(-99999,
+         main=paste0(categoryIndex," - ", tipo2,"\nPermutation test on ",nIter," extractions of of ",n, " random epochs each"),
+         xlab=paste(epochSummaryFUN, stream), ylab = "Density",
+         cex.main = 0.9, yaxt="n",
+         ylim = c(minY*2,maxY*2),
          xlim=c(xmin,xmax))
+    axis(2, at=c(seq(round(minY*2),0) ,seq(0,round(maxY*2))),
+         labels = abs(c(seq(round(minY*2),0) ,seq(0,round(maxY*2)))))
     
-    realDen = density(epochMediansReal,from=xmin,to=xmax)
-    axis(4, at = seq(0, maxY, length.out=7), labels = round(rangeRescale(seq(0, maxY, length.out=7), 0, max(realDen$y)),1))
-    mtext("Density", side = 4,line=2.8)
+    polygon(c(xmin,realDen$x,1), c(0,realDen$y,0), col = rgb(0.78, 0.89, 1, alpha = 0.6),border = NA)
+    lines(realDen$x, realDen$y, col = rgb(0.58, 0.69, 1, alpha = 1),lwd=2)
     
-    maxYden = max(madness, realDen$y)
-    minYden = min(madness, realDen$y)
+    polygon(c(xmin,randDenX,1), c(0,-randDenY,0) , col = rgb(0.2, 0.3, 0.2, alpha = 0.4),border = NA)
+    drawLines  = if(nIter > nLines) sample(nIter,nLines) else nIter
+    cat("\rDrawing lines...                ")
+    for(i in 1:length(drawLines)){
+      k = drawLines[i]
+      lines(resList[[k]]$randDen$x,-resList[[k]]$randDen$y,col=rgb(0.1,0.2,0.1,0.15))
+    }
+    rect(plotData$breaks[1:40],0,plotData$breaks[2:41],plotData$density,col=0,lwd=3,border = 0)
+    rect(plotData$breaks[1:40],0,plotData$breaks[2:41],plotData$density,col=0,lwd=1,border = 1)
+    abline(h=0,lwd=2,col=0)
     
-    realDen$y = rangeRescale(realDen$y, 0, maxY)
-    madness = rangeRescale(madness, 0, maxY )
+    maxY = maxY*1.1
+    segments(obsCentrality,0,obsCentrality,maxY,lwd=2,col=2)
     
-    polygon(c(xmin,realDen$x,1),c(0,realDen$y,0), col = rgb(0.78, 0.89, 1, alpha = 0.6),border = NA)
-    polygon(c(xmin,randDen$x,1), c(0,apply(madness,2,median),0) , col = rgb(0.4, 0.4, 0.4, alpha = 0.4),border = NA)
-    hist(parlist,breaks = breaks,add=T, col=rgb(1,1,1,0.6))
+    text (obsCentrality, maxY+maxY/100*2, paste("p-value =", format(round(pval,4),nsmall = 4) ), cex = 0.8, col=2, font=2 )
+    text (obsCentrality, maxY+maxY/100*10, paste0("Observed ", centralityFUN," = ",round(obsCentrality,3)), cex = 0.8, col=2, font=2 )
     
-    pval =(length(parlist[parlist>=parReal])+1)/(nIter+1)
-    segments(parReal,0,parReal,maxY,lwd=2,col=2)
-    # segments(mean(parlist),0,mean(parlist),maxY/2,lwd=2,col=rgb(0.4,0.4,0.4))
-    
-    text (parReal, maxY+maxY/100*2, paste("p-value =", format(round(pval,4),nsmall = 4) ), cex = 0.8, col=2, font=2 )
-    text (parReal, maxY+maxY/100*6, paste0("Observed ", parameterFunction," = ",round(parReal,3)), cex = 0.8, col=2, font=2 )
-    
-    
-    
-    
-    # text(parReal,510, "real data",col=2)
-    # text(median(parlist),-2,"95% HDI",cex=0.9,font=2)
-    
-    plotHDI(parlist,lwd=3,y=0, h.len=5)
-    cohTit = paste0(parameterFunction," effect size:", round(param(cohenlist,na.rm=T),2),
-                    " [89% HDR range:", paste(round(hdrcde::hdr(cohenlist,89)$hdr,2),collapse = ", "),"]" )
-    title(main = cohTit,line = 0, cex.main=0.9, font.main=3)
-    legend("topleft",lty=c(1,0,0),lwd=c(2,0,0),col=c(2,rgb(0.78, 0.89, 1, alpha = 0.6),rgb(0.4, 0.4, 0.4, alpha = 0.4)),
-           legend=c(paste(parameterFunction, "of",n,"real epochs"), "density of observed data", "density of random data"),
-           pch = c(NA,15,15),pt.cex =c(0,3,3), y.intersp=1.3,
+    ## Kruschke, 2014 for .89 HDI
+    plotHDI(ranCentraList,lwd=3,y=0, h.len=maxY/100*5, credMass = credibilityMass)
+    cohTit = paste0(centralityFUN," effect size:", round(p_centralityFUN(cohenlist),2),
+                    " [",credibilityMass,"% Credible Interval:", paste(round(hdrcde::hdr(cohenlist,credibilityMass*100)$hdr,2),collapse = ", "),"]" )
+    title(main = cohTit,line = 0.5, cex.main=0.9, font.main=3)
+    legend("topleft",
+           lty=c(1,0,1,0,0),
+           lwd=c(2,1,2,0,0),
+           col=c(2,1,1,rgb(0.78, 0.88, 1, alpha = 0.6),rgb(0.4, 0.4, 0.4, alpha = 0.4)),
+           legend=c(paste(centralityFUN, "of",n,"real epochs"),
+                    bquote("Distribution of the real "*.(centralityFUN)~"under"~H[0]),
+                    bquote(.(credibilityMass)*"% Credible Interval of the real "*.(centralityFUN)~"under"~H[0]),
+                    "density of observed data",
+                    "density of random data"),
+           pch = c(NA,0,NA,15,15),pt.cex =c(0,2.5,0,3,3), y.intersp=1.3,
            bty = "n")
     
     
     ###################################################
     dev.off()
-    
+    cat("\rDone ;)                         ")   
   }
   
-  
-  
+  if(returnData) return(exRan)
   
 }
