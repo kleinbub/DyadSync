@@ -313,7 +313,6 @@ resample = function (x, newSampRate, ...) {
 #' @export
 
 movAv <- function(x, winSec, incSec = NA, remove=FALSE, SR=frequency(x) ) {
-  print(class(x))
   x = as.rats(x)
   
   win = winSec*SR
