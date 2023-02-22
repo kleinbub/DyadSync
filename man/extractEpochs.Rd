@@ -8,7 +8,7 @@ extractEpochs(
   experiment,
   signal,
   sync,
-  stream,
+  series,
   category,
   categoryIndex,
   by,
@@ -22,7 +22,7 @@ extractEpochs(
 
 \item{sync}{}
 
-\item{stream}{}
+\item{series}{}
 
 \item{category}{the category used to}
 
@@ -30,11 +30,9 @@ extractEpochs(
 
 \item{...}{}
 
-\item{epochStreamName}{deprecated. use sync, streamkey, category}
-
 \item{FUN}{}
 }
 \description{
 This function extracts the selected epochs from every session of a "DyadExperiment" object and puts them in
- a simple list. Categories must be created with epochStream() beforehand.
+ a simple list. Categories must be created with epochSeries() beforehand.
 }

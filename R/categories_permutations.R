@@ -7,7 +7,7 @@
 #' @param plotPrefix character. path and prefix of output plots names. If NA, no plot will be drawn.
 #' @param signal character. name of a DyadSignal contained in x.
 #' @param sync character. Name of a synchronization object. E.g. PMBest, or CCFBest
-#' @param stream character. Name of a rats object contained within sync
+#' @param series character. Name of a rats object contained within sync
 #' @param category character. Name of a DyadCategory object contained in x
 #' @param categoryIndex character. Name of a factor column in 'category'.
 #' @param absolute logical. should the series be transformed to absolute values?
@@ -16,7 +16,7 @@
 #' @param keepOnly vector of characters denoting if only given categories must be analyzed. Eg: c("cat1","cat2").
 #' @param nIter integer. Number of random extractions.
 #' @param rotate if true windows are extracted from a randomly shifted timeseries. This is better TRUE.
-#' @param extract_from Either "all", or "remaining". Should new extractions be done randomly from the whole stream or only on non-categorized parts.
+#' @param extract_from Either "all", or "remaining". Should new extractions be done randomly from the whole series or only on non-categorized parts.
 #' @param epochSummaryFUN String. the function used to summarize EACH epoch's time-series to a single value. Suggested: median.
 #' @param centralityFUN  String. A centrality function used to synthetize the distribution of ALL epochs. Suggested: median.
 #' @param dispersionFUN  String. A dispersion function used to synthetize the distribution of ALL epochs. Suggested: MAD
@@ -37,7 +37,7 @@ categoryPerm = function(x,
                         plotPrefix,
                         signal,
                         sync,
-                        stream,
+                        series,
                         category,
                         categoryIndex,
                         keepOnly = c(), #
@@ -72,7 +72,7 @@ categoryPerm = function(x,
   # plotPrefix = paste0("permplottest_")
   # signal="SC"
   # sync="amico2";sync="PMdev"
-  # stream="sync"
+  # series="sync"
   # category = "IM"
   # categoryIndex = "tipo"
   # # keepOnly = c("SI") #
@@ -98,18 +98,18 @@ categoryPerm = function(x,
   d3 = x
   if(absolute){
     for(i in 1:length(d3)){
-      d3[[i]][[signal]][[sync]][[stream]] = abs(d3[[i]][[signal]][[sync]][[stream]])
+      d3[[i]][[signal]][[sync]][[series]] = abs(d3[[i]][[signal]][[sync]][[series]])
     }
   }
-  samplesPerSec = sapply(d3, function(x){frequency(x[[signal]][[sync]][[stream]])})
+  samplesPerSec = sapply(d3, function(x){frequency(x[[signal]][[sync]][[series]])})
   samplesPerSec = unique(samplesPerSec)
-  if(length(samplesPerSec)>1) stop("multiple frequencies detected for selected stream in different DyadSessions:\r\n",samplesPerSec)
+  if(length(samplesPerSec)>1) stop("multiple frequencies detected for selected series in different DyadSessions:\r\n",samplesPerSec)
   cat("\r\nSEGMENTING BY EPOCH:\r\n")
-  d4 = epochStream(d3, signal=signal, sync=sync,stream = stream,
+  d4 = epochSeries(d3, signal=signal, sync=sync,series = series,
                    category=category,categoryIndex=categoryIndex, mergeEpochs = F, artefact.rm=F)
   
-  resName = paste0(c(toupper(category), "_", totitle(c(sync,stream))),collapse = "")
-  ex2 = extractEpochs (d4, signal=signal, sync=sync, stream=stream,
+  resName = paste0(c(toupper(category), "_", totitle(c(sync,series))),collapse = "")
+  ex2 = extractEpochs (d4, signal=signal, sync=sync, series=series,
                        category=category, categoryIndex=categoryIndex)
   lN   = unlist(lapply(ex2,length))
   
@@ -228,7 +228,7 @@ categoryPerm = function(x,
     
     if(extract_from =="all") {
       #estrai tutti i segnali sync delle sedute e togli i NA
-      full_from = lapply(d4, function(x) as.numeric(x[[signal]][[sync]][[stream]]))
+      full_from = lapply(d4, function(x) as.numeric(x[[signal]][[sync]][[series]]))
       full_from = do.call("c",full_from)
       full_from = full_from[!is.na(full_from)]
     } else if(extract_from =="remaining")  {
@@ -502,7 +502,7 @@ categoryPerm = function(x,
       
       plot(-99999,
            main=paste0(categoryIndex," - ", tipo2,"\nPermutation test on ",nIter," extractions of of ",n, " random epochs each"),
-           xlab=paste(epochSummaryFUN, stream), ylab = "Density",
+           xlab=paste(epochSummaryFUN, series), ylab = "Density",
            cex.main = 0.9, yaxt="n",
            ylim = c(minY*2,maxY*2),
            xlim=c(xmin,xmax))
@@ -565,7 +565,7 @@ print.DyadCatPerm = function (x, ...) {
   cat0("\r\nAfter ",pa$nIter, " permutations of \"",pa$category, " - ",pa$categoryIndex,
        "\" categories,\r\nthe probability of superiority of observed ",pa$centralityFUN,"s to chance,",
        "\r\nunder the null hypothesis, of no temporal association between\r\n",
-       pa$stream, " and ", pa$category," were:\r\n\r\n")
+       pa$series, " and ", pa$category," were:\r\n\r\n")
   c0 = names(x)
   c1 = unlist(lapply(x, \(x)x$pvalue))
   c2 = unlist(lapply(x, \(x)x$cohensBest))

@@ -1,5 +1,5 @@
 # This new (old) approach, instead of getting a summary(e.g. median) for each occurrence of an epoch (or category),
-# first pastes together the stream correspoding to each epoch and THEN calculates the summarizing function
+# first pastes together the series correspoding to each epoch and THEN calculates the summarizing function
 # no results on IM
 #This approach may actually flatten up the results as given synchrony high variability,
 # the median of a long segment tends to be the same, independently on how much synchrony was observed.
@@ -7,16 +7,16 @@
 
 
 
-#' Extract stream chunks corresponding to epochs
+#' Extract series chunks corresponding to epochs
 #' 
-#' epochStream cycles through all sessions in an experiment.
-#' For each session extracts a stream, then cuts it
+#' epochSeries cycles through all sessions in an experiment.
+#' For each session extracts a series, then cuts it
 #' according to categories epochs
 #'
 #' @param x a DyadExperiment object
 #' @param signal  string. The name of a DyadSignal present in x
-#' @param sync If missing, stream is searched in the signal (s1, s2, ...). If specified, stream is searched within a sync object (PMBdev, CCFBest, ...). 
-#' @param stream 
+#' @param sync If missing, series is searched in the signal (s1, s2, ...). If specified, series is searched within a sync object (PMBdev, CCFBest, ...). 
+#' @param series 
 #' @param category 
 #' @param categoryIndex 
 #' @param artefact.rm 
@@ -28,18 +28,18 @@
 #' @export
 #'
 #' @examples
-epochStream = function(x, signal, sync, stream, category, categoryIndex,
+epochSeries = function(x, signal, sync, series, category, categoryIndex,
                        mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0){
-  UseMethod("epochStream", x)
+  UseMethod("epochSeries", x)
 }
 
 #' @export
-epochStream.DyadExperiment = function(x, signal, sync, stream, category, categoryIndex,
+epochSeries.DyadExperiment = function(x, signal, sync, series, category, categoryIndex,
                                       mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0){
   for(nSession in seq_along(x)){
     session = x[[nSession]]
     prog(nSession, length(x))
-    x[[nSession]] = epochStream(x[[nSession]], signal=signal, sync=sync, stream=stream,
+    x[[nSession]] = epochSeries(x[[nSession]], signal=signal, sync=sync, series=series,
                 category=category, categoryIndex=categoryIndex, mergeEpochs=mergeEpochs,
                 artefact.rm=artefact.rm, shift_start=shift_start, shift_end=shift_end )
   }
@@ -48,7 +48,7 @@ epochStream.DyadExperiment = function(x, signal, sync, stream, category, categor
 }
 
 #' @export
-epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIndex, mergeEpochs, artefact.rm, shift_start, shift_end){
+epochSeries.DyadSession = function(x, signal, sync, series, category, categoryIndex, mergeEpochs, artefact.rm, shift_start, shift_end){
   # print(match.call())
   # print(missing(sync))
   # if(!missing(sync)) print(str(sync))
@@ -60,7 +60,7 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
   # ziobilly = x$SC$amico2$sync
   # attributes(ziobilly) = NULL
   # x$SC$amico2$sync = rats(ziobilly, start=start(x$SC$amico2$sync)[1], frequency = frequency(x$SC$amico2$sync))
-  # stream = "sync"
+  # series = "sync"
   # category="IM"
   # categoryIndex="micro"
   # mergeEpochs = F
@@ -74,25 +74,25 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
   }else if(! sync %in% names(x[[signal]])){
       stop ('sync was ',sync,' and should be one of: ',paste(goodSyncs,collapse = " "))
   }
-  resName = paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},stream)),collapse = "")
+  resName = paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},series)),collapse = "")
 
-  #select stream according to sync and streamkey
+  #select series according to sync and serieskey
   if(!missing(sync)){
-    goodStreams = names(x[[signal]][[sync]])[sapply(x[[signal]][[sync]],is.rats)]
-    if(length(goodStreams) == 0) stop ("'sync' argument must point to a list containing 'stream'")
-    if(!stream %in% goodStreams) stop ('stream was ',stream,' and should be one of:',paste(goodStreams,collapse = " "))
-    xstream = x[[signal]][[sync]][[stream]]
+    goodSeries = names(x[[signal]][[sync]])[sapply(x[[signal]][[sync]],is.rats)]
+    if(length(goodSeries) == 0) stop ("'sync' argument must point to a list containing 'series'")
+    if(!series %in% goodSeries) stop ('series was ',series,' and should be one of:',paste(goodSeries,collapse = " "))
+    xseries = x[[signal]][[sync]][[series]]
   } else {
-    goodStreams = names(x[[signal]])[sapply(x[[signal]],is.rats)]
-    if(!stream %in% goodStreams) stop ("stream was ", stream," and should be one of:",goodStreams )
-    xstream = x[[signal]][[stream]]
+    goodSeries = names(x[[signal]])[sapply(x[[signal]],is.rats)]
+    if(!series %in% goodSeries) stop ("series was ", series," and should be one of:",goodSeries )
+    xseries = x[[signal]][[series]]
   }
 
-  ## remove Artefacts windows from xstream, if any
+  ## remove Artefacts windows from xseries, if any
   if( artefact.rm && nrow(x[[signal]]$artefacts)>0 ){
     for(i in 1:nrow(x[[signal]]$artefacts)){
       # cat("\r\n",x[[signal]]$artefacts$start[i], " ", x[[signal]]$artefacts$end[i])
-      window(xstream, start=x[[signal]]$artefacts$start[i],end=x[[signal]]$artefacts$end[i]) <- NA
+      window(xseries, start=x[[signal]]$artefacts$start[i],end=x[[signal]]$artefacts$end[i]) <- NA
     }
 
   }
@@ -101,11 +101,12 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
   #applica gli shift
   cate$start = cate$start + shift_start
   cate$end = cate$end + shift_end
-  if(!is.factor(cate[[categoryIndex]])) stop("categoryIndex must be a factor column in the ",category,"'s epochs table")
+  # print(str(cate))
+  if(!is.factor(cate[[categoryIndex]])) stop("categoryIndex must be a factor column in the ",category,"'s epochs table. This are the values:", paste(colnames(cate[which(is.factor(cate))]),collapse = " ") )
   resList = list()
   #istanzia i contenitori vuoti per ciascun livello
   for(lev in levels(cate[[categoryIndex]])){
-    # dur = sum((cate[cate[[categoryIndex]]==lev,"end"] - cate[cate[[categoryIndex]]==lev,"start"] )*frequency(xstream))
+    # dur = sum((cate[cate[[categoryIndex]]==lev,"end"] - cate[cate[[categoryIndex]]==lev,"start"] )*frequency(xseries))
     if(mergeEpochs)
       resList[[lev]]=numeric()
     else
@@ -113,36 +114,36 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
   }
   names(resList) = levels(cate[[categoryIndex]])
 
-  remStream = xstream
+  remSeries = xseries
   i=1
   for(i in 1:nrow(cate)){ #for each epoch
     if(!is.na(cate[[categoryIndex]][i]) && !is.null(cate[[categoryIndex]][i])) {
-      if(cate$start[i]>=end(xstream)[1]){
-        warning("In session ", dyadId(x),"-",sessionId(x), ", start of window ",i,": was equal to or beyond the stream end.", call.=F)
+      if(cate$start[i]>=end(xseries)[1]){
+        warning("In session ", dyadId(x),"-",sessionId(x), ", start of window ",i,": was equal to or beyond the series end.", call.=F)
         # lres[[i]] = NA
-      } else { #if start is before the end of xstream, as it should...
+      } else { #if start is before the end of xseries, as it should...
 
         #if (by applying shift_start) cate$start is before the signal start, create a NA padding
-        if(cate$start[i]<start(xstream)){
+        if(cate$start[i]<start(xseries)){
           padding = rats(start = cate$start[i],
-                     end = start(xstream), 
-                     frequency = frequency(xstream),
-                     timeUnit=timeUnit(xstream), unit=unit(xstream))
-          cate$start[i] = start(xstream)
+                     end = start(xseries), 
+                     frequency = frequency(xseries),
+                     timeUnit=timeUnit(xseries), unit=unit(xseries))
+          cate$start[i] = start(xseries)
         } else padding = NULL
 
-        #if end goes beyond the xstream duration...
-        if(cate$end[i] > end(xstream)[1] ){
-          message("In session ", dyadId(x),"-",sessionId(x), ", end of window ",i,": was reduced to the stream end.\n")
-          cate$end[i]= end(xstream)[1]
+        #if end goes beyond the xseries duration...
+        if(cate$end[i] > end(xseries)[1] ){
+          message("In session ", dyadId(x),"-",sessionId(x), ", end of window ",i,": was reduced to the series end.\n")
+          cate$end[i]= end(xseries)[1]
         }
 
-        # rimuovi la finestra dallo stream di segnale residuo remStream:
-        window(remStream, start = cate$start[i], end = cate$end[i]) <- NA ## broken?
+        # rimuovi la finestra dallo series di segnale residuo remSeries:
+        window(remSeries, start = cate$start[i], end = cate$end[i]) <- NA ## broken?
 
 
         #aggiungi la finestra al vettore di resList corrispondente al livello di categoryIndex
-        win = window(xstream, start = cate$start[i], end = cate$end[i])
+        win = window(xseries, start = cate$start[i], end = cate$end[i])
         win = c(padding, win)
 
         resList[[cate[[categoryIndex]][i]]] = c(resList[[cate[[categoryIndex]][i]]], list(win))
@@ -152,7 +153,7 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
     }
   }
   if(mergeEpochs){
-    resList[["remaining"]] = list(na.omit(remStream))
+    resList[["remaining"]] = list(na.omit(remSeries))
     trueResList = resList
     resList = trueResList
     for(i in 1:length(resList)){
@@ -160,8 +161,8 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
         resList[[i]] = do.call(c, resList[[i]])
     }
   } else {
-    remStream = as.numeric(remStream)
-    resList[["remaining"]] = list(remStream)
+    remSeries = as.numeric(remSeries)
+    resList[["remaining"]] = list(remSeries)
 }
   #save object
   x[[signal]][[resName]] = resList
@@ -174,36 +175,33 @@ epochStream.DyadSession = function(x, signal, sync, stream, category, categoryIn
 #' @param experiment 
 #' @param signal 
 #' @param sync 
-#' @param stream 
+#' @param series 
 #' @param category the category used to 
-#' @param epochStreamName deprecated. use sync, streamkey, category
 #' @param by currently unused. In future will be used to split the data by experimental group, participant, or any other relevant condition
 #' @param FUN 
 #' @param ... 
 #'
 #' @description  This function extracts the selected epochs from every session of a "DyadExperiment" object and puts them in
-#'  a simple list. Categories must be created with epochStream() beforehand.
+#'  a simple list. Categories must be created with epochSeries() beforehand.
 #' @export
-extractEpochs = function(experiment, signal, sync, stream, category, categoryIndex, by, ...){
+extractEpochs = function(experiment, signal, sync, series, category, categoryIndex, by, ...){
   if(!missing("by")) stop("by is not implemented yet.")
   UseMethod("extractEpochs",experiment) 
 }
 
 #' @export
-extractEpochs.DyadExperiment = function(experiment, signal, sync, stream, category, categoryIndex, by,   ...){
-  #deleteme @OBSOLETE
-  # if(!missing(epochStreamName)) stop("epochStreamName is obsolete. Specify sync, stream, category, categoryIndex instead.")
-  if(missing(category) | missing(categoryIndex) | missing(stream)){
-      stop("category, categoryIndex, stream, must all be specified")
+extractEpochs.DyadExperiment = function(experiment, signal, sync, series, category, categoryIndex, by,   ...){
+  if(missing(category) | missing(categoryIndex) | missing(series)){
+      stop("category, categoryIndex, series, must all be specified")
   }
-  epochsName = paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},stream)),collapse = "")
-  resName =    paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},stream)),collapse = "")
+  epochsName = paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},series)),collapse = "")
+  resName =    paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},series)),collapse = "")
   
 
   #check names
   keepNames = unique(unlist(lapply (experiment, function(session){
     goodNames = names(session[[signal]])[!sapply(session[[signal]],is.sync) & !sapply(session[[signal]],is.rats)]
-    if(! epochsName %in% goodNames) stop(epochsName, " was not found in session. Have you run epochStream() beforehand? Do you need to specify sync? Found names: ", paste0(goodNames,collapse=" ") )
+    if(! epochsName %in% goodNames) stop(epochsName, " was not found in session. Have you run epochSeries() beforehand? Do you need to specify sync? Found names: ", paste0(goodNames,collapse=" ") )
     
     names(session[[signal]][[epochsName]])
   })))
