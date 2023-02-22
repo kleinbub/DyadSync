@@ -15,6 +15,12 @@ knitr::opts_chunk$set(echo = TRUE)
   * all dyadstream and ts objects have been replaced by ~~rats! uwu
   * all @TSBUG errors should have been fixed.
     * These elements where searched: @TSBUG tss tse xstart xend tsp ts start end startend sampRate(  DyadStream    
+  * categoriesPermutation
+    *   has been given parallelization treatment, better plot, and now can export the data
+    *   results are now saved in a returned object
+    *   plot has been improved
+    *   the padding between random windows is now more random.
+  * all mentions of "streams" have been replaced by "series". Notably in the functions epochStream, extractEpochs, categoryPerm
 
 ## v.1.2.0.9001
 #### 2022/12/01
