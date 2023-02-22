@@ -256,8 +256,6 @@ setArtefacts.DyadSignal <- function(x, startEnd) {
 ############################################################################################################
 ############################################################################################################
 
-#' @export
-signalDecimate = function (signal, newSampRate) {stop("this function has been deprecated. Use resample and signalFilter instead")}
 
 
 #' resample
