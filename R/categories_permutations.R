@@ -92,7 +92,7 @@ categoryPerm = function(x,
   # #graphic settings
   # xlim = c(-1,1);xlim = "auto"
   # d3=d2
-  # keepOnly = c()
+  # keepOnly = c("Reconceptualization")
   ###
   
   d3 = x
@@ -115,6 +115,7 @@ categoryPerm = function(x,
   
   ## keep only selected categories
   if(length(keepOnly)>0){
+    keepOnly = c(keepOnly, "remaining")
     ex2 = ex2[keepOnly]
   }
   ex2 = ex2[sapply(ex2,length)>0]
@@ -168,6 +169,7 @@ categoryPerm = function(x,
   
   #create a nice report
   lLab = names(ex2)
+  lN = lN[lLab]
   lN2   = unlist(lapply(ex2,length))
   lkept = !logical(length(ex2))
   lkept[toRemove] = FALSE
