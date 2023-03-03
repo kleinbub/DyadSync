@@ -175,7 +175,14 @@ rats = function(data, start=0, end, duration, frequency=1, period,
 
 
   #generate the time values
-  x = seq(start,end-period,by=period)
+  if(length(start)  >0 && !is.na(start)  &&
+     length(end)    >0 && !is.na(end)    &&
+     length(period) >0 && !is.na(period)
+     ){
+    x = seq(start,end-period,by=period)
+  } else{
+    x = numeric()
+  }
   n = length(x)
   
   if(!missing(data) && length(data)>0){
@@ -185,7 +192,7 @@ rats = function(data, start=0, end, duration, frequency=1, period,
     y = data
   } else {
     #generate empty data
-    y = rep(NA, n)
+    y = as.numeric(rep(NA, n))
   }
   res = y
   
@@ -231,6 +238,11 @@ is.rats = function(x){inherits(x,"rats") && length(x)}
 #' #Replace values within a window
 #' window(x, start=0.21, end=0.5) = 99 
 #' 
+#' 
+# win = window(xseries, start = cate$start[i], end = cate$end[i])
+# x = xseries
+# start = cate$start[i]
+# end = cate$end[i]
 window.rats = function(x, start, end, duration){
   
   #se tutti e tre, devono essere coerenti
@@ -349,7 +361,9 @@ str.rats = function(x){
 #' @export
 print.rats = function(x, vals=20, digits= 4){
   cat0("~~rats time series ")
-  cat0("from ",attr(x,"start"), " to ",attr(x,"end"))
+  if(length(attr(x,"start")) >0 && !is.na(attr(x,"start")))
+    cat0("from ",attr(x,"start"), " to ",attr(x,"end"))
+  else cat0("of length 0")
   if(attr(x,"frequency") >=1){
     cat0(" | ",attr(x,"frequency")," samples per ",attr(x, "timeUnit"))
   } else {
@@ -385,10 +399,17 @@ print.rats = function(x, vals=20, digits= 4){
     
   } else {
     #print them all
-    toprint = 1:length(time(x))
-    valz = x[toprint]
-    if(is.numeric(valz)) valz = round(valz, digits)
-    k = rbind("values"=valz,"time"=round(time(x)[toprint],digits))
+    if(length(time(x))==0){
+      toprint = numeric()
+      k = rbind("values"="numeric(0)","time"="numeric(0)")
+      
+    } else {
+      toprint = 1:length(time(x))
+      valz = x[toprint]
+      if(is.numeric(valz)) valz = round(valz, digits)
+      k = rbind("values"=valz,"time"=round(time(x)[toprint],digits))
+    }
+
   }
   k = as.data.frame(k)
   colnames(k)=NULL
