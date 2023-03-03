@@ -62,10 +62,10 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F, ...){
       x = as.numeric(gsub("[[:alpha:]]","", ax))
       if(is.na(x)){
         warning("No numeric information was found for session identifier '", ax, "' in signal ",shortNames[i],". Please check filenames and idOrder and idSep arguments:\r\n", call.=F)
-        ax
-      } else lead0(x,4)
+        return(ax)
+      } else return(x)
     })
-  } else sess = as.list(rep("0001",nFiles))
+  } else sess = as.list(rep(1,nFiles))
   
   
   #if sessions are specified, check their order
@@ -82,11 +82,10 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F, ...){
         if(sum(duplicated(x)) != length(unique(x))) stop ("Uncomplete dyad ", i,":\r\n", paste(x," ") )
         x = x[seq(1,length(x)-1,by=2)]
       }
-      x = as.numeric(x)
       ifelse(length(x)>1,diff(x),1) #if there are multiple sessions with the same id, check that they are in progressive order
     }, split(unlist(sess),unlist(dyadIds)), unique(unlist(dyadIds) ) )
     if(any(deltaSess<=0))
-      warning("The sessions may not be in sequential order, please check file names:\r\n",paste0("\r\n",shortNames,"\t",nCheck),call. = F)
+      warning("Session numbers are not in sequential order, this usually indicates an error. Please check the file names:\r\n",paste0("\r\n",shortNames,"\t",nCheck),call. = F)
   }
   
   

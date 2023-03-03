@@ -187,6 +187,8 @@ setArtefacts.DyadExperiment <- function(x, startEnd, signal) {
     }}
   cat("\r\n† artefacts times beginning before signal's start time were trimmed")
   cat("\r\n* artefacts times ending after signal's end time were trimmed")
+  cat("\r\n§ non numeric values were coherced to start or end")
+  
   cat("\r\n")
   
   if(nClean == 0) warning("no sessions were affected. Maybe check dyadId and sessionId in both DyadExperiment object and startEnd dataset")
@@ -214,20 +216,14 @@ setArtefacts.DyadSignal <- function(x, startEnd) {
   } else stop("startEnd must be a list or dataframe")
   
   
-  # if(!all.equal(names(sel),c('start', 'end')) ) stop("startEnd names must be 'start','end'")
   ref = 0
-  fromStart = grepl("start|inizio",sel[,4],ignore.case = T)
-  toEnd =    grepl("end|fine",sel[,4],ignore.case = T)
+  fromStart = sapply(sel$start, \(x)grepl("[[:alpha:]]", x,ignore.case = T) || is.na(x))
+  toEnd  =    sapply(sel$end,   \(x)grepl("[[:alpha:]]", x,ignore.case = T) || is.na(x))
+  sel$start[fromStart] = start(x)
+  sel$end[toEnd] = end(x)
   
-  suppressWarnings({
-    xstart = timeMaster(sel$start, out="s")
-    xend   = timeMaster(sel$end,   out="s")
-  })
-  xstart[fromStart] = start(x)
-  xend[toEnd] = end(x)
-  sel$start = xstart
-  sel$end = xend
-
+  sel$start = timeMaster(sel$start, out="s")
+  sel$end   = timeMaster(sel$end,   out="s")
 
   
   #check for artefact start lower than signal start
@@ -241,6 +237,10 @@ setArtefacts.DyadSignal <- function(x, startEnd) {
     cat(" *")
     # cat("* artefacts times ending after signal's end time were trimmed.")
     sel[sel$end > end(x),] = end(x)
+  }
+  if(any(fromStart) || any(toEnd)){
+    cat(" §")
+    # cat("§ non numeric values were coherced to start or end")
   }
   
   
