@@ -69,12 +69,13 @@ categoryPerm = function(x,
   ####DEBUG
   # rm(list=ls())
   # load("A:/OneDrive - Università degli Studi di Padova/__Ricerche/2022_IM_paper/IM_engine_2023_amico2_v2.RData")
+  # load("C:/Users/Kleinbub/OneDrive - Università degli Studi di Padova/__Ricerche/2021_biofeedback validation/BIOFEEDBACK LAB/SD_engine_v2.RData")
   # plotPrefix = paste0("permplottest_")
-  # signal="SC"
-  # sync="amico2";sync="PMdev"
+  # signal="zaki"
+  # sync="CCFBest";#sync="PMdev"
   # series="sync"
-  # category = "IM"
-  # categoryIndex = "tipo"
+  # category = "SELF"
+  # categoryIndex = "SELF"
   # # keepOnly = c("SI") #
   # minEpochSec = 3 #
   # minOccurrences = 5 #
@@ -177,6 +178,7 @@ categoryPerm = function(x,
              "all NAs" = infoNA, "too short"=infoRm, "final n" = lN2, "enough.obs"=lkept,
              row.names = NULL)
   report = report[!report[,1]=="remaining",]
+  cat("\r\n")
   print(report,row.names = FALSE)
   #remove from removelist
   if(length(toRemove)>0) ex2 = ex2[-toRemove]
@@ -199,7 +201,7 @@ categoryPerm = function(x,
   names(exRan) = toPlot
   cat("\r\nANALYZING:\r\n")
   for(tipo2 in toPlot){
-    # tipo2 = toPlot[3] ## <-----------------------------------------------####
+    # tipo2 = toPlot[1] ## <-----------------------------------------------####
     # print(tipo2)
     #remove NAs should be superfloous
     ex2[[tipo2]] = ex2[[tipo2]][sapply(ex2[[tipo2]], function(x){!all(is.na(x))})] #da FALSE solo se tutta la finestra è NA
@@ -311,7 +313,26 @@ categoryPerm = function(x,
         rstart[i:n] = rstart[i:n] + pads[i]
         rend[i:n] = rend[i:n] + pads[i]
       }
-
+      
+      #se rfrom è più corto del numero totale di finestre da cui vogliamo estrarre 
+      #sposta a caso le finestre 
+      if(any(rstart<0)){
+        warning("The observed windows were longer than the available random extraction pool.
+Please check if you have very long epochs and extractFrom=\"remaining\". Otherwise please report this as a bug")
+        toshift = which(rstart<0)
+        minshift = abs(rstart[toshift])+1
+        maxshift=max_from-(rend[toshift]- rstart[toshift])
+        fshift = numeric(length(toshift))
+        for(z in 1:length(toshift)){fshift[z] = round(runif(1,min=minshift[z], max =maxshift[z]))}
+        rstart[toshift] = rstart[toshift] +fshift
+        rend[toshift] = rend[toshift] +fshift
+        
+        #se ci sono delle finestre di lunghezza 0 rendile di lunghezza 1
+        # toshift = which(rend==rstart)
+      }
+     
+      
+      
       durDelta = abs(sum(rend-rstart) - sum(durReal))
       if(durDelta > sum(durReal)*0.05) warning("random duration was very small")
       
