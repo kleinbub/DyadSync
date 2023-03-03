@@ -264,7 +264,6 @@ window.rats = function(x, start, end, duration){
   }
   # stop ("at least two between start, end, and duration must be specified")
   
-  if(signif(duration*frequency(x),6)%%1 != 0) stop("Duration must be a multiple of sampling rate")
   if(start < start(x) | end > end(x)) stop("The window was outside of the rats data boundary")
   
   cutter = which(time(x) >= start & time(x) < end )
