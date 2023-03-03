@@ -23,68 +23,76 @@
 #' @param mergeEpochs 
 #' @param shift_start integer in seconds (e.g. -5 shifts all epoch starts by 5 seconds before )
 #' @param shift_end integer in seconds (e.g. 7 shifts all epoch end by 7 seconds later )
+#' @param summaryFUN 
+#' @param ... 
 #'
 #' @return
 #' @export
 #'
 #' @examples
 epochSeries = function(x, signal, sync, series, category, categoryIndex,
-                       mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0){
+                       mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0,
+                       summaryFUN="median", ...){
   UseMethod("epochSeries", x)
 }
 
 #' @export
 epochSeries.DyadExperiment = function(x, signal, sync, series, category, categoryIndex,
-                                      mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0){
+                                      mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0,
+                                      summaryFUN="median", ...){
   for(nSession in seq_along(x)){
     session = x[[nSession]]
     prog(nSession, length(x))
     x[[nSession]] = epochSeries(x[[nSession]], signal=signal, sync=sync, series=series,
                 category=category, categoryIndex=categoryIndex, mergeEpochs=mergeEpochs,
-                artefact.rm=artefact.rm, shift_start=shift_start, shift_end=shift_end )
+                artefact.rm=artefact.rm, shift_start=shift_start, shift_end=shift_end,
+                summaryFUN = summaryFUN, ...)
   }
 
   return(x)
 }
 
 #' @export
-epochSeries.DyadSession = function(x, signal, sync, series, category, categoryIndex, mergeEpochs, artefact.rm, shift_start, shift_end){
+epochSeries.DyadSession = function(x, signal, sync, series, category, categoryIndex,
+                                   mergeEpochs, artefact.rm, shift_start, shift_end,
+                                   summaryFUN, ...){
   # print(match.call())
   # print(missing(sync))
   # if(!missing(sync)) print(str(sync))
   ##DEBUG
+  # rm(list=ls())
+  # library(DyadSync)
+  # load("C:/Users/Kleinbub/OneDrive - Università degli Studi di Padova/__Ricerche/2021_biofeedback validation/BIOFEEDBACK LAB/SD_engine_v2.RData")
   # x = d2[[1]]
-  # signal="SC"
-  # x$SC$artefacts = rbind(data.frame(start=c(160,300), end=c(200,400)),x[[signal]]$artefacts)
-  # sync="amico2"
-  # ziobilly = x$SC$amico2$sync
-  # attributes(ziobilly) = NULL
-  # x$SC$amico2$sync = rats(ziobilly, start=start(x$SC$amico2$sync)[1], frequency = frequency(x$SC$amico2$sync))
+  # signal="zaki"
+  # sync="CCFBest"
   # series = "sync"
-  # category="IM"
-  # categoryIndex="micro"
+  # category="SELF"
+  # categoryIndex="SELF"
   # mergeEpochs = F
   # artefact.rm=T
-  # shift_start = -2
-  # shift_end = 2
+  # shift_start = 0
+  # shift_end = 0
+  # summaryFUN = "median"
   ###
+  summaryFUN = match.fun(summaryFUN)
   goodSyncs = names(x[[signal]])[sapply(x[[signal]],is.sync)]
   if(missing(sync)){
 
   }else if(! sync %in% names(x[[signal]])){
       stop ('sync was ',sync,' and should be one of: ',paste(goodSyncs,collapse = " "))
   }
-  resName = paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},series)),collapse = "")
+  resName = paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},"_",series)),collapse = "")
 
   #select series according to sync and serieskey
   if(!missing(sync)){
     goodSeries = names(x[[signal]][[sync]])[sapply(x[[signal]][[sync]],is.rats)]
     if(length(goodSeries) == 0) stop ("'sync' argument must point to a list containing 'series'")
-    if(!series %in% goodSeries) stop ('series was ',series,' and should be one of:',paste(goodSeries,collapse = " "))
+    if(!series %in% goodSeries) stop ('series was ',series,' and should be one of:\r\n',paste(goodSeries,collapse = " "))
     xseries = x[[signal]][[sync]][[series]]
   } else {
     goodSeries = names(x[[signal]])[sapply(x[[signal]],is.rats)]
-    if(!series %in% goodSeries) stop ("series was ", series," and should be one of:",goodSeries )
+    if(!series %in% goodSeries) stop ("series was ", series," and should be one of:\r\n",goodSeries )
     xseries = x[[signal]][[series]]
   }
 
@@ -106,6 +114,7 @@ epochSeries.DyadSession = function(x, signal, sync, series, category, categoryIn
   resList = list()
   #istanzia i contenitori vuoti per ciascun livello
   for(lev in levels(cate[[categoryIndex]])){
+    # lev = levels(cate[[categoryIndex]])[1]
     # dur = sum((cate[cate[[categoryIndex]]==lev,"end"] - cate[cate[[categoryIndex]]==lev,"start"] )*frequency(xseries))
     if(mergeEpochs)
       resList[[lev]]=numeric()
@@ -144,7 +153,11 @@ epochSeries.DyadSession = function(x, signal, sync, series, category, categoryIn
 
         #aggiungi la finestra al vettore di resList corrispondente al livello di categoryIndex
         win = window(xseries, start = cate$start[i], end = cate$end[i])
-        win = c(padding, win)
+        if(!is.null(padding)){
+          win = c(padding, win)
+        }
+        cn = paste0(c(sync, series, categoryIndex),collapse="_")
+        x[[category]][i,cn] = summaryFUN(as.numeric(na.omit(win)), ...)
 
         resList[[cate[[categoryIndex]][i]]] = c(resList[[cate[[categoryIndex]][i]]], list(win))
         names(resList[[cate[[categoryIndex]][i]]])[length(resList[[cate[[categoryIndex]][i]]])] = paste0(dyadId(x),sessionId(x),"|",cate$start[i], "-",cate$end[i])
@@ -194,9 +207,7 @@ extractEpochs.DyadExperiment = function(experiment, signal, sync, series, catego
   if(missing(category) | missing(categoryIndex) | missing(series)){
       stop("category, categoryIndex, series, must all be specified")
   }
-  epochsName = paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},series)),collapse = "")
-  resName =    paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},series)),collapse = "")
-  
+  epochsName = paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},"_",series)),collapse = "")
 
   #check names
   keepNames = unique(unlist(lapply (experiment, function(session){
