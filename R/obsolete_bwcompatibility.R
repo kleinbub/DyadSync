@@ -16,6 +16,8 @@
 # 
 ## legacyPeakFinder is an old version of peakFinder not implementing max time
 legacyPeakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both"), correctionRangeSeconds = 0.5){
+  which.minmax = function(x, pv){if(pv=="p") which.max(x) else if(pv=="v") which.min(x)}
+  
   sampRate = frequency(x)
   smooth_x = signal::sgolayfilt(x,  p =sgol_p, n = sgol_n, m=0)
   fdderiv1  = diff(smooth_x)

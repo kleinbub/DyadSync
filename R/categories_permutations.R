@@ -20,7 +20,7 @@
 #' @param epochSummaryFUN String. the function used to summarize EACH epoch's time-series to a single value. Suggested: median.
 #' @param centralityFUN  String. A centrality function used to synthetize the distribution of ALL epochs. Suggested: median.
 #' @param dispersionFUN  String. A dispersion function used to synthetize the distribution of ALL epochs. Suggested: MAD
-#' @param forceMaxPads logical. If true the random epochs are evenly spaced across the whole data. This is for retrocompatibility only. Keep disabled.
+#' @param forceMaxPads This is for retrocompatibility only. It has no effect and will be removed in further versions.
 #' @param returnData logical. Should the data be returned?
 #' @param credibilityMass 
 #' @param nLines 
@@ -54,7 +54,7 @@ categoryPerm = function(x,
                         epochSummaryFUN = c("mean","median")[2],
                         centralityFUN = c("mean","median")[2],
                         dispersionFUN = c("sd","mad")[2],
-                        forceMaxPads = FALSE,
+                        forceMaxPads = NULL, #@obsolete
                         
                         #analyses settings
                         credibilityMass = 0.89,
@@ -300,11 +300,14 @@ categoryPerm = function(x,
       seed = runif(n,0,1)
       seed = seed/sum(seed) #all the seeds sum to 1
       pads = floor(seed*maxgap) #now all pads summed are circa maxgap
-      if(!forceMaxPads){
-        # @OBSOLETE this should just be the ONLY behaviour. remove the if.
-        scaler = runif(n, 0,1) #each pad is scaled randomly from 0 to 100%
-        pads = floor(pads*scaler)
-      }
+      pads
+      # if(!forceMaxPads){
+      #   # @OBSOLETE this should just be the ONLY behaviour. remove the if.
+      #   # I am not really sure anymore. please triple check this before doing any change
+      #   scaler = runif(n, 0,1) #each pad is scaled randomly from 0 to 100%
+      #   pads = floor(pads*scaler)
+      # }
+      pads
 
       
       #sposta xstart e xend
@@ -404,8 +407,8 @@ Please check if you have very long epochs and extractFrom=\"remaining\". Otherwi
     
     cat("\rExtracting values ...")
     #extract output elements
-    cohenlist = unlist(lapply(resList, \(x){x$cohe}))
-    cohenlist = cohenlist[!is.na(cohenlist)]
+    cohensList = unlist(lapply(resList, \(x){x$cohe}))
+    cohensList = cohensList[!is.na(cohensList)]
     
     clifflist = unlist(lapply(resList, \(x){x$cliff}))
     clifflist = clifflist[!is.na(clifflist)]
@@ -441,9 +444,9 @@ Please check if you have very long epochs and extractFrom=\"remaining\". Otherwi
         centralityFUN   = centralityFUN,
         dispersionFUN   = dispersionFUN,
         
-        cohensList = cohenlist,
-        cohensHDR  = hdrcde::hdr(cohenlist,credibilityMass*100)$hdr,
-        cohensBest = hdrcde::hdr(cohenlist,credibilityMass*100)$mode,
+        cohensList = cohensList,
+        cohensHDR  = hdrcde::hdr(cohensList,credibilityMass*100)$hdr,
+        cohensBest = hdrcde::hdr(cohensList,credibilityMass*100)$mode,
         
         cliffsList = clifflist,
         cliffsHDR  = hdrcde::hdr(clifflist,credibilityMass*100)$hdr,
@@ -554,8 +557,8 @@ Please check if you have very long epochs and extractFrom=\"remaining\". Otherwi
       
       ## Kruschke, 2014 for .89 HDI
       plotHDI(ranCentraList,lwd=3,y=0, h.len=maxY/100*5, credMass = credibilityMass)
-      cohTit = paste0(centralityFUN," effect size:", round(p_centralityFUN(cohenlist),2),
-                      " [",credibilityMass,"% Credible Interval:", paste(round(hdrcde::hdr(cohenlist,credibilityMass*100)$hdr,2),collapse = ", "),"]" )
+      cohTit = paste0(centralityFUN," effect size:", round(p_centralityFUN(cohensList),2),
+                      " [",credibilityMass,"% Credible Interval:", paste(round(hdrcde::hdr(cohensList,credibilityMass*100)$hdr,2),collapse = ", "),"]" )
       title(main = cohTit,line = 0.5, cex.main=0.9, font.main=3)
       legend("topleft",
              lty=c(1,0,1,0,0),
@@ -606,3 +609,148 @@ print.DyadCatPerm = function (x, ...) {
   # print(newline2, row.names=FALSE)
   # 
 }
+
+
+###### THE FOLLOWING CODE IS A FUNCTIONAL PLOTTING FUNCTION BASED ON THE 
+###### RETURNED OBJECT 'RES' OF CATEGORYPERM()
+#needed functions
+# plotHDI <- function( sampleVec, credMass=0.95, y=10, h.len = 5, rate = 0, ...){
+#   #rate is the percentage under with HDI are hidden (where the longest interval is 100).
+#   hdi = as.numeric(hdrcde::hdr( sampleVec , credMass*100)$hdr)
+#   xpar = par()[["xpd"]]
+#   #there can be multiple intervals in multimodal distributions
+#   ni = length(hdi)/2
+#   par(xpd=NA)
+#   if(ni%%1 != 0){
+#     #if there is an odd number of hdi intervals, simplify to the broader range
+#     #but throw a warning
+#     ni=1
+#     hdi = c(hdi[1], hdi[length(hdi)])
+#     warning("Multiple and odd HDR intervals were collapsed to one.")
+#   }
+#   hdid = cbind(hdi[c(T,F)],hdi[c(F,T)])
+#   rates = abs(apply(hdid,1,diff))/max(abs(apply(hdid,1,diff)))*100
+#   for(i in 1:ni){
+#     if(rates[i] >= rate){
+#       x1 = hdi[1+2*(i-1)]; x2 = hdi[2+2*(i-1)]
+#       segments(x1,y,x2,y,...)
+#       segments(x1,y-h.len/2,x1,y+h.len/2,...)
+#       segments(x2,y-h.len/2,x2,y+h.len/2,...)
+#     }
+#     
+#   }
+#   par(xpd=xpar)
+#   
+# }
+# 
+# tipo2 = "1"
+# credibilityMass = 0.89
+# sync=iAlg
+# category = iIM
+# categoryIndex = iCI
+# n = length(res[[iName]][[tipo2]]$ranEpochSummary)
+# nLines=200
+# centralityFUN = "median"
+# 
+# p_centralityFUN  = eval(parse(text=centralityFUN))
+# 
+# 
+# 
+# str(res[[iName]]$'1'$ranEpochSummary, max.level = 1)
+# xlim = c(-1,1)
+# randDen  = lapply(res[[iName]][[tipo2]]$ranEpochSummary, \(x){density(x, from = xlim[1], to = xlim[2])})
+# randDenX = lapply(randDen, \(x){x$x})
+# randDenX = do.call("rbind",randDenX)
+# randDenX = apply(randDenX,2,mean)
+# 
+# randDenY = lapply(randDen, \(x){x$y})
+# maxRandY = max(sapply(randDenY,max))
+# randDenY = do.call("rbind",randDenY)
+# randDenY = apply(randDenY,2,mean)
+# 
+# 
+# # par(xpd=NA)
+# 
+# if(length(xlim)==1 && xlim=="auto"){
+#   xmin = min(randDenX, res[[iName]][[tipo2]]$obsCentrality)#, minRandX )
+#   xmax = max(randDenX, res[[iName]][[tipo2]]$obsCentrality)#, maxRandX)
+#   
+# } else {
+#   xmin = xlim[1]
+#   xmax = xlim[2]
+# }
+# #  res[[iName]][[tipo2]]$
+# 
+# breaks = seq(min(min(res[[iName]][[tipo2]]$ranCentraList),xmin),
+#              max(max(res[[iName]][[tipo2]]$ranCentraList),xmax),by=(xmax-xmin)/40)
+# 
+# realDen = density(res[[iName]][[tipo2]]$obsEpochSummary,from=xmin,to=xmax)
+# maxY = max(realDen$y)
+# #histogram of estimated parameters for random
+# plotData = hist(res[[iName]][[tipo2]]$ranCentraList, breaks = breaks, plot = F)
+# plotData$density = rangeRescale( plotData$density, 0, -maxY)
+# toK = which(plotData$density!=0)
+# plotData = lapply(plotData, \(x)x[toK])
+# # maxY = max(plotData$counts)
+# minY = min(plotData$density)
+# 
+# scaler = 1.5
+# png("articolo/plots/permutation.png", units = "cm",res = 300,width = 16*scaler, height = 16*scaler,type = "cairo")
+# 
+# # png(paste0(plotPrefix,"_",tipo2,"_",minEpochSec,"s_",nIter,"perm.png"),width = 60*3, height = 60*3, units = "mm",res = 300, type="cairo")
+# # par(mfrow=c(1,1),mar=c(5,4,1,1)+0.1,cex=0.9)
+# par(cex=0.9, mar=c(5, 4, 4, 4) + 0.1)
+# plot(-99999,
+#      main=paste0(categoryIndex," - ", tipo2,"\nPermutation test on ",nIter," extractions of of ",n, " random epochs each"),
+#      xlab=paste(epochSummaryFUN, series), ylab = "Density",
+#      cex.main = 0.9, yaxt="n",
+#      ylim = c(minY*2,maxY*2),
+#      xlim=c(xmin,xmax))
+# axis(2, at=c(seq(round(minY*2),0) ,seq(0,round(maxY*2))),
+#      labels = abs(c(seq(round(minY*2),0) ,seq(0,round(maxY*2)))))
+# 
+# polygon(c(xmin,realDen$x,1), c(0,realDen$y,0), col = rgb(0.78, 0.89, 1, alpha = 0.6),border = NA)
+# lines(realDen$x, realDen$y, col = rgb(0.58, 0.69, 1, alpha = 1),lwd=2)
+# 
+# polygon(c(xmin,randDenX,1), c(0,-randDenY,0) , col = rgb(0.2, 0.3, 0.2, alpha = 0.4),border = NA)
+# drawLines  = if(nIter > nLines) sample(nIter,nLines) else nIter
+# cat("\rDrawing lines...                ")
+# for(i in 1:length(drawLines)){
+#   k = drawLines[i]
+#   lines(randDenX, -randDen[[k]]$y,col=rgb(0.1,0.2,0.1,0.15))
+# }
+# rect(plotData$breaks[1:40],0,plotData$breaks[2:41],plotData$density,col=0,lwd=3,border = 0)
+# rect(plotData$breaks[1:40],0,plotData$breaks[2:41],plotData$density,col=0,lwd=1,border = 1)
+# abline(h=0,lwd=2,col=0)
+# 
+# maxY = maxY*1.1
+# obsCentrality = res[[iName]][[tipo2]]$obsCentrality
+# segments(obsCentrality,0,obsCentrality,maxY,lwd=2,col=2)
+# 
+# 
+# text (obsCentrality, maxY+maxY/100*2, paste("p-value =", format(round(res[[iName]][[tipo2]]$pvalue,4),nsmall = 4) ), cex = 0.8, col=2, font=2 )
+# text (obsCentrality, maxY+maxY/100*10, paste0("Observed ", centralityFUN," = ",round(obsCentrality,3)), cex = 0.8, col=2, font=2 )
+# 
+# ## Kruschke, 2014 for .89 HDI
+# plotHDI(res[[iName]][[tipo2]]$ranCentraList,lwd=3,y=0, h.len=maxY/100*5, credMass = credibilityMass,rate = 15)
+# 
+# 
+# cohTit = paste0(centralityFUN," effect size:", round(p_centralityFUN(res[[iName]][[tipo2]]$cohensList),2),
+#                 " [",credibilityMass,"% Credible Interval:", paste(round(hdrcde::hdr(res[[iName]][[tipo2]]$cohensList,credibilityMass*100)$hdr,2),collapse = ", "),"]" )
+# title(main = cohTit,line = 0.5, cex.main=0.9, font.main=3)
+# legend("topleft",
+#        lty=c(1,0,1,0,0),
+#        lwd=c(2,1,2,0,0),
+#        col=c(2,1,1,rgb(0.78, 0.88, 1, alpha = 0.6),rgb(0.4, 0.4, 0.4, alpha = 0.4)),
+#        legend=c(paste(centralityFUN, "of",n,"real epochs"),
+#                 bquote("Distribution of the real "*.(centralityFUN)~"under"~H[0]),
+#                 bquote(.(credibilityMass)*"% Credible Interval of the real "*.(centralityFUN)~"under"~H[0]),
+#                 "density of observed data",
+#                 "density of random data"),
+#        pch = c(NA,0,NA,15,15),pt.cex =c(0,2.5,0,3,3), y.intersp=1.3,
+#        bty = "n")
+# 
+# 
+# ###################################################
+# dev.off()
+

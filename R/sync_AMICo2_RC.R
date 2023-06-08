@@ -952,7 +952,7 @@ AMICo = function(experiment, signal, lagSec=6, #@OBSOLETE 2022 pmBest diventa AM
       # a = round(xbest$ta[i])
       # b = round(xbest$tb[i])
       syncvec[xbest$a[i]:xbest$b[i]] = xbest$similarity[i]
-      lagvec [xbest$a[i]:xbest$b[i]] = xbest$similarity[i]
+      lagvec [xbest$a[i]:xbest$b[i]] = xbest$lag[i]
     }
     
     ###DELETE THIS

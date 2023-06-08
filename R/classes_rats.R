@@ -306,6 +306,7 @@ window.rats = function(x, start, end, duration){
 
 #' @export
 "[.rats" = function(x,i){
+  if(all(is.na(i))) return(NA_real_)
   if(length(i)>attr(x,"n")) stop("Subset out of bounds")
   if(length(i)==0) return(numeric(0))
   x1 = .subset(time(x), i)
@@ -316,6 +317,7 @@ window.rats = function(x, start, end, duration){
 
 #' @export
 "[<-.rats" = function(x,i,values){
+  if(all(is.na(i))) return(x)
   if(length(i)>attr(x,"n")) stop("Subset out of bounds")
   if(length(i)==0) {
     return(x)

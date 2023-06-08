@@ -136,9 +136,11 @@ dyadComb.DyadExperiment = function(exper, n, signals="all", verbose=F){
         s1raw = rats(s1raw[1:min(length(s1raw),length(s2raw))], frequency = jSampRate, timeUnit="second")
         s2raw = rats(s2raw[1:min(length(s1raw),length(s2raw))], frequency = jSampRate, timeUnit="second")
         #ricostruisci il dyadsignal
+
         newSignal = DyadSignal(name= signals[j],s1 = s1raw, s2 = s2raw, SR = jSampRate,
                                s1Name= paste0(comboList[[j]][i,"ranx_session"], if(comboList[[j]][i,"ranx_role"] =="s1") olds1name else olds2name ),
-                               s2Name =paste0(comboList[[j]][i,"rany_session"], if(comboList[[j]][i,"rany_role"] =="s1") olds1name else olds2name ))
+                               s2Name =paste0(comboList[[j]][i,"rany_session"], if(comboList[[j]][i,"rany_role"] =="s1") olds1name else olds2name ),
+                               sessionId = i, dyadId = "random", groupId="random")
         signalList[[j]] = newSignal
         
       } else if(is.DyadCategory(exper[[1]][[signals[j]]])) {
