@@ -23,6 +23,7 @@ knitr::opts_chunk$set(echo = TRUE)
     nella prima parte con i picchi veri. NB cè gia maxPeakDuration
   * peakfinder trova amp negative
   * Alcuni nomi di dyadcategory causano errori come "SD"
+  * str(d2[[1]]) da  Error in str.rats(obj, ...) : 
 
 ## Git
 
@@ -58,6 +59,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Permutations
   * implementa misure di effect size robuste per le permutations:
     https://garstats.wordpress.com/2016/05/02/robust-effect-sizes-for-2-independent-groups/
+  * se usi from=remaining, fullFrom è una cosa strana, con tagli e buchi. controlla.
+    eventualmente incolla i pezzi con crossfade.
+    full_from = do.call(c,ex2$remaining)
+    full_from[!is.na(full_from)]
+    full_from = full_from[!is.na(full_from)]
+    plot(full_from, t="l")
+
 
     
 ## Category extraction

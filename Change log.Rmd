@@ -7,6 +7,13 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## v.1.2.1.0000#rats 
+#### 2022/08/06
+#### **NOTE: This version is the one used for the IM+sync paper Kleinbub et al., 2023**
+
+  * ~~rats are almost stable
+
+
 ## v.1.2.0.9002
 #### 2022/12/01
 #### **WARNING: This version is not yet tested**

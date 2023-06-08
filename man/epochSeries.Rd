@@ -14,7 +14,9 @@ epochSeries(
   mergeEpochs = FALSE,
   artefact.rm = TRUE,
   shift_start = 0,
-  shift_end = 0
+  shift_end = 0,
+  summaryFUN = "median",
+  ...
 )
 }
 \arguments{
@@ -37,6 +39,10 @@ epochSeries(
 \item{shift_start}{integer in seconds (e.g. -5 shifts all epoch starts by 5 seconds before )}
 
 \item{shift_end}{integer in seconds (e.g. 7 shifts all epoch end by 7 seconds later )}
+
+\item{summaryFUN}{}
+
+\item{...}{}
 }
 \description{
 epochSeries cycles through all sessions in an experiment.

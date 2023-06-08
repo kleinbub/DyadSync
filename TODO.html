@@ -254,6 +254,7 @@ if (window.hljs) {
 
 
 
+
 <style type="text/css">
 .main-container {
 max-width: 940px;
@@ -274,6 +275,9 @@ outline: none;
 }
 summary {
 display: list-item;
+}
+details > summary > p:only-child {
+display: inline;
 }
 pre code {
 padding: 0;
@@ -381,6 +385,7 @@ implementati anche nella prima parte con i picchi veri. NB cè gia
 maxPeakDuration</li>
 <li>peakfinder trova amp negative</li>
 <li>Alcuni nomi di dyadcategory causano errori come “SD”</li>
+<li>str(d2[[1]]) da Error in str.rats(obj, …) :</li>
 </ul>
 </div>
 <div id="git" class="section level2">
@@ -427,29 +432,15 @@ c’è una guida per dire come fare meglio?</li>
 </div>
 <div id="rats-class" class="section level2">
 <h2>rats CLASS</h2>
-<ul>
-<li><strong>NB: stream means data available over time. This is not the
-case. find better names.</strong></li>
-<li>se decidi di mantenere DyadStream controlla window&lt;-.DyadStream
-replacement method. this stinks!</li>
-</ul>
-<div id="rats-class-documentation" class="section level3">
-<h3>rats CLASS DOCUMENTATION</h3>
-<ul>
-<li>rats are legion: there is no singular form “rat”</li>
-<li>rats are small: rats is never capitalized.</li>
-<li>rats fit well together: rats(start=0, end=10, f=1) and
-rats(start=10, end=20, f=1) do not overlap. Time intervals are half-open
-intervals, including the start value but excluding the end one.</li>
-<li>rats are familiar: syntax is intuitive for ts() or zoo() users</li>
-</ul>
-</div>
 </div>
 <div id="permutations" class="section level2">
 <h2>Permutations</h2>
 <ul>
 <li>implementa misure di effect size robuste per le permutations: <a href="https://garstats.wordpress.com/2016/05/02/robust-effect-sizes-for-2-independent-groups/" class="uri">https://garstats.wordpress.com/2016/05/02/robust-effect-sizes-for-2-independent-groups/</a></li>
-<li>parallelize permutations</li>
+<li>se usi from=remaining, fullFrom è una cosa strana, con tagli e
+buchi. controlla. eventualmente incolla i pezzi con crossfade. full_from
+= do.call(c,ex2$remaining) full_from[!is.na(full_from)] full_from =
+full_from[!is.na(full_from)] plot(full_from, t=“l”)</li>
 </ul>
 </div>
 <div id="category-extraction" class="section level2">
