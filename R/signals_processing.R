@@ -177,6 +177,7 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   pikboo[piksam] = T
   piks = timeX[piksam]
   
+  if(length(piksam) == 0) warning("No peaks were found with the current settings!")
   
   list("bool" = pikboo,
        "samples" = piksam,
