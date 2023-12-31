@@ -394,20 +394,45 @@ merge.list = function(x,y) {
 #' @export
 #'
 #' @examples
-nwin = function(x, winSec, incSec, SR=frequency(x), return=c("number", "all"), flex=FALSE, verbose = FALSE) {
+nwin = function(x, WIN, INC, flex=FALSE, SR=frequency(x), return=c("number", "all"),
+                verbose = FALSE) {
+  # DEBUG
+  # stop("debug nwin")
+  # x = lr10$all_CC_1$SC$s1
+  # x = 1:100
+  # SR = frequency(x)
+  # WIN = 13
+  # INC= 2
+  # flex=T
+  # return="all"
+  # verbose=T
+  # nwin(x=rats(1:1000, frequency = 0.16, start=17.33),WIN=21.17,INC=3.14,flex=T,return="all")
+  #######
+  
   if(length(x)>1){
     len = length(x)
   } else {
     if(x%%1 != 0) stop = "in nwin, x must be integer"
     len = x*SR
+    x = 1:len
+  }
+  tstart = start(x)
+  if(length(tstart) > 1){
+    if(!is.null(attr(x, "tsp"))){ 
+      tstart = tsp(x)[1]
+      } else tstart = 1
   }
 
-
   # SR = 10
-  inc=incSec *SR;
-  win=winSec*SR;
-
-
+  inc=INC * SR;
+  win=WIN*SR;
+  if(inc<1 || win<1) stop("The data sampling rate is not sufficient to represent such small windows or increment")
+  if(inc%%1!=0 || win%%1!=0) warning("Windows size or increment are not multiple of sampling rate. Calculation was approximated")
+  inc = round(inc)
+  win = round(win)
+  if(win == 0 || inc==0) stop("Windows size and increment must be of at least 1 sample")
+  win2 = win/2;
+  
   #la vera santa formula:
   n_win = ceiling((len-win+1)/inc)
 
@@ -416,11 +441,73 @@ nwin = function(x, winSec, incSec, SR=frequency(x), return=c("number", "all"), f
   all_wins = 1:n_win
   start = (all_wins-1)*inc +1
   end = start + win -1
-  mid = start + win/2
+  mid = start + win2
+  FLX = rep(FALSE, n_win)
 
-  # if(flex) {
-  #   init =
-  # }
+  if(flex && win > inc){ 
+    #flex is a system to have dynamically smaller windows to have exactly 1 value every inc
+    #even if the windows size is great:
+    
+    #' \._./\.^.-^\._./\.^.-^\._./\.^.-^\._./\.^.-^
+    #' |---------------o---------------|
+    #'     |---------------o---------------|
+    #'         |---------------o---------------|
+    #'             |---------------o---------------|
+    #'             
+    #' Here you need to have at least half window before getting reliable values
+    #' Instead with flex:
+    #' \._./\.^.-^\._./\.^.-^\._./\.^.-^\._./\.^.-^
+    #' o---------------|                  <---FLEX WINDOW 1
+    #' |---o---------------|              <---FLEX WINDOW 2
+    #' |-------o---------------|          <---FLEX WINDOW 3
+    #' |-----------o---------------|      <---FLEX WINDOW 4
+    #' 
+    #' |---------------o---------------|  <---FIRST COMPLETE WINDOW
+    #'     |---------------o---------------|
+    #'         |---------------o---------------|
+    #'             |---------------o---------------|
+    #' 
+    
+    #initial flexes
+    nif = floor((mid[1]) / inc) #number of flex windows
+    if(nif > 0){
+      fistart = rep(1,nif)
+      fiend = seq(end[1]-inc*nif ,end[1]-1, by=inc)
+      fimid = (fiend - win2)+1
+      fiflex =rep(TRUE, nif)
+      
+      #@HACK non sono capace di trovare il numero giusto di nif
+      #quindi correggo a mano.... 
+      td = which(fimid<1)
+      if(length(td)>0){
+        fistart = fistart[-td]
+        fimid   = fimid[-td]
+        fiend   = fiend[-td]
+        fiflex  = fiflex[-td]
+      }
+
+      
+
+      #final flexes using also the unused data at the end
+      end[n_win]
+      start[n_win]
+      
+      ffstart = seq(start[n_win]+inc, length(x)-win2, by=inc)
+      ffstart =cumsum(rep(inc,))
+      
+      nff = length(ffstart)
+      ffend = rep(length(x), nff)
+      ffmid = ffstart + win2
+      ffflex = rep(TRUE, nff)
+      
+      start = c(fistart, start, ffstart)
+      mid   = c(fimid,   mid  , ffmid)
+      end   = c(fiend,   end  , ffend)
+      flex  = c(fiflex,  FLX , ffflex)
+      n_win = length(start)
+      all_wins = 1:n_win
+    }
+  }
 
 
 
@@ -441,9 +528,12 @@ nwin = function(x, winSec, incSec, SR=frequency(x), return=c("number", "all"), f
       #cat(actual+win,"\n\r")
     }
   }
-
+  res = data.frame(window=all_wins, start_s=start,end_s=end,
+                   mid_s=mid, duration = end-start+1, flex = flex,
+                   start_t = tstart + (start-1)/SR, end_t = tstart + end/SR,
+                   mid_t = tstart + (mid - 1)/SR )
   if(return=="number")  return(n_win)
-  else if (return =="all") return(data.frame(window=all_wins, start=start,end=end, mid=mid))
+  else if (return =="all") return(res)
 }
 
 
@@ -477,6 +567,133 @@ winInter = function(windowsList, winSec, incSec, SR){
     }))
   },windowsList,seq_along(windowsList))
 }
+
+
+
+#' Applies a function over moving windows
+#'
+#' @name byWin
+#'
+#' @param x a rats object or another object for which as.rats methods are available
+#' @param WIN integer. the window size in the time unit of x (e.g. seconds)
+#' @param INC integer. the increment size in the time unit of x (e.g. seconds)
+#' @param flex logical. Creates additional shorter windows at the start and end
+#' of the signal to maximize the coverage of the original series
+#' @param position Should the time value of each calculation be positioned as the
+#' first, middle or last sample of each window? 
+#' @param FUN The function to be executed
+#' @param ... Additional parameters to be passed to FUN
+#' @param cores integer or "max". The number of cores to be used for parallelization.
+#' if set to 1, parallelization is turned off. Very simple tasks can be faster if run
+#' as single core due to the overhead of scheduling the task and returning the
+#' result can be greater than the time to execute the task itself, resulting in
+#' poor performance.
+#'
+#' @return 
+#' @export
+#'
+#' @examples
+byWin = function(x, WIN, INC, flex = TRUE, FUN, ..., 
+                 position = c("mid", "first", "last"), cores = "max"){
+  # DEBUG
+  # stop("debug byWin")
+  # x = lr10$all_CC_1$SC$s1
+  # WIN = 300
+  # INC= 0.1
+  # FUN = "myRes"
+  # flex=T
+  # position = "mid"
+  # l = list(newA = 0.5, newB = 0.8)
+  # cores = 1
+  #######
+  x = as.rats(x)
+  tu = if(is.rats(x)) timeUnit(x) else "seconds"
+  SR = frequency(x)
+  win = WIN*SR
+  win2 = round(win/2)
+  inc = INC*SR
+  position = match.arg(position)
+  winz  = nwin(x, WIN, INC, SR, return = "all", flex = flex)
+  n_win = nrow(winz)
+  pos = switch (position,
+    mid = winz$mid_s,
+    start = winz$start_s,
+    end = winz$end_s
+  )
+  l=list()
+  l = list(...)
+  
+  if(cores == 1){
+    cat(paste0("\r\nApplying ",
+               deparse(substitute(FUN))," by ",WIN," ",tu, " windows, ",INC," ",tu," increments, in single core mode.\r\n")) #verified!
+    FUN = match.fun(FUN)
+    resList = vector(mode = "list", length = n_win)
+
+    for(k in 1:n_win){
+      ab = winz$start_s[k]:winz$end_s[k]
+      resList[[k]] = do.call(FUN, c(list(x[ab]), l))
+    }
+    
+  } else{
+    ####### SETUP PARALLELIZATION
+    # progresbar
+    pb <- progress::progress_bar$new(
+      format = "Calculation::percent [:bar] :elapsed | ETA: :eta",
+      total = n_win,    #number of iterations
+      width = 60, 
+      show_after=0 #show immediately
+    )
+    
+    progress_letter <- rep(LETTERS[1:10], 10)  # token reported in progress bar
+    
+    # allowing progress bar to be used in foreach -----------------------------
+    progress <- function(n){
+      pb$tick(tokens = list(letter = progress_letter[n]))
+    } 
+    
+    opts <- list(progress = progress)
+    
+    
+    #parallelization
+    warningsFile = "MyWarnings"
+    if (file.exists(warningsFile)) {
+      unlink(warningsFile)
+    }
+    if(cores == "max")  cores=parallel::detectCores()-1
+    
+    # cat(paste0("\r\nPerforming parallelized computation of ",
+    #            deparse(substitute(FUN)), " using ",cores," cores.\r\n")) 
+    cat(paste0("\r\nApplying ",
+               deparse(substitute(FUN))," by ",WIN," ",tu, " windows, ",INC," ",tu," increments, and using ",cores," cores.\r\n")) #verified!
+    FUN = match.fun(FUN)
+    cl <- parallel::makeCluster(cores[1], outfile=warningsFile) #not to overload your computer
+    doSNOW::registerDoSNOW(cl)
+    `%dopar%` <- foreach::`%dopar%`
+    `%do%` <- foreach::`%do%`
+    pb$tick(0)
+    resList <- foreach::foreach(
+      k = 1:n_win,
+      .options.snow = opts, .errorhandling='pass'
+    ) %dopar% {
+      ################# START OF THE PARALLEL JOB
+      ab = winz$start_s[k]:winz$end_s[k]
+      res = do.call(FUN, c(list(x[ab]), l))
+      # res = FUN(x[ab], ...)
+      
+      ################# END OF THE PARALLEL JOB
+    }
+    parallel::stopCluster(cl) 
+  }
+  newTS = unlist(resList)
+  
+  
+  res = rats(newTS, start = start(x)+round(pos[1]/SR), frequency = 1/INC, windowed = list(WIN, INC, flex = flex, winz))
+  
+  return(res)
+}
+#' @rdname byWin
+wapply <- byWin
+
 
 #' Approx by window
 #' when you have a value for each window (even overlapping ones) and you
@@ -520,6 +737,26 @@ winInter = function(windowsList, winSec, incSec, SR){
 # }
 
 
+
+#' @export
+rescaleByWin2 = function(x, WIN, newA, newB, cores=1){
+  pointRescale = function(x){
+    #x è un vettore, ma a me interessa solo la posizione centrale
+    if(length(x)<3) stop ("poinRescale need longer objects")
+    mid = round(length(x)/2)+1
+    if(mid<2){ stop("bad mid point in pointrescale")}
+    if(!is.numeric(x)) stop("in pointrescale x must be numeric")
+    x = as.numeric(x) #strip classesand attributes
+    ran = range(x)
+    xx = x[mid]
+    return((xx - ran[1])/(ran[2]- ran[1]))
+    # return((newB-newA)/(ran[2]-ran[1]) * (xx - ran[2]) + newB)
+  }
+  res = byWin(x, WIN=WIN, INC=1/frequency(x),flex = TRUE, FUN=pointRescale, cores=cores)
+  res = res * (newB-newA) + newA
+}
+
+
 #' Set argument/attribute to a list without overwriting existing values
 #' 
 #' This is most useful when dealing with ... and setting default behaviours that 
@@ -535,4 +772,5 @@ setArg = function(arg, value, argList){
   if(is.null(argList[[arg]])) argList[[arg]] = value
   argList
 }
+
 

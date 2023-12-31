@@ -22,7 +22,7 @@
 #' start_date, 
 #' start, end, duration (milliseconds)
 #' sampling per second (Hz)
-#' windowing history: size, inc, flex
+#' windowing history: size, inc, flex, windows
 #' 
 #' given a STS starting are at 0000, if you have 5000ms of information
 #' you only have samples for time 0, 1, 2, ... until 4999 so this would be represented as
@@ -41,8 +41,6 @@
 #' The crucial difference is that for rats, time intervals are half-open intervals,
 #' which means that they include the start value but not the end one. This way
 #' rats(start=0, end=10, f=1) and rats(start=10, end=20, f=1) do not overlap.
-#' Secondarily, rats are stored as a list with $x and $y values, storing respectively
-#' the temporal information, and the values. These latter can be numeric or not.
 #' 
 #'
 #'
@@ -81,14 +79,16 @@
 #' 
 #' 
 rats = function(data, start=0, end, duration, frequency=1, period,
-                windowed = list(winSec=NULL, incSec=NULL, flex=NULL),
+                windowed = list(size=NULL, increment=NULL, flex=NULL, table=NULL),
                 timeUnit="cycle", unit=NULL){
   # print(match.call())
   # ######debug
-  # start=1.9
-  # end=10
+  # data = 7.6
+  # start=1024
+  # # end=1
   # frequency = 10
-  # duration = end-start
+  # # duration = end-start
+  # stop("debug rats")
   # #############
   
   
@@ -122,7 +122,7 @@ rats = function(data, start=0, end, duration, frequency=1, period,
   } else {
     durations = c()
     if(!missing(end)) durations = c(durations, end-start)
-    if(!missing(data) && length(data)>0) durations = c(durations, signif(length(data)/frequency,6))
+    if(!missing(data) && length(data)>0) durations = c(durations, round(length(data)/frequency, digits = 10))
     if(length(unique(durations))>1)  stop("3Specified rats arguments led to incoherent series duration")   
     duration = durations[1]
     if( missing(end)) end = start + duration
@@ -179,7 +179,25 @@ rats = function(data, start=0, end, duration, frequency=1, period,
      length(end)    >0 && !is.na(end)    &&
      length(period) >0 && !is.na(period)
      ){
-    x = seq(start,end-period,by=period)
+    #' this old strategy to generate x values was prone to bugs
+    # delta = end-period
+    # #fix a bug the sign of by is wrong
+    # if(delta < start){
+    #   if(isTRUE(all.equal(start, delta))){
+    #     delta = start
+    #   } else {
+    #     stop("error in rats. Line 190. sequence created negative numbers")
+    #   }
+    # }
+    # x = seq(start,delta,by=period)
+    
+    #' whith this strategy you should have the guarantee o having exactly 1 x value
+    #' for each y one, no floating point errors, and other seq() quirks.
+    #' The first value is always going to be == start, and the following ones are
+    #' increments of 1 period.
+    #' This approach is also 10x times faster!
+
+    x = cumsum(rep(period,length(data)))-period + start
   } else{
     x = numeric()
   }
@@ -195,6 +213,25 @@ rats = function(data, start=0, end, duration, frequency=1, period,
     y = as.numeric(rep(NA, n))
   }
   res = y
+  
+  if(!missing(windowed) && !all(sapply(windowed, is.null))){
+    if(!is.list(windowed)) stop("windowed must be a list")
+    if(length(windowed) <3) stop("windowed must contain at least:
+                                 window size, window increment, flex")
+    if(length(windowed) >4) stop("too many elements provided in the windowed argument")
+    WIN = windowed[[1]]
+    INC = windowed[[2]]
+    FLX = windowed[[3]]
+    if(length(WIN)>1 || !is.numeric(WIN) || is.null(WIN)) stop("window size must be numeric of length 1")
+    if(length(INC)>1 || !is.numeric(INC) || is.null(INC)) stop("window increment must be numeric of length 1")
+    if(length(FLX)>1 || !is.logical(FLX) || is.na(FLX))   stop("window flex must be logical of length 1")
+    if(length(windowed) == 4){
+      TAB = windowed[[4]]
+    } else {
+      TAB = nwin(y, WIN, INC, frequency, return = "all", flex = FLX)
+    }
+    windowed = list("size"=WIN, "increment"=INC, "flex"=FLX, table= TAB)
+  }
   
   attributes(res) = c(attributes(res),
                       list("x"=x,
@@ -309,10 +346,22 @@ window.rats = function(x, start, end, duration){
   if(all(is.na(i))) return(NA_real_)
   if(length(i)>attr(x,"n")) stop("Subset out of bounds")
   if(length(i)==0) return(numeric(0))
-  x1 = .subset(time(x), i)
-  x2 = .subset(x, i)
-  rats(x2,start=x1[1],frequency = frequency(x), windowed = attr(x, "windowed"),
-       timeUnit = timeUnit(x), unit = unit(x))
+  x1 = .subset(time(x), i) #time, or x
+  x2 = .subset(x, i)       #values, or y
+
+
+  wa = attr(x, "windowed")
+  if(!is.null(wa$table)){
+    nt = wa$table[wa$table$mid_t >= x1[1] &
+                  wa$table$mid_t <= x1[length(x1)], ]
+    wa$table = nt
+  }
+
+  res = rats(x2,start=x1[1],frequency = frequency(x), 
+             timeUnit = timeUnit(x), unit = unit(x),
+             windowed = wa)
+  return(res)
+  
 }
 
 #' @export
@@ -349,8 +398,45 @@ length.rats = function(x){
 }
 
 #' @export
-str.rats = function(x){
-  str(unclass(x))
+str.rats = function(x, vals = 5, digits=4, ...){
+  cat0("~~rats ")
+  if(length(attr(x,"start")) >0 && !is.na(attr(x,"start")))
+    cat0("from ",attr(x,"start"), " to ",attr(x,"end"))
+  else cat0("of length 0")
+  if(attr(x,"frequency") >=1){
+    cat0(" | ",attr(x,"frequency")," samples/",attr(x, "timeUnit"))
+  } else {
+    if(attr(x,"period") == 1)
+      cat0(" | 1 sample every ", attr(x, "timeUnit"))
+    else
+      cat0(" | 1 sample every ",attr(x,"period")," ", attr(x, "timeUnit"),"s")
+    
+  }
+  if(!is.null(attr(x,"windowed")[[1]])){
+    winprint = attr(x,"windowed")[1:3]
+    cat0(" | windowed: ",paste(winprint,collapse=" "))
+  }
+  cat0(": ")
+  #print them all
+  if(length(time(x))==0){
+      print("#@BUG: this is not implemented for some reason. Please notify the authors.")
+  } else {
+    realn = min(vals,length(x))
+    toprint = 1:realn
+    valz = x[toprint]
+    if(is.numeric(valz)) valz = round(valz, digits)
+    # k = rbind("values"=valz,"time"=round(time(x)[toprint],digits))
+    cat(valz)
+    if(length(x)>vals) cat("...")
+  }
+  cat0("\r\n")
+# 
+#   
+#   k = as.data.frame(k)
+#   colnames(k)=NULL
+#   print(k)
+  
+  # str(unclass(x),...)
 }
 
 #' Print a rats object
@@ -366,7 +452,7 @@ print.rats = function(x, vals=20, digits= 4){
     cat0("from ",attr(x,"start"), " to ",attr(x,"end"))
   else cat0("of length 0")
   if(attr(x,"frequency") >=1){
-    cat0(" | ",attr(x,"frequency")," samples per ",attr(x, "timeUnit"))
+    cat0(" | ",attr(x,"frequency")," samples/",attr(x, "timeUnit"))
   } else {
     if(attr(x,"period") == 1)
       cat0(" | 1 sample every ", attr(x, "timeUnit"))
@@ -375,7 +461,8 @@ print.rats = function(x, vals=20, digits= 4){
     
   }
   if(!is.null(attr(x,"windowed")[[1]])){
-    cat0(" | windowed: ",paste(attr(x,"windowed"),collapse=" "))
+    winprint = attr(x,"windowed")[1:3]
+    cat0(" | windowed: ",paste(winprint,collapse=" "))
   }
   cat0(".")
   if(is.numeric(vals) && length(time(x)) > vals){
@@ -386,7 +473,7 @@ print.rats = function(x, vals=20, digits= 4){
     #print the first half of the values
     timeDecimals = -log(attr(x,"period"),10)
     toprint = 1:(vals/2)
-    k1 = rbind("values"=x[toprint],"time"=round(time(x)[toprint], digits))
+    k1 = rbind("values"=x[toprint]$y,"time"=round(time(x)[toprint], digits))
     if(is.numeric(k1)) k1[1,] = as.character(round(k1[1,], digits))
     k1[2,] = signif(as.numeric(k1[2,]), )
     
@@ -423,6 +510,8 @@ start.rats = function(x){attr(x,"start")}
 #' @export
 end.rats   = function(x){attr(x,"end")}
 #' @export
+duration = function(x){UseMethod("duration",x)}
+#' @export
 duration.rats = function(x){attr(x,"duration")}
 #' @export
 frequency.rats = function(x){attr(x,"frequency")}
@@ -441,6 +530,41 @@ unit = function(x){UseMethod("unit",x)}
 #' @export
 unit.rats = function(x){attr(x,"unit")}
 
+#' @export
+windowed = function(x){UseMethod("windowed",x)}
+#' @export
+windowed.rats = function(x){
+  wa = attr(x,"windowed")
+  
+  if(!is.null(wa[[1]])){
+    res = wa[[4]]
+    attributes(res) = c(attributes(res),
+                        list("windowed"=wa[1:3]),
+                        timeUnit = timeUnit(x)
+                        )
+    class(res) = c("winTable",class(res))
+  }
+  return(res)
+}
+
+#' @export
+print.winTable = function(x, n=10L, ...){
+  wa = attr(x,"windowed")
+  tu = attr(x, "timeUnit")
+  if(is.null(wa[[1]])){
+    cat0("This rats is not the output of a windowing function")
+  } else {
+    cat0("This rats was generated through a windowing procedure using window
+sizes of ", wa[[1]], " ",tu,
+         "s and increments of ", wa[[2]], " ",tu, "s")
+    if(wa[[3]]) cat0(" using flex windows")
+    cat0(".\r\nTable of windows:\r\n")
+    N = min(n,nrow(x))
+    TAB = as.data.frame(x[1:N,])
+    print(TAB, ...)
+    if(nrow(x)>N) cat("...")
+  }
+}
 
 #' Combine rats
 #' 
@@ -464,7 +588,7 @@ c.rats = function(...){
   l = list(...)
   if(length(l)==1) return(l[[1]])
   
-  #if there are same non rats, ratify them
+  #if there are some non rats, ratsify them
   nr = which(sapply(l,\(x){!is.rats(x)}))
   rr = which(sapply(l,\(x){is.rats(x)}))
   if(length(nr)>0) {
@@ -479,7 +603,8 @@ c.rats = function(...){
           old = l[[i]]
           attributes(old) =NULL
           l[[i]] = rats(old, start = end(example), frequency = frequency(example),
-                        timeUnit = timeUnit(example)
+                        timeUnit = timeUnit(example), unit = unit(example),
+                        windowed = attr(example, "windowed")
           )
         } else {
           #there were no previous rats
@@ -494,7 +619,7 @@ c.rats = function(...){
   if(length(lunit)>1) stop("All rats must have the same cycle unit.")
   lvunit = unique(sapply(l,timeUnit))
   if(length(lvunit)>1) stop("All rats must have the same unit of measurement.")
-  lwind = unique(lapply(l,function(x){attr(x, "windowed")}))
+  lwind = unique(lapply(l,function(x){attr(x, "windowed")[1:3]}))
   if(length(lwind)>1) stop("All rats must have the same windowed attribute.")
   lwind = lwind[[1]]
   
@@ -508,6 +633,7 @@ c.rats = function(...){
   #check if all rats are contiguous
   deltas =  starts[2:length(starts)] - ends[1:(length(ends)-1)]
   #negative deltas mean overlap. Bad rats!
+  round(deltas, 10)
   if(any(deltas<0))stop("Rats' heads and tails must not overlap.")
   #positive deltas mean gaps. Create empty rats to fill them. Poor, empty, rats...
   if(any(deltas>0)){
@@ -526,6 +652,13 @@ c.rats = function(...){
     return(rats(finaly, start=starts[1], frequency = lfreq,
                 windowed = lwind,timeUnit = lunit, unit = lvunit))
   }
+  
+}
+
+#' @export
+# @BUG range su rats da come minimo 1 non so perché
+range.rats = function(..., na.rm=FALSE){
+  c(min(..., na.rm=na.rm), max(...,na.rm=na.rm))
   
 }
 
@@ -587,6 +720,11 @@ plot.rats = function(x, ...){
 }
 
 #' @export
+lines.rats = function(x, ...){
+  lines(x$x, x$y, ...)
+}
+
+#' @export
 as.rats = function(x){
   UseMethod("as.rats",x)
 }
@@ -598,7 +736,7 @@ as.rats.rats = function(x){
 as.rats.ts = function(x){
   xstart = start(x)
   if(length(xstart)==2){
-    xstart = xstart[1]+ (xstart[2]-2)* 1/frequency(x)
+    xstart = xstart[1]+ (xstart[2]-1)* 1/frequency(x)
   } else if(length(startx)==1){
     xstart = xstart[1]
   } else stop("unknown error")
@@ -618,6 +756,7 @@ as.rats.numeric = function(x){
   attributes(k) = NULL
   rats(k, start=0, frequency = 1)
 }
+
 
 
 #' @export
