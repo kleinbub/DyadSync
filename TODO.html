@@ -297,23 +297,17 @@ overflow-y: auto;
 border: 1px solid #ddd;
 border-radius: 4px;
 }
-.tabset-dropdown > .nav-tabs > li.active:before {
-content: "";
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+content: "\e259";
 font-family: 'Glyphicons Halflings';
 display: inline-block;
 padding: 10px;
 border-right: 1px solid #ddd;
 }
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
-content: "";
-border: none;
-}
-.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
-content: "";
+content: "\e258";
 font-family: 'Glyphicons Halflings';
-display: inline-block;
-padding: 10px;
-border-right: 1px solid #ddd;
+border: none;
 }
 .tabset-dropdown > .nav-tabs > li.active {
 display: block;
@@ -385,7 +379,12 @@ implementati anche nella prima parte con i picchi veri. NB cè gia
 maxPeakDuration</li>
 <li>peakfinder trova amp negative</li>
 <li>Alcuni nomi di dyadcategory causano errori come “SD”</li>
-<li>str(d2[[1]]) da Error in str.rats(obj, …) :</li>
+<li>tutto il sistema di permutazioni non permette di analizzare dati per
+i quali non ci siano osservazioni (nrow = 0)</li>
+<li>in ppSync_dev perchè usare la lunghezza del più corto per
+interpolare? Usa già quella finale dell’interpolazione.</li>
+<li>rinomina winSec in WIN e incSec in INC</li>
+<li>ccfBest dovrebbe usare byWin</li>
 </ul>
 </div>
 <div id="git" class="section level2">
@@ -407,19 +406,13 @@ maxPeakDuration</li>
 <div id="mechanics" class="section level2">
 <h2>mechanics</h2>
 <ul>
-<li><p>fai funzionare byWin</p></li>
-<li><p>ottimizza ccfBest e omologa l’output di ccfBest e pmBest. In
-particolar modo ci sia il tempo per le finestre di ccfBest</p></li>
-<li><p>fai una nuova funzione: filterArtefacts() che applica una FUN
-sulle finestre specificate da setArtefacts(), ad es settando a NA, o
+<li>ottimizza ccfBest e omologa l’output di ccfBest e pmBest. In
+particolar modo ci sia il tempo per le finestre di ccfBest</li>
+<li>fai una nuova funzione: filterArtefacts() che applica una FUN sulle
+finestre specificate da setArtefacts(), ad es settando a NA, o
 smoothando. Metti anche come filtro una possibile label per scriminare
-diversi artefatti. flat, wiggle, motion, etc.</p></li>
-<li><p>I have introduced the concept of “flex” in the windowing
-procedures. “flex” means that instead of removing the first and last
-half windows, initial and ending parts are processed with windows of
-decreasing size * this has broken at least nwin, winInter, and the new
-functions approxbywin and byWin * prova a vedere l’implementazione in
-FIR()</p></li>
+diversi artefatti. flat, wiggle, motion, etc.</li>
+<li>winInter, and approxbywin dovrebbero usare byWin?</li>
 </ul>
 </div>
 <div id="minor-bugs-various-mishaps" class="section level2">
@@ -432,6 +425,11 @@ c’è una guida per dire come fare meglio?</li>
 </div>
 <div id="rats-class" class="section level2">
 <h2>rats CLASS</h2>
+<ul>
+<li>togli tutti i round da start ed end [credo ok]</li>
+<li>length(rats(1:60)[61]) #ERROR</li>
+<li>c(rats(1:10, start=3.5), rats(1:10, start = 20)) # ERROR</li>
+</ul>
 </div>
 <div id="permutations" class="section level2">
 <h2>Permutations</h2>
@@ -461,7 +459,7 @@ session o singal applica adeguatamente.</li>
 <div id="graphics" class="section level2">
 <h2>Graphics</h2>
 <ul>
-<li>scrivi funzioni generiche per long plot</li>
+<li>scrivi funzioni generiche per long plot, e per videoframesync</li>
 </ul>
 </div>
 <div id="double-check-cleanup" class="section level2">
@@ -476,7 +474,6 @@ eventuali altri algoritmi di calcolo.</li>
 obsolenscence.R</li>
 <li>controlla gli argomenti missing nelle funzioni parallelizzate. In
 particolare AMICo, e filter</li>
-<li>finisci di eliminare dyadstream. Non esiste più. solo rats</li>
 </ul>
 </div>
 <div id="performance" class="section level2">

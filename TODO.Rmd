@@ -18,12 +18,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ## NEXT STEPS & CRITICAL BUGS
+
   * amico2 ha dei buchi weight linea 863 prova mean [maybe done]
   * interval_sec diventa maxSize e con minSize devono essere implementati anche
     nella prima parte con i picchi veri. NB cè gia maxPeakDuration
   * peakfinder trova amp negative
   * Alcuni nomi di dyadcategory causano errori come "SD"
-  * str(d2[[1]]) da  Error in str.rats(obj, ...) : 
+  * tutto il sistema di permutazioni non permette di analizzare dati per i quali non ci siano osservazioni (nrow = 0)
+  * in ppSync_dev perchè usare la lunghezza del più corto per interpolare? Usa già
+    quella finale dell'interpolazione.
+  * rinomina winSec in WIN e incSec in INC
+  * ccfBest dovrebbe usare byWin
 
 ## Git
 
@@ -37,16 +42,12 @@ knitr::opts_chunk$set(echo = TRUE)
   
   
 ## mechanics
-  * fai funzionare byWin
   * ottimizza ccfBest e omologa l'output di ccfBest e pmBest. In particolar modo 
     ci sia il tempo per le finestre di ccfBest
   * fai una nuova funzione: filterArtefacts() che applica una FUN sulle finestre specificate da setArtefacts(), ad es settando a NA, o smoothando. Metti anche come filtro una possibile label per scriminare diversi artefatti. flat, wiggle, motion, etc.
+  * winInter, and  approxbywin dovrebbero usare byWin?
 
-  *  I have introduced the concept of "flex" in the windowing procedures. "flex" means that instead of
-       removing the first and last half windows, initial and ending parts are processed with windows of 
-       decreasing size
-    *  this has broken at least nwin, winInter, and the new functions approxbywin and byWin
-    *  prova a vedere l'implementazione in FIR()
+
 
 ## minor BUGS & various mishaps
  * cloneAttr e classAttr cambiano solo alcuni attributi, ha senso?
@@ -54,6 +55,10 @@ knitr::opts_chunk$set(echo = TRUE)
    Forse in R internals c'è una guida per dire come fare meglio?
 
 ## rats CLASS 
+  * togli tutti i round da start ed end [credo ok]
+  * length(rats(1:60)[61]) #ERROR
+  * c(rats(1:10, start=3.5), rats(1:10, start = 20)) # ERROR
+
 
 
 ## Permutations
@@ -75,7 +80,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ## Graphics 
-  * scrivi funzioni generiche per long plot
+  * scrivi funzioni generiche per long plot, e per videoframesync
 
   
 ## double check & cleanup
@@ -85,7 +90,6 @@ knitr::opts_chunk$set(echo = TRUE)
   * elimina i commenti e le cose obsolete. Sto segnando con @OBSOLETE le parti da rimuovere e/o spostare in obsolenscence.R
   * controlla gli argomenti missing nelle funzioni parallelizzate. In particolare
     AMICo, e filter
-  * finisci di eliminare dyadstream. Non esiste più. solo rats
 
     
   

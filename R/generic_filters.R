@@ -9,18 +9,6 @@
 # FILTERS!, and other time series processing goodness
 #
 ############################################################################################################ 
-## changelog
-# v1.1 - added setArtefacts function to remove bad parts of signal
-# v1.0 - fully 'stream 1.2' compliant. All ts ARE ok, with explicit start calls.
-#         
-#
-############################################################################################################ 
-## ToDo
-# -all filters should apply on DyadStreams only. The Experiment/signal stuff 
-#  should be managed by wrapper functions
-#
-############################################################################################################ 
-
 
 #' applies a function on the s1 and s2 objects of a DyadSignal object
 #'

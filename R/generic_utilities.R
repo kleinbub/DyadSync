@@ -180,31 +180,31 @@ lead0 = function(x, width = 2){
 }
 
 #' rangeRescale
-#' this extremely useful function rescales a numeric vector to a new range through linear interpolation
+#' this function rescales a numeric vector to a new range through linear interpolation
 #' @param x 
-#' @param newA,newB  Any two points (typically min and max) of the new scale
-#' @param oldA,oldB  The corresponding two points of the original scale.
-#' If oldA or oldB are missing the min or max of x are used instead
-#' @param pres.sign logical. if TRUE the signs of the original data are preserved. newA and newB must be opposites (e.g. -1,1)
+#' @param newMin,newMax  Any two points (typically min and max) of the new scale
+#' @param oldMin,oldMax  The corresponding two points of the original scale.
+#' If oldMin or oldMax are missing the min or max of x are used instead
+#' @param pres.sign logical. if TRUE the signs of the original data are preserved. newMin and newMax must be opposites (e.g. -1,1)
 #' @details 
 #' @export
 #'
 #' @examples
-rangeRescale <- function(x, newA, newB, oldA =min(x, na.rm=T), oldB = max(x, na.rm=T), pres.signs=FALSE){
-  #newA e newB indicano il minimo e il massimo della nuova scala
+rangeRescale <- function(x, newMin, newMax, oldMin =min(x, na.rm=T), oldMax = max(x, na.rm=T), pres.signs=FALSE){
+  #newMin e newMax indicano il minimo e il massimo della nuova scala
   #
-  #se oldA e oldB mancano, vengono usati il minimo e il massimo del campione
-  # if(any(x>oldB, na.rm=T) || any(x<oldA, na.rm=T)) stop ("Value found outside oldB and ymin boundaries. oldB and oldA should be equal or larger than the data range.")
+  #se oldMin e oldMax mancano, vengono usati il minimo e il massimo del campione
+  # if(any(x>oldMax, na.rm=T) || any(x<oldMin, na.rm=T)) stop ("Value found outside oldMax and ymin boundaries. oldMax and oldMin should be equal or larger than the data range.")
   if(pres.signs){
-    # if((!missing(oldA) && !missing(oldB)) || (oldA!=-max(abs(x)) || oldB != max(abs(x)) ) )
+    # if((!missing(oldMin) && !missing(oldMax)) || (oldMin!=-max(abs(x)) || oldMax != max(abs(x)) ) )
     #   stop("Either x")
-    if( newA != -newB )
-      stop("with pres.sign = TRUE, newA and newB should be opposites (e.g. -1 and 1")
-    mightyMax = max(abs(oldB),abs(oldA)) #così centra qualsiasi range?
-    oldA = -mightyMax
-    oldB = mightyMax
+    if( newMin != -newMax )
+      stop("with pres.sign = TRUE, newMin and newMax should be opposites (e.g. -1 and 1")
+    mightyMax = max(abs(oldMax),abs(oldMin)) #così centra qualsiasi range?
+    oldMin = -mightyMax
+    oldMax = mightyMax
   }
-  return((newB-newA) * ((x - oldA)  / (oldB - oldA )) + newA)
+  return((newMax-newMin) * ((x - oldMin)  / (oldMax - oldMin )) + newMin)
 }
 
 
@@ -603,11 +603,11 @@ byWin = function(x, WIN, INC, flex = TRUE, FUN, ...,
   # FUN = "myRes"
   # flex=T
   # position = "mid"
-  # l = list(newA = 0.5, newB = 0.8)
+  # l = list(newMin = 0.5, newMax = 0.8)
   # cores = 1
   #######
   x = as.rats(x)
-  tu = if(is.rats(x)) timeUnit(x) else "seconds"
+  tu = if(is.rats(x)) timeUnit(x) else "unit of time"
   SR = frequency(x)
   win = WIN*SR
   win2 = round(win/2)
@@ -737,9 +737,18 @@ wapply <- byWin
 # }
 
 
-
+#' Rescale every sample of a time series over a moving window 
+#' 
+#' @description  This function allows to visualize the short-term dynamics of a
+#' time series using the full vertical resolution of a screen
+#' @param x numeric representation of a time-series. Ideally a rats object.
+#' @param WIN numeric. Size of the window in the original series time unit (e.g. seconds)
+#' @param newMin 
+#' @param newMax 
+#' @param cores 
+#'
 #' @export
-rescaleByWin2 = function(x, WIN, newA, newB, cores=1){
+rescaleByWin = function(x, WIN, newMin, newMax, cores=1){
   pointRescale = function(x){
     #x è un vettore, ma a me interessa solo la posizione centrale
     if(length(x)<3) stop ("poinRescale need longer objects")
@@ -750,10 +759,10 @@ rescaleByWin2 = function(x, WIN, newA, newB, cores=1){
     ran = range(x)
     xx = x[mid]
     return((xx - ran[1])/(ran[2]- ran[1]))
-    # return((newB-newA)/(ran[2]-ran[1]) * (xx - ran[2]) + newB)
+    # return((newMax-newMin)/(ran[2]-ran[1]) * (xx - ran[2]) + newMax)
   }
   res = byWin(x, WIN=WIN, INC=1/frequency(x),flex = TRUE, FUN=pointRescale, cores=cores)
-  res = res * (newB-newA) + newA
+  res = res * (newMax-newMin) + newMin
 }
 
 

@@ -576,21 +576,7 @@ ppBestPlot = function (signal,savePath){
   }
 }
 
-rescaleByWin = function(x, winSec, rangeMin, rangeMax){
-  win = winSec*frequency(x)
-  win2 = trunc(win/2)
-  len = length(x)
-  x2 = x
-  for(i in seq_along(x2)){
-    
-    a = max(1,i-win2)
-    b = min(i+win2, len)
-    if(i<=win2) pos = i else pos = win2
-    
-    x2[i] = rangeRescale(x[a:b], rangeMin, rangeMax)[pos]
-  }
-  x2
-}
+
 
 
 
@@ -614,8 +600,8 @@ plot.DyadSignal = function(x, sync=NA, rescale = c("none","win", "fixed"), ...) 
     myYlim = c(min(c(rs1,rs2),na.rm = T), max(c(rs1,rs2),na.rm = T))
     
   } else if(rescale == "win"){
-    rs1= rescaleByWin(x$s1, winSec = 60*5,rangeMin = 0,rangeMax = 1) #experimental amplification
-    rs2= rescaleByWin(x$s2, winSec = 60*5,rangeMin = 0,rangeMax = 1)
+    rs1= rescaleByWin(x$s1, WIN = 60*5,newMin = 0,newMax = 1) #experimental amplification
+    rs2= rescaleByWin(x$s2, WIN = 60*5,newMin = 0,newMax = 1)
     myYlim = c(0,1)
   } else if(rescale == "fixed"){
     rs1 = rangeRescale(x$s1,0,1, quantile(x$s1,0.025),quantile(x$s1,0.975))
@@ -646,7 +632,7 @@ plot.DyadSignal = function(x, sync=NA, rescale = c("none","win", "fixed"), ...) 
   lines(x$time, rs1,col=attr(x$s1,"col"))
   lines(x$time, rs2,col=attr(x$s2,"col"))
   
-  tSteps = round(x$time[seq(1, length(x$time),by=sampRate(x) )])
+  tSteps = round(x$time[seq(1, length(x$time),by=frequency(x) )])
   axis(1,at = tSteps, labels = timeMaster(tSteps,"min"),tick = T,las=2 )
   
   if(!missing(sync) && !is.na(sync)){
