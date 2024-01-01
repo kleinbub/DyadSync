@@ -12,18 +12,13 @@
 # Author: Johann R. Kleinbub
 # Contact: johann.kleinbub@gmail.com
 ############################################################################################################ 
-##Development notes regarding streams
-# L'idea di base è che ogni segnale è uno stream. Questo già avviene per i dati grezzi, ma non ancora per i ccf
-# o per i dati categoriali. la matrice con tutti i lag, andrebbe abbandonata, o quanto meno salvata a parte e 
-# bestCCF e bestLAG salvati come stream. Gli stream infatti sono time-series con un sacco di metadati utili
-# che rendono molto più semplice avere sempre tutte le info a portata di mano
 
-## STRUTTURA v3
+## STRUTTURA aggiornata a v1.3.0
 ## DyadExperiment               | <- Experiment è semplicemente il contenitore di tutti i dati
 ##    $DyadSession              | <- la session è l'unità logica, contiene nomi partecipanti e id
 ##        $DyadSignal "SC"      | <- signal è il contenitore di tutti i dati e analisi di un tipo di segnale fisio
-##            $DyadStream s1    | <- i diversi dati sono in forma di stream, ossia serie temporali con 
-##            $DyadStream s2    |    più metadati, tra cui elementi grafici che forse sono da eliminare
+##            $rats s1          | <- i diversi dati sono in forma di rats, ossia serie temporali con 
+##            $rats s2          |    più metadati.
 ##            $artefact         | <- un data.frame contenente le epoche (start end in secondi) da escludere
 ##            $CCFBest          | <- contenitore di analisi sincro basato sulle windowed x-cors
 ##              $rats sync      | <- il vecchio BestCCF
@@ -37,32 +32,9 @@
 ##            $rats s1          |
 ##            $rats s2          |
 ##            $rats ...         |
-##        $DyadCategory "PACS"  | <- oltre ai segnali, una sessione contiene le categorie, che sono dataframe contenenti
-##                              |    finestre temporali di interesse
-
-
-### cose che deve contenere CCF:
-##BestCCF PROCEDURE
-# matrice di xCor di dimensioni nLag x nWin
-# stream di bestCCF a BestLag
-# stream di bestLag
-# valori riassuntivi bestCCF
-## PPSync procedure
-# tabella xbest 
-# stream di sync secondo ppBest
-# stream di lag secondo ppBest
-# valori riassuntivi ppSync
-# valori di zSync per differenti metodi
-
-## proposta 1
-#  oggetto di classe DyadSync come contenitore generico di analisi di sincronizzazinoe
-## -contiene "nome" o "tipo" es: ccf, best procedure, PP procedure,
-## -ha dei metodi generalizzati per questa classe es toStream() che indipendentemente dal tipo
-##  restituisce uno stream interpolato alla frequenza richiesta.
-## -però è brutto generalizzare i metodi sull'attributo "nome"
-## proposta 2
-## - creare classi diverse e definire i metodi per le diverse classi
-## -ccfMatrix, vectorBestLag, peakpicking best lag,
+##        $DyadCategory "PACS"  | <- oltre ai segnali, una sessione può contenere 
+##                              |    categorie, che sono dataframe contenenti
+##                              |    finestre temporali (epoche) di interesse
 
 ## ----------------------------------------------------------
 
@@ -197,6 +169,18 @@ DyadSession = function(groupId,sessionId,dyadId, signalList=NULL, s1Name,s2Name,
 is.DyadSession = function(x) inherits(x,"DyadSession") && length(x)
 
 #' @export
+"[.DyadSession" = function(x,i){
+  if(all(is.character(i)) && !all(i %in% names(x))){
+    stop("Not all specified signals were found in session ", UID(x))
+  }
+  y = .subset(x, i)
+  oldAttr = attributes(x)
+  oldAttr["names"] = NULL
+  attributes(y) = c(attributes(y), oldAttr)
+  return(y)
+}
+
+#' @export
 c.DyadSession = function(...){
   l = list(...);
   x = l[[1]]
@@ -234,7 +218,6 @@ DyadCategory = function(name, data){
 is.DyadCategory = function(x) inherits(x,"DyadCategory") && length(x)
 
 ### DYADSIGNAL ###########################################
-## list of DyadStreams, time, valid with attributes:
 ##   -SR
 ##   -filter 
 ##   -ccf 

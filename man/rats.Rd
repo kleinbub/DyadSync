@@ -10,7 +10,7 @@ following information:
 start_date, 
 start, end, duration (milliseconds)
 sampling per second (Hz)
-windowing history: size, inc, flex}
+windowing history: size, inc, flex, windows}
 \usage{
 rats(
   data,
@@ -19,7 +19,7 @@ rats(
   duration,
   frequency = 1,
   period,
-  windowed = list(winSec = NULL, incSec = NULL, flex = NULL),
+  windowed = list(size = NULL, increment = NULL, flex = NULL, table = NULL),
   timeUnit = "cycle",
   unit = NULL
 )
@@ -66,8 +66,6 @@ analytic traditions, while rats is more oriented towards physical signals.
 The crucial difference is that for rats, time intervals are half-open intervals,
 which means that they include the start value but not the end one. This way
 rats(start=0, end=10, f=1) and rats(start=10, end=20, f=1) do not overlap.
-Secondarily, rats are stored as a list with $x and $y values, storing respectively
-the temporal information, and the values. These latter can be numeric or not.
 
 
 * rats are legion: there is no singular form "rat" as there is no singular "timeserie"
@@ -79,4 +77,15 @@ the temporal information, and the values. These latter can be numeric or not.
 * Holes fit in cheese, but not in rats: a rats' length must correspond to the rats'
   duration multiplied by the frequency. In other terms missing data in rats must
   be represented with NA
+}
+\examples{
+
+
+
+this old strategy to generate x values was prone to bugs
+whith this strategy you should have the guarantee o having exactly 1 x value
+for each y one, no floating point errors, and other seq() quirks.
+The first value is always going to be == start, and the following ones are
+increments of 1 period.
+This approach is also 10x times faster!
 }

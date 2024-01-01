@@ -6,29 +6,50 @@
 \usage{
 nwin(
   x,
-  winSec,
-  incSec,
+  WIN,
+  INC,
+  flex = FALSE,
   SR = frequency(x),
   return = c("number", "all"),
-  flex = FALSE,
   verbose = FALSE
 )
 }
 \arguments{
 \item{x}{either the duration in seconds of a time-series, or a rats or ts object}
 
-\item{winSec}{the width of each window, in seconds}
-
-\item{incSec}{the amount of increment between each window (incSec == winSec gives non-overlapping windows)}
+\item{flex}{if true the first and last windows are stretched so to have exactly length(x)/inc resulting windows}
 
 \item{SR}{the number of samples per second (i.e. frequency)}
 
 \item{return}{either "number", which returns the number of windows, or "all" which returns a data.frame with the start and end of each window.}
 
-\item{flex}{if true the first and last windows are stretched so to have exactly length(x)/inc resulting windows}
-
 \item{verbose}{should all the windows be printed?}
+
+\item{winSec}{the width of each window, in seconds}
+
+\item{incSec}{the amount of increment between each window (incSec == winSec gives non-overlapping windows)}
 }
 \description{
 Calculate number of windows in a time-series with a given duration
+}
+\examples{
+\._./\.^.-^\._./\.^.-^\._./\.^.-^\._./\.^.-^
+|---------------o---------------|
+    |---------------o---------------|
+        |---------------o---------------|
+            |---------------o---------------|
+            
+Here you need to have at least half window before getting reliable values
+Instead with flex:
+\._./\.^.-^\._./\.^.-^\._./\.^.-^\._./\.^.-^
+o---------------|                  <---FLEX WINDOW 1
+|---o---------------|              <---FLEX WINDOW 2
+|-------o---------------|          <---FLEX WINDOW 3
+|-----------o---------------|      <---FLEX WINDOW 4
+
+|---------------o---------------|  <---FIRST COMPLETE WINDOW
+    |---------------o---------------|
+        |---------------o---------------|
+            |---------------o---------------|
+
 }

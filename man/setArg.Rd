@@ -2,9 +2,7 @@
 % Please edit documentation in R/generic_utilities.R
 \name{setArg}
 \alias{setArg}
-\title{Approx by window
-when you have a value for each window (even overlapping ones) and you
-want to transform the values to a time series with the original sampling rate}
+\title{Set argument/attribute to a list without overwriting existing values}
 \usage{
 setArg(arg, value, argList)
 }
@@ -14,26 +12,8 @@ setArg(arg, value, argList)
 \item{value}{}
 
 \item{argList}{}
-
-\item{a}{a numerical vector, resulting from a windowing}
-
-\item{winSec}{the size of the window used to calculate a, in seconds}
-
-\item{incSec}{the increment of each window used to calculate a, in seconds}
-
-\item{SR}{the number of samples per second of the destination time-series}
-
-\item{midPoints}{if true, the value are considered to be at the center of the window, and the result is padded right by half window}
 }
 \description{
-Approx by window
-when you have a value for each window (even overlapping ones) and you
-want to transform the values to a time series with the original sampling rate
-}
-\examples{
-Set argument/attribute to a list without overwriting existing values
-
 This is most useful when dealing with ... and setting default behaviours that 
 can be overweritten by ...
-
 }
