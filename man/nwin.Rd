@@ -4,15 +4,7 @@
 \alias{nwin}
 \title{Calculate number of windows in a time-series with a given duration}
 \usage{
-nwin(
-  x,
-  WIN,
-  INC,
-  flex = FALSE,
-  SR = frequency(x),
-  return = c("number", "all"),
-  verbose = FALSE
-)
+nwin(x, WIN, INC, flex = FALSE, SR = frequency(x), return = c("number", "all"))
 }
 \arguments{
 \item{x}{either the duration in seconds of a time-series, or a rats or ts object}
@@ -22,8 +14,6 @@ nwin(
 \item{SR}{the number of samples per second (i.e. frequency)}
 
 \item{return}{either "number", which returns the number of windows, or "all" which returns a data.frame with the start and end of each window.}
-
-\item{verbose}{should all the windows be printed?}
 
 \item{winSec}{the width of each window, in seconds}
 

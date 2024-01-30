@@ -15,10 +15,12 @@ knitr::opts_chunk$set(echo = TRUE)
     * @TSBUG
       * cerca tss tse ts start end startend sampRate( tsp DyadStream xstart xend
     * @OBSOLETE
+    * @HACK cose brutte da sistemare quando hai tempo
 
 
 ## NEXT STEPS & CRITICAL BUGS
-
+  * crea algoritmo SCoPhaRSi Skin Conductance Phasic Response Similiarity
+    
   * amico2 ha dei buchi weight linea 863 prova mean [maybe done]
   * interval_sec diventa maxSize e con minSize devono essere implementati anche
     nella prima parte con i picchi veri. NB cè gia maxPeakDuration
@@ -28,6 +30,7 @@ knitr::opts_chunk$set(echo = TRUE)
   * in ppSync_dev perchè usare la lunghezza del più corto per interpolare? Usa già
     quella finale dell'interpolazione.
   * rinomina winSec in WIN e incSec in INC
+  * rinomina SR o sampRate in frequency
   * ccfBest dovrebbe usare byWin
 
 ## Git
@@ -39,7 +42,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ## physiology
   * recupera tutte le funzioni avanzate sviluppate per VRperGenere
   
-  
+## videoFrame
+  * il sistema  IN TEORIA è robusto con la visualizzazione di 2 segnali, ma non è testato
+  * in particolare non è robusto per la visualizzazione di algoritmi di sync diversi da AMICo1
+  *
   
 ## mechanics
   * ottimizza ccfBest e omologa l'output di ccfBest e pmBest. In particolar modo 
@@ -55,9 +61,12 @@ knitr::opts_chunk$set(echo = TRUE)
    Forse in R internals c'è una guida per dire come fare meglio?
 
 ## rats CLASS 
-  * togli tutti i round da start ed end [credo ok]
-  * length(rats(1:60)[61]) #ERROR
-  * c(rats(1:10, start=3.5), rats(1:10, start = 20)) # ERROR
+  * implementa summary.rats con tables per rats non numerici
+  * implementa plot.rats
+  * print.rats è un po' frustrante
+  * rescaleByWin non salva i metadati es. timeUnit
+  * metti error se period = 1 o frequency = 1
+
 
 
 
@@ -90,6 +99,7 @@ knitr::opts_chunk$set(echo = TRUE)
   * elimina i commenti e le cose obsolete. Sto segnando con @OBSOLETE le parti da rimuovere e/o spostare in obsolenscence.R
   * controlla gli argomenti missing nelle funzioni parallelizzate. In particolare
     AMICo, e filter
+  * pulisci rats da molti commenti
 
     
   

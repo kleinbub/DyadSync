@@ -2,15 +2,7 @@
 % Please edit documentation in R/classes_rats.R
 \name{rats}
 \alias{rats}
-\title{State of the file:
-this is a v0.2 let's say, in which instead of having a $x $y sructure, I am using
-a y and attr(y, 'time') format. this is good because x * 10 is preserved. 
-An ideal time series object to represent pyhisio signals should have the
-following information:
-start_date, 
-start, end, duration (milliseconds)
-sampling per second (Hz)
-windowing history: size, inc, flex, windows}
+\title{~rats: Rational Time Series}
 \usage{
 rats(
   data,
@@ -49,34 +41,84 @@ in print functions.}
 \item{unit}{character. A descriptor of the unit of measurement of the series values. Used only
 in print functions.}
 }
-\description{
-given a STS starting are at 0000, if you have 5000ms of information
-you only have samples for time 0, 1, 2, ... until 4999 so this would be represented as
-00:00 - 00:04
-Indeed time intervals are defined as half-open intervals
-with start and end and window methods including the start value but not
-the end value
+\value{
+a rats time series, which is a vector of any type with
 }
-\details{
-Rational Time Series
+\description{
 rats is the creator for a nimble S3 class of regular time series.
 rats are similar to \link[stats]{ts} or \link[zoo]{zooreg} classes, but these
-classes have many quirks related to quarterly periods and other econometric
-analytic traditions, while rats is more oriented towards physical signals.
-The crucial difference is that for rats, time intervals are half-open intervals,
-which means that they include the start value but not the end one. This way
-rats(start=0, end=10, f=1) and rats(start=10, end=20, f=1) do not overlap.
+classes have quirks related to quarterly periods and other econometric
+analytic traditions, while rats is more oriented toward engineering and computer
+science applications and implements the logics of these disciplines.
 
+Features:
+\itemize{
+   \item fractional frequency or period is perfectly supported
+   \item time intervals are defined as half-open intervals [A, B)
+   \item robust and non-destructive subsetting/extraction of series using the time coordinates with functions such
+   as \link[DyadSync]{window.rats}, \link[DyadSync]{'window<-.rats'}, \link[DyadSync]{at}
+   \item robust and non-destructive manipulation, expansion, and combination of series with functions such as
+   \link[DyadSync]{c.rats} and \link[DyadSync]{'window<-.rats'}
+   \item practical tools to explore(\link[DyadSync]{'print.rats'}, \link[DyadSync]{'str.rats'}) and
+   plot (\link[DyadSync]{'plot.rats'}) rats
+}
+}
+\details{
+###############################################################################
+                               _              _                      
+                     _ __ __ _| |_ ___    ___| | __ _ ___ ___ 
+                    | '__/ _` | __/ __|  / __| |/ _` / __/ __|
+           /\//\//\/  | | (_| | |_\__ \ | (__| | (_| \__ \__ \
+          |/\//\//\/|_|  \__,_|\__|___/  \___|_|\__,_|___/___/
+                                                              
+###############################################################################
+            _   _               _   _   _                         _        
+   _ _ __ _| |_(_)___ _ _  __ _| | | |_(_)_ __  ___   ___ ___ _ _(_)___ ___
+  | '_/ _` |  _| / _ \ ' \/ _` | | |  _| | '  \/ -_) (_-</ -_) '_| / -_|_-<
+  |_| \__,_|\__|_\___/_||_\__,_|_|  \__|_|_|_|_\___| /__/\___|_| |_\___/__/
+                                                                           
+###############################################################################
 
+State of the file:
+this is a v0.2 let's say, in which instead of having a $x $y sructure, I am using
+a y and attr(y, 'time') format. this is good because x * 10 is preserved. 
+An ideal time series object to represent pyhisio signals should have the
+following information:
+start_date, 
+start, end, duration (milliseconds)
+sampling per second (Hz)
+windowing history: size, inc, flex, windows
+PRINCIPLES:
 * rats are legion: there is no singular form "rat" as there is no singular "timeserie"
-* rats are small: rats is never capitalized.
-* rats fit well together: rats(start=0, end=10, f=1) and rats(start=10, end=20, f=1) do
-  not overlap and are combined to a . Time intervals are half-open intervals, including the start value
+* rats are tiny: 'rats' is never capitalized.
+* rats are social: rats(start=0, end=10, f=1) and rats(start=10, end=20, f=1) do
+  not overlap and can be combined to a single series starting at 0 and ending at 20.
+  Time intervals are half-open intervals, including the start value
   but excluding the end one.
 * rats are familiar: syntax is intuitive for ts() or zoo() users
 * Holes fit in cheese, but not in rats: a rats' length must correspond to the rats'
-  duration multiplied by the frequency. In other terms missing data in rats must
-  be represented with NA
+  duration multiplied by the frequency. Missing data in rats must
+  be represented with NAs.
+
+
+In the ~rats class, time intervals are defined as half-open intervals
+with start and end and window methods including the start value but not
+the end value
+This is also referred to as [A, B)
+or "inclusive start, exclusive end". 
+See: \href{https://www.cs.utexas.edu/users/EWD/transcriptions/EWD08xx/EWD831.html}{Dijkstra, E.W. (1982). Why numbering should start at zero}
+
+
+Thus, given a series starting at 0, with 5000 samples of information at 1000 samples/second
+you only have samples for time 0, 1, 2, ... until 4999 so this would be represented as
+00:00 - 00:04
+time(1) == 0  == 00:00
+time(N) == 4999 == 00:04-1*period
+
+In another example, rats(start=0, end=10, f=1) and rats(start=10, end=20, f=1) do not overlap.
+
+The class works by storing the y values as a vector, and the x, or "time" values as an attribute,
+together with other relevant metadata
 }
 \examples{
 

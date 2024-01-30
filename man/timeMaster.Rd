@@ -12,17 +12,20 @@ timeMaster(
   baseTime,
   out = c("auto", "hour", "min", "sec"),
   add = 0,
-  baseSep = "[\\\\.,:,;,\\\\,',\\",\\\\-]"
+  baseSep = "[:,;,\\\\,',\\",\\\\-]",
+  digits = c("auto")
 )
 }
 \arguments{
-\item{baseTime}{}
+\item{baseTime}{numeric representig seconds, or a string in the h:m:s or m:s format}
 
-\item{out}{}
+\item{out}{the output format "auto", "hour" for hh:mm:ss, "min" for "mm:ss"}
 
-\item{add}{}
+\item{add}{a time to be added (or subtracted if negative) from basetime. In any format accepted by timeMaster}
 
-\item{baseSep}{}
+\item{baseSep}{the separator dividing hh mm ss}
+
+\item{digits}{the number of digits of the fractional part of seconds}
 }
 \description{
 timeMaster
