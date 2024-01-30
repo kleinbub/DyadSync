@@ -1,0 +1,178 @@
+---
+title: "DyadSync Data Structure"
+output: html_document
+date: "2024-01-29"
+---
+
+The package DyadSync can import and analyze dyadic data of multiple sources, of different dyads meeting once or at different time points.\
+E.g. a single interaction of 2 persons in an experimental setting, or multiple sessions of the same patient-therapist dyad.\
+
+## Definitions
+
+In this context:
+
+DYAD
+:   A DYAD is a fixed combination of 2 persons. It has a unique name called DyadId.\
+    E.g. Joe and Jane, but not Joe and Alice, nor Bob and Jane.
+
+SESSION
+:   Two observations of the same DYAD must be identified by a SESSION number.
+    It has a unique **number** called SessionId. SessionId must always have 3 digits.\
+    *E.g. Joe & Jane 001, Joe & Jane 002, and so on...* \
+    If participants only meet once, there will only be session 001.
+    
+DATA
+:   Data for each SESSION can be of three types: SIGNAL, DIARY, or VIDEO
+
+    -   A SIGNAL is a continuous observation made on both participants during one SESSION.\
+    *E.g. skin conductance, or MEA.*
+
+    -   A DIARY is the annotation of specific events happening during a SESSION. Each event is associated to an **epoch**, i.e. a period of time bounded by a start and an end. 
+    *E.g., markers of transcripts (TCCS, IM, PACS,...), markers of videos (nonverbal events, facial expressions,... ), specific phases of a structured interaction, etc.*
+
+    -   A VIDEO is a single video file associated with one SESSION. Typically the recording of the dyadic interaction.
+
+STUDY
+:   A STUDY is a collection of SESSIONS that have something in common.\
+    *E.g. all sessions of all patients in an RCT, or in an experiment.*
+
+GROUP
+:   A GROUP is an (optional) subclassification of DYADS, that enables comparisons between different DYADS in a STUDY. Each GROUP has a unique name called GroupId. A single GROUP named "All" is automatically used as default.\
+    *E.g. experimental vs control; Centre 1, centre 2, centre 3; Diagnosis A, diagnosis B, diagnosis C; Treatment A, B, C; etc.*
+
+## Files organization
+
+The package DyadSync expects the data to be organized as follows:
+
+One directory (folder) for each study. _E.g. "Study_1"_\
+One directory (folder) for each type of data. _E.g. physiological data, videos, markers, etc._
+
+### Naming Convention
+
+Inside each of these directory there must be one file per session named with the following format:
+
+**GroupId_DyadId_SessionId_otherInfo_moreInfo.ext**
+
+*E.g. GoodOutcome_BobAlice_01.mp4*\
+or\
+*Padova_JoeJane_03_GSRandHR_filteredAndCleaned_100Hz.csv*
+
+### Structure example
+The following tree structure can be used as an example directory tree:
+
+```         
+Study_1
+|
+└───Physiology (SIGNAL)
+│   │   groupA_Jane_001_clean_10Hz.csv
+│   │   groupA_Jane_002_clean_10Hz.csv
+│   │   groupA_Bill_001_clean_10Hz.csv
+│   │   groupA_Bill_002_clean_10Hz.csv
+│   │   groupB_Mary_001_clean_10Hz.csv
+|   |   ...
+│   
+└───TCCS (DIARY)
+│   │   groupA_Jane_001_TCCS.csv
+│   │   groupA_Jane_002_TCCS.csv
+│   │   groupA_Bill_001_TCCS.csv
+│   │   groupA_Bill_002_TCCS.csv
+│   │   groupB_Mary_001_TCCS.csv
+|   |   ...
+|
+└───PACS (DIARY)
+│   │   groupA_Jane_001_TCCS.csv
+│   │   groupA_Jane_002_TCCS.csv
+│   │   groupA_Bill_001_TCCS.csv
+│   │   groupA_Bill_002_TCCS.csv
+│   │   groupB_Mary_001_TCCS.csv
+|   |   ...
+|
+└───Videos (VIDEO)
+│   │   groupA_Jane_001_recoded_25fps.mp4
+│   │   groupA_Jane_002_recoded_25fps.mp4
+│   │   groupA_Bill_001_recoded_25fps.mp4
+│   │   groupA_Bill_002_recoded_25fps.mp4
+│   │   groupB_Mary_001_recoded_25fps.mp4
+|   |   ...
+|
+Study_2
+|
+└───MEA (SIGNAL)
+│   │ All_Louis_001.csv
+│   │ ...
+|
+└───MEA_videos (VIDEO)
+│   │ All_Louis_001.mp4
+│   │ ...
+|
+```
+## Files format
+
+The format for files differs according to its type.
+
+### SIGNALS
+Signals are essentially represented with .csv or .txt files with one column per participants,
+and 1 row per sample. Samples must be equally spaced in time with a constant rate.
+__E.g. 10 samples per second (or 0.1s each sample); 365 samples per year (or 1 day each sample)__ 
+See the following example:
+
+```{r table2, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+tabl <- "
+EDA_patient | EDA_therapist
+|---------|--------|
+| 17.2654 | 5.4789 |
+| 17.8432 | 5.5843 |
+| 18.1358 | 5.6168 |
+| ...     |    ... |
+
+"
+cat(tabl) # output the table in a format good for HTML/PDF/docx conversion
+```
+
+For convenience, multiple SIGNALS can be stored in a single file as long as they share
+the same sampling rate (aka sampling frequency), as in the following example:
+```{r table3, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+tabl <- "
+| EDA_s1 | EDA_s2 | HR_s1 | HR_s2 |
+|---------|--------|-------|-------|
+| 17.2654 | 5.4789 | 65.25 | 72.17 |
+| 17.8432 | 5.5843 | 65.10 | 72.18 | 
+| 18.1358 | 5.6168 | 65.21 | 72.20 |
+| ...     |    ... | ... | ...|
+
+"
+cat(tabl) # output the table in a format good for HTML/PDF/docx conversion
+```
+
+### DIARY
+Diaries are represented with .csv or .txt files with 2 mandatory columns defining the beginning and end of an *epoch*.
+
+start [1 column]
+:      The timestamp when the event begins, in the format hh:mm:ss, mm:ss, or a numeric value representing seconds. Fraction of seconds can be represented as decimals in all formats.
+
+end [1 column]
+:      The timestamp when the evend ends, in the same format as 'start'. This must be larger than 'start'.
+
+categories [n columns]
+:     Following columns can represent categorical variables decribing each epoch. For each column, each value describes one level of one categorical variable. Each variable must have a closed list of possible values. *E.g. facial expression category can have the following levels: happy, sad, neutral, angry, disgusted, fearful.*
+
+more [n columns]
+:     Further columns can contain anything, such as comments or notes. These won't be used in the analyses but can be retrieved if needed.
+
+See the following example of a well formed DIARY
+
+```{r table4, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+tabl <- "
+| start   | end   |  face | main_action_unit | comments|
+|---------|--------|-------|-------|---------|
+| 00:24:12.32 | 00:24:13.01 | happy | AU12  | unclear angle|
+| 53:05 | 53:15 | sad | AU4  |  |
+| 3312.17 | 3315.84 | happy | AU12  | duchenne smile|
+| ...     |    ... | ... | ...| ... |
+
+"
+cat(tabl) # output the table in a format good for HTML/PDF/docx conversion
+```
+
+### VIDEO
+In theory, videos can be in any format processable with FFMPEG. To use the default FFMPEG prompts though, videos should be encoded in h.264 with a constant, integer, frame rate.
