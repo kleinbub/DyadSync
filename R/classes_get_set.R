@@ -135,12 +135,12 @@ name <- function(x) {
 }
 
 #' @export
-UID = function(x){
+UID = function(x,lead=3){
   if(!all(c("dyadId","sessionId","groupId") %in% names(attributes(x)))){
     stop("Only objects of class DyadSession, or DyadSignal 
          have DyadSync::UID methods")
   }
-  paste(attr(x,"groupId"), attr(x,"dyadId"), attr(x,"sessionId"), sep="_" )
+  paste(attr(x,"groupId"), attr(x,"dyadId"), lead0(attr(x,"sessionId"),lead), sep="_" )
 }
 
 ## set
