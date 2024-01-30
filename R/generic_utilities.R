@@ -403,15 +403,15 @@ merge.list = function(x,y) {
 #' @param incSec the amount of increment between each window (incSec == winSec gives non-overlapping windows)
 #' @param SR the number of samples per second (i.e. frequency)
 #' @param return either "number", which returns the number of windows, or "all" which returns a data.frame with the start and end of each window.
-#' @param verbose should all the windows be printed?
+# #' @param verbose should all the windows be printed?
 #' @param flex if true the first and last windows are stretched so to have exactly length(x)/inc resulting windows
 #'
 #' @return
 #' @export
 #'
 #' @examples
-nwin = function(x, WIN, INC, flex=FALSE, SR=frequency(x), return=c("number", "all"),
-                verbose = FALSE) {
+nwin = function(x, WIN, INC, flex=FALSE, SR=frequency(x), return=c("number", "all")) {
+                # verbose = FALSE
   # DEBUG
   # stop("debug nwin")
   # x = lr10$all_CC_1$SC$s1
@@ -454,10 +454,9 @@ nwin = function(x, WIN, INC, flex=FALSE, SR=frequency(x), return=c("number", "al
 
   return=match.arg(return)
 
-  all_wins = 1:n_win
-  start = (all_wins-1)*inc +1
+  start = 1+ cumsum(rep(inc,n_win)) - inc
   end = start + win -1
-  mid = start + win2
+  mid = start + win2 
   FLX = rep(FALSE, n_win)
 
   if(flex && win > inc){ 
@@ -485,67 +484,76 @@ nwin = function(x, WIN, INC, flex=FALSE, SR=frequency(x), return=c("number", "al
     #' 
     
     #initial flexes
-    nif = floor((mid[1]) / inc) #number of flex windows
+    # nif = floor((mid[1]) / inc) #number of flex windows
+    nif = floor((mid[1]-1) / inc) #number of flex windows
     if(nif > 0){
+      fimid = 1+ cumsum(rep(inc,nif))-inc
+      fiend = fimid + win2 - 1
       fistart = rep(1,nif)
-      fiend = seq(end[1]-inc*nif ,end[1]-1, by=inc)
-      fimid = (fiend - win2)+1
       fiflex =rep(TRUE, nif)
       
-      #@HACK non sono capace di trovare il numero giusto di nif
-      #quindi correggo a mano.... 
+      #' @HACK non sono capace di trovare il numero giusto di nif
+      #' quindi correggo a mano....
       td = which(fimid<1)
       if(length(td)>0){
-        fistart = fistart[-td]
-        fimid   = fimid[-td]
-        fiend   = fiend[-td]
-        fiflex  = fiflex[-td]
+        warning("this should not happen anymore!")
+        # fistart = fistart[-td]
+        # fimid   = fimid[-td]
+        # fiend   = fiend[-td]
+        # fiflex  = fiflex[-td]
       }
-
+      start = c(fistart, start)
+      mid   = c(fimid,   mid  )
+      end   = c(fiend,   end  )
+      FLX  = c(fiflex,  FLX )
+      n_win = length(start)
+    }
+    
+    #final flexes using also the unused data at the end
+    nff = floor ((len - mid[n_win])/inc)
+    if(nff > 0){
       
-
-      #final flexes using also the unused data at the end
-      end[n_win]
-      start[n_win]
+      ffmid = mid[n_win] + cumsum(rep(inc,nff))
+      ffstart = ffmid - (win2-1)
+      ffend  = rep(len, nff)
       
-      ffstart = seq(start[n_win]+inc, length(x)-win2, by=inc)
-      ffstart =cumsum(rep(inc,))
+      recycle = which(sign(len - (ffmid + win2)) ==1)
+      ffend[recycle] = ffmid[recycle] + win2
       
-      nff = length(ffstart)
-      ffend = rep(length(x), nff)
-      ffmid = ffstart + win2
+     
       ffflex = rep(TRUE, nff)
       
-      start = c(fistart, start, ffstart)
-      mid   = c(fimid,   mid  , ffmid)
-      end   = c(fiend,   end  , ffend)
-      flex  = c(fiflex,  FLX , ffflex)
+      start = c(start, ffstart)
+      mid   = c(mid  , ffmid)
+      end   = c(end  , ffend)
+      FLX  = c(FLX , ffflex)
       n_win = length(start)
-      all_wins = 1:n_win
+      
     }
+    # all_wins = 1:n_win
   }
 
 
 
-  if(verbose){
-    digits = nchar(trunc(abs(len)))
-
-    cat("\r\n Number of windows:",n_win)
-    cat("\r\n Number of samples used:",(n_win-1)*inc+win)
-    cat("\r\n Number of seconds used:",((n_win-1)*inc+win)/SR)
-    cat0("\r\n Proportion of len used: ",((n_win-1)*inc+win)/len*100,"%\r\n")
-
-    actual = 0;iterations = 0;
-    while ( actual+win<=len) {
-      iterations = iterations+1
-      cat0('\r\nW',lead0(iterations, nchar(n_win))," | Samples: ", lead0(actual+1,digits),' - ',lead0(actual+win,digits),
-           " | Seconds: ", lead0(actual+1/SR,digits),' - ',lead0((actual+win)/SR,digits))
-      actual = actual+inc;
-      #cat(actual+win,"\n\r")
-    }
-  }
-  res = data.frame(window=all_wins, start_s=start,end_s=end,
-                   mid_s=mid, duration = end-start+1, flex = flex,
+  # if(verbose){
+  #   digits = nchar(trunc(abs(len)))
+  # 
+  #   cat("\r\n Number of windows:",n_win)
+  #   cat("\r\n Number of samples used:",(n_win-1)*inc+win)
+  #   cat("\r\n Number of seconds used:",((n_win-1)*inc+win)/SR)
+  #   cat0("\r\n Proportion of len used: ",((n_win-1)*inc+win)/len*100,"%\r\n")
+  # 
+  #   actual = 0;iterations = 0;
+  #   while ( actual+win<=len && iterations < 100) {
+  #     iterations = iterations+1
+  #     cat0('\r\nW',lead0(iterations, nchar(n_win))," | Samples: ", lead0(actual+1,digits),' - ',lead0(actual+win,digits),
+  #          " | Seconds: ", lead0(actual+1/SR,digits),' - ',lead0((actual+win)/SR,digits))
+  #     actual = actual+inc;
+  #     #cat(actual+win,"\n\r")
+  #   }
+  # }
+  res = data.frame(window=1:n_win, start_s=start,end_s=end,
+                   mid_s=mid, duration = end-start+1, flex = FLX,
                    start_t = tstart + (start-1)/SR, end_t = tstart + end/SR,
                    mid_t = tstart + (mid - 1)/SR )
   if(return=="number")  return(n_win)
