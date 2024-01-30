@@ -171,12 +171,21 @@ totitle <- function(x) {
 
 }
 
+#' cat without spaces
+#' @param ... 
+#'
 #' @export
 cat0 = function(...) {cat(..., sep="")}
 
+#' Formats number with leading zeros
+#' @param x 
+#'
+#' @param width number of leading zeros
+#' @param digits number of decimal digits
+#'
 #' @export
-lead0 = function(x, width = 2){
-  formatC(x,width = width, format = "d", flag = "0")
+lead0 = function(x, width = 2, digits=0){
+  formatC(x,width = width, format = "f", digits=digits, flag = "0")
 }
 
 #' rangeRescale
