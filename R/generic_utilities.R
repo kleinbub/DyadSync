@@ -287,23 +287,21 @@ unequalCbind = function(...) {
 #' add amounts of time to baseTime expressed in different formats.
 #' This is verified. And useful. For reasons. :-D
 #'
-#' @param baseTime 
-#' @param out 
-#' @param add 
-#' @param baseSep 
+#' @param baseTime numeric representig seconds, or a string in the h:m:s or m:s format
+#' @param out the output format "auto", "hour" for hh:mm:ss, "min" for "mm:ss"
+#' @param add a time to be added (or subtracted if negative) from basetime. In any format accepted by timeMaster
+#' @param baseSep the separator dividing hh mm ss
+#' @param digits the number of digits of the fractional part of seconds
 #'
 #' @return
 #' @export
 #'
 #' @examples
-timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseSep = "[\\.,:,;,\\,',\",\\-]"){
+timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseSep = "[:,;,\\,',\",\\-]", digits=c("auto")){
   #baseTime and add can either be  integers of seconds or a time string in the format h:m:s, m:s, or s, with or without leading zeroes
   #output forces the sum to be reported either as string h:m:s or m:s or as a integer of seconds. auto keeps the 'baseTime' format.
   out = match.arg(out)
-  if(is.numeric(baseTime) && sum(baseTime%%1)>0 ) {
-    baseTime=as.character(baseTime)
-    warning("The . was considered as a ':' in the format mm:ss. timeMaster does not support fractional times yet")
-  }
+
   if(length(baseTime)>1)
   {
     ## NB questa è la linea classica, funzionantissima, tranne nel caso di un data.frame di una riga.
@@ -333,6 +331,8 @@ timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseS
     
   } else {
     #da qui baseTime è contenente un tempo singolo, non un vettore
+    if(baseSep == ".") stop("The dot symbol . is reserved for fractional times.")
+
     if(is.character(baseTime)){
       #è negativo?
       if(substr(baseTime,1,1)=="-"){
@@ -343,7 +343,7 @@ timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseS
       if      (length(baseTime[[1]])==1) auto = "sec"
       else if (length(baseTime[[1]])==2) auto = "min"
       else if (length(baseTime[[1]])==3) auto = "hour"
-      else stop ("baseTime format not recognized. It should either be \"min:sec\" or \"hour:min:sec\" or an integer of seconds")
+      else stop ("baseTime format not recognized. It should either be \"min:sec\" or \"hour:min:sec\" or a numeric value representing seconds. sec can be fractional")
       sapply(unlist(baseTime), function(k){if(k=='') stop("baseTime contains an empty cell. Please check your separators")})
       #transform to seconds
       baseTime = unlist(lapply(baseTime, function(x){
@@ -362,6 +362,13 @@ timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseS
     if(is.character(add)) add = timeMaster(add,out="sec")
     x = baseTime + add #that's the final amount in seconds
     
+    if(digits != "auto"){
+      if(!is.numeric(digits)) stop ("digits must be 'auto' or numeric.")
+      realDigits = digits
+    } else if(is.numeric(x) && x%%1>0 ) {
+      realDigits = 3
+    } else realDigits = 0
+    
     if(out=="auto") out=auto
     if(out == "sec") {
       return(x)
@@ -372,9 +379,9 @@ timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseS
       hours = trunc(mins/60)
       mins_h = mins - hours*60
       if(out == "min")
-        return(paste0(ifelse(negative,"-",""), lead0(mins),":", lead0(secs)))
+        return(paste0(ifelse(negative,"-",""), lead0(mins, w=2, d=0),":", lead0(secs, w=2, d=realDigits)))
       else if (out =="hour"){
-        return(paste0(ifelse(negative,"-",""),lead0(hours),":",lead0(mins_h),":", lead0(secs)))
+        return(paste0(ifelse(negative,"-",""),lead0(hours, w=2, d=0),":",lead0(mins_h, w=2, d=0),":", lead0(secs, w=2, d=realDigits)))
       }
     } else stop("timeMaster failed in a weird way!")
   }
