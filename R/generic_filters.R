@@ -260,7 +260,10 @@ setArtefacts.DyadSignal <- function(x, startEnd) {
 
 resample = function (x, newSampRate, ...) {
   if(!is.rats(x)) stop("Only rats can be resampled")
-  if(newSampRate == frequency(x)) stop("newSampRate and original signal frequency are identical.")
+  if(newSampRate == frequency(x)){
+    message("newSampRate and original signal frequency are identical. No resampling was performed")
+    return(x)
+  } 
   q = frequency(x) / newSampRate  #ratio of old vs new sr
   rats(approx(seq_along(x),x, xout= seq(1,length(x),by=q), ... )$y, start=start(x),
        frequency=newSampRate,timeUnit=timeUnit(x), unit=unit(x))
