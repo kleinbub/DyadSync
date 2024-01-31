@@ -7,10 +7,16 @@
 at(x, time)
 }
 \arguments{
-\item{x}{}
+\item{x}{a rats object}
 
-\item{time}{}
+\item{time}{a time in a format accepted by \link[DyadSync]{timeMaster}}
+}
+\value{
+a rats object of length 1
 }
 \description{
 Get rats value at given time
+}
+\examples{
+at(rats(500:100, frequency=10), time = 12.378)
 }
