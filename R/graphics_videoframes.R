@@ -40,20 +40,34 @@ drawFrames = function(session, signals, sync, WIN, inputDir,
                       ffmpeg.query, ffmpeg.path, multi.core = TRUE, 
                       speed=1, keepAudio = TRUE, ... ){
   ############
-  # session = lr$all_carolina_1
-  # # session$HR = session$SC
-  # layout = 1
-  # w = 640#1920#1280#960
-  # h = 480#1080#720#540
-  # WIN = 30 #how much signal is shown at any given point
-  # frameRate = 10
-  # col_sync= c("#f70c3f","#c16107", "#878787","#878787","#878787", "#86a817", "#23c647")
-  # sync = "amico1"
-  # signals = c("SC")#,"HR")
+  # session = lr[[1]]
+  # signals = "SC"
+  # sync="amico1"
+  # WIN=30
+  # inputDir = input.video.path
   # outputDir = file.path("C:","videoConversion","video_sync","vetere")
-  # multi.core= TRUE
-  # ffmpeg.path = file.path("C:","videoConversion","ffmpeg")
+  # idSep = "_"
+  # idOrder = c(F,F,T)
+  # w = 640
+  # h = 480
+  # frameRate = 10
+  # ffmpeg.path=file.path("C:","videoConversion","ffmpeg")
+  # multi.core = 15
   # speed=1
+  # keepAudio = TRUE
+  # # # session$HR = session$SC
+  # # layout = 1
+  # # w = 640#1920#1280#960
+  # # h = 480#1080#720#540
+  # # WIN = 30 #how much signal is shown at any given point
+  # # frameRate = 10
+  # # col_sync= c("#f70c3f","#c16107", "#878787","#878787","#878787", "#86a817", "#23c647")
+  # # sync = "amico1"
+  # # signals = c("SC")#,"HR")
+  # # outputDir = file.path("C:","videoConversion","video_sync","vetere")
+  # # multi.core= TRUE
+  # # ffmpeg.path = file.path("C:","videoConversion","ffmpeg")
+  # # speed=1
   # stop("debug")
   #############
   # if(missing(ffmpeg)){
@@ -100,7 +114,7 @@ drawFrames = function(session, signals, sync, WIN, inputDir,
   bin = file.path(ffmpeg.path,"bin")
   if(!file.exists(file.path(bin,"ffmpeg.exe")) ||
      !file.exists(file.path(bin,"ffprobe.exe"))) stop("up to date ffmpeg must be installed in", ffmpeg.path, "with .exe in the bin subdirectory")
-  probe = paste0(file.path(bin,"ffprobe -show_streams")," ",inputVideo)
+  probe = paste0(file.path(bin,"ffprobe.exe -show_streams"),' "',inputVideo,)
   ffmpeg.exe = file.path(bin,"ffmpeg")
   
   ################
@@ -265,7 +279,7 @@ drawFrames = function(session, signals, sync, WIN, inputDir,
   ####### SETUP PARALLELIZATION
   # progresbar
   pb <- progress::progress_bar$new(
-    format = "Calculation::percent [:bar] :elapsed | ETA: :eta",
+    format = "Drawing frames::percent [:bar] :elapsed | ETA: :eta",
     total = nframes,    # number of iterations
     width = 60, 
     show_after=0 #show immediately
@@ -327,7 +341,7 @@ drawFrames = function(session, signals, sync, WIN, inputDir,
       
       for(ii  in 1:nsignals){
         si1 = window(sx[[ii]]$s1, start = swinz$start_t[j], end = swinz$end_t[j])
-        test = window(s$SC$s1, start = swinz$start_t[j], end = swinz$end_t[j])
+        # test = window(s$SC$s1, start = swinz$start_t[j], end = swinz$end_t[j])
         si2 = window(sx[[ii]]$s2, start = swinz$start_t[j], end = swinz$end_t[j])
         syi = window(sy        , start = swinz$start_t[j], end = swinz$end_t[j])
         lagi= window(LAGs      , start = swinz$start_t[j], end = swinz$end_t[j])
@@ -398,8 +412,8 @@ drawFrames = function(session, signals, sync, WIN, inputDir,
         
         
 
-        text(0,0.95,"SC Id:0",cex=3,col=2)
-        text(0,0.90,"SC Id:1",cex=3,col=4)
+        text(0,0.95,paste0(names(sx)[1]," - ", s1Name(sx[[1]])),cex=3,col=2)
+        text(0,0.90,paste0(names(sx)[1]," - ", s2Name(sx[[1]])),cex=3,col=4)
         
         abline(h = low_b)
         abline(h=high_b)
