@@ -614,7 +614,7 @@ window.rats = function(x, start, end, duration){
   #in assigment mode, all the real data must be kept
   fin_start = min(start(x), new_start)
   fin_end   = max(end(x),   new_end)
-  fin_x  = new_start + cumsum(c(0,rep(period(x), round((fin_end - fin_start)/period(x)-1,digits=10))))
+  fin_x  = fin_start + cumsum(c(0,rep(period(x), round((fin_end - fin_start)/period(x)-1,digits=10))))
   fin_x  = round(fin_x, digits = 5)
   fin_y  = rep(NA,length(fin_x)) 
   
