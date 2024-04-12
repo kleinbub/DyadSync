@@ -80,7 +80,7 @@ readCategories = function(path,
     if(nrow(file)>0){
         file[file==""] = NA
         file = file[rowSums(is.na(file)) != ncol(file),]
-        file = file[,colSums(is.na(file)) != nrow(file)]
+        file = file[,colSums(is.na(file)) != nrow(file) | seq_along(file) %in% codingCol]
         file[is.na(file)] = "NA" #use character NA to keep smooth subsequent analyses
         #convert shitty time formats to seconds
       
