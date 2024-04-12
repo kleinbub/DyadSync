@@ -364,6 +364,12 @@ window.rats = function(x, start, end, duration){
   }
   if(length(start(x))>1) stop("ts error. Try restarting the session")
   
+  if(round(duration, digits=10) == 0){
+    duration = period(x)
+    end = end+period(x)
+    warning("zero length duration was coerced to 1 sample")
+    }
+  
   # due to floating point errors even simple operations (e.g. subtraction)
   # with non-integer numbers can lead to unpredictable errors 
   # eg:  1024.1 - 0.1 < 1024  [TRUE!]
