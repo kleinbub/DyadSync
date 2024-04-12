@@ -593,6 +593,12 @@ window.rats = function(x, start, end, duration){
     duration = end - start
   }
   
+  if(round(duration, digits=10) == 0){
+    duration = period(x)
+    end = end+period(x)
+    warning("zero length duration was coerced to 1 sample")
+  }
+  
   start = round(start, digits=10)
   end   = round(end, digits=10)
   duration = round(duration, digits=10)
