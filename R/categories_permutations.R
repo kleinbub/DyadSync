@@ -8,8 +8,8 @@
 #' @param signal character. name of a DyadSignal contained in x.
 #' @param sync character. Name of a synchronization object. E.g. PMBest, or CCFBest
 #' @param series character. Name of a rats object contained within sync
-#' @param category character. Name of a DyadCategory object contained in x
-#' @param categoryIndex character. Name of a factor column in 'category'.
+#' @param diary character. Name of a DyadCategory object contained in x
+#' @param category character. Name of a factor column in 'diary'.
 #' @param absolute logical. should the series be transformed to absolute values?
 #' @param minEpochSec number of seconds of minimum epoch. Shorter epochs will be deleted.
 #' @param minOccurrences min occurrences of given category to be kept. Less frequent categories will be deleted.
@@ -23,9 +23,11 @@
 #' @param forceMaxPads This is for retrocompatibility only. It has no effect and will be removed in further versions.
 #' @param returnData logical. Should the data be returned?
 #' @param credibilityMass 
+#' @param cores Either logical or integer. Sets how many cores should be used for the import. Values of 1, 0 or FALSE disable the multi-core code.
 #' @param nLines 
 #' @param xlim either "auto" or a numeric vector of length 2 to set the plot scale and density boundaries.
-#' @param ... 
+#' @param ... further parameters passed to epochSeries. Note that by default:
+#' mergeEpochs=FALSE, artefact.rm=TRUE, shift_start=0, shift_end=0, target="epoch"
 #' 
 #' @details Credible intervals are calculated with \link[hdr]{hdrcde} function
 #' @return if returnData is TRUE, a list with all observed and random data and statistics.
@@ -38,8 +40,8 @@ categoryPerm = function(x,
                         signal,
                         sync,
                         series,
+                        diary,
                         category,
-                        categoryIndex,
                         keepOnly = c(), #
                         minEpochSec, #
                         minOccurrences, #
@@ -58,6 +60,7 @@ categoryPerm = function(x,
                         
                         #analyses settings
                         credibilityMass = 0.89,
+                        cores = TRUE, #should multi-core procedures be used?
                         
                         #graphic settings
                         nLines=200,
@@ -66,16 +69,18 @@ categoryPerm = function(x,
   
   args = c(as.list(environment()), list(...))
   args$x = NULL
-  ####DEBUG
+  if((is.logical(cores) && !isTRUE(cores)) || identical(cores, 0) || identical(cores, 1)) cores = FALSE
+  
+  # ###DEBUG
   # rm(list=ls())
   # load("A:/OneDrive - Università degli Studi di Padova/__Ricerche/2022_IM_paper/IM_engine_2023_amico2_v2.RData")
-  # load("C:/Users/Kleinbub/OneDrive - Università degli Studi di Padova/__Ricerche/2021_biofeedback validation/BIOFEEDBACK LAB/SD_engine_v2.RData")
+  # load("C:/Users/Kleinbub/OneDriveLink/__Ricerche/2021_biofeedback validation/BIOFEEDBACK LAB/SD_engine_v2.RData")
   # plotPrefix = paste0("permplottest_")
-  # signal="zaki"
-  # sync="CCFBest";#sync="PMdev"
+  # signal="SC"
+  # sync="amico1";#sync="PMdev"
   # series="sync"
+  # diary = "SELF"
   # category = "SELF"
-  # categoryIndex = "SELF"
   # # keepOnly = c("SI") #
   # minEpochSec = 3 #
   # minOccurrences = 5 #
@@ -94,7 +99,7 @@ categoryPerm = function(x,
   # xlim = c(-1,1);xlim = "auto"
   # d3=d2
   # keepOnly = c("Reconceptualization")
-  ###
+  # ##
   
   d3 = x
   if(absolute){
@@ -107,15 +112,15 @@ categoryPerm = function(x,
   if(length(samplesPerSec)>1) stop("multiple frequencies detected for selected series in different DyadSessions:\r\n",samplesPerSec)
   cat("\r\nSEGMENTING BY EPOCH:\r\n")
   d4 = epochSeries(d3, signal=signal, sync=sync,series = series,
-                   category=category,categoryIndex=categoryIndex, mergeEpochs = F, artefact.rm=F)
+                   diary=diary,category=category,summaryFUN=epochSummaryFUN, ...)
   
-  resName = paste0(c(toupper(category), "_", totitle(c(sync,series))),collapse = "")
+  resName = paste0(c(toupper(diary), "_", totitle(c(sync,series))),collapse = "")
   ex2 = extractEpochs (d4, signal=signal, sync=sync, series=series,
-                       category=category, categoryIndex=categoryIndex)
+                       diary=diary, category=category)
   lN   = unlist(lapply(ex2,length))
   
   ## keep only selected categories
-  if(length(keepOnly)>0){
+  if(length(keepOnly)>0 ){
     keepOnly = c(keepOnly, "remaining")
     ex2 = ex2[keepOnly]
   }
@@ -149,20 +154,24 @@ categoryPerm = function(x,
   for(i in 1:length(ex2)){
     #remove NAs from the sequences, so that they don't influence results
     for(j in 1:length(ex2[[i]])){
-      if(all(is.na(ex2[[i]][[j]]))) infoNA[i] = infoNA[i] + 1
+      if(all(is.na(ex2[[i]][[j]]))) {
+        infoNA[i] = infoNA[i] + 1
+      } 
       ex2[[i]][[j]] = ex2[[i]][[j]][!is.na(ex2[[i]][[j]])]
     }
     #after removal of NAs, check if remaining size is above threshold
     durations = as.numeric(sapply(ex2[[i]],length))
     toKeep = durations > (minEpochSec*samplesPerSec) #e.g. 5 seconds x 10 samplepersecond
     infoRm[i] = sum(!toKeep) - infoNA[i]
+
+    ##remove too short segments
     ex2[[i]] = ex2[[i]][toKeep]
     
     #if any category has less than 10 instances, add to remove list
     if(length(ex2[[i]])<minOccurrences) toRemove = c(toRemove, i)
     
   }
-  
+
   #remaining is a special category and should never be removed
   remi = which(names(ex2)=="remaining")
   if(remi %in% toRemove) toRemove = toRemove[toRemove!= remi]
@@ -180,7 +189,7 @@ categoryPerm = function(x,
   report = report[!report[,1]=="remaining",]
   cat("\r\n")
   print(report,row.names = FALSE)
-  #remove from removelist
+  #remove categories according to removelist
   if(length(toRemove)>0) ex2 = ex2[-toRemove]
   
   toPlot = names(ex2)[names(ex2)!="remaining"]
@@ -204,17 +213,17 @@ categoryPerm = function(x,
     # tipo2 = toPlot[1] ## <-----------------------------------------------####
     # print(tipo2)
     #remove NAs should be superfloous
-    ex2[[tipo2]] = ex2[[tipo2]][sapply(ex2[[tipo2]], function(x){!all(is.na(x))})] #da FALSE solo se tutta la finestra è NA
+    # ex2[[tipo2]] = ex2[[tipo2]][sapply(ex2[[tipo2]], function(x){!all(is.na(x))})] #da FALSE solo se tutta la finestra è NA
     #n seq di tipo CODIFICA
     n = length(ex2[[tipo2]])
     
-    for(i in 1:n){
-      #elimina valori mancanti
-      ex2[[tipo2]][[i]] = ex2[[tipo2]][[i]][!is.na(ex2[[tipo2]][[i]])]
-    }
-    #elimina occorrenze se togliendo gli NA siamo più corti di minEpochSec
-    ex2[[tipo2]] = ex2[[tipo2]][unlist(lapply(ex2[[tipo2]],length)) > minEpochSec*samplesPerSec]
-    
+    # for(i in 1:n){
+    #   #elimina valori mancanti
+    #   ex2[[tipo2]][[i]] = ex2[[tipo2]][[i]][!is.na(ex2[[tipo2]][[i]])]
+    # }
+    # #elimina occorrenze se togliendo gli NA siamo più corti di minEpochSec
+    # ex2[[tipo2]] = ex2[[tipo2]][unlist(lapply(ex2[[tipo2]],length)) > minEpochSec*samplesPerSec]
+    # 
     
 
     
@@ -271,7 +280,9 @@ categoryPerm = function(x,
     if (file.exists(warningsFile)) {
       unlink(warningsFile)
     }
-    cores=parallel::detectCores()-1
+    if(cores){
+      if(is.logical(cores))  cores=parallel::detectCores()-1
+    } else cores = 1
     cat(paste0("\r\nPerforming parallelized permutations of '",tipo2,"' categories using ",cores," cores.\r\n")) #verified!
     cl <- parallel::makeCluster(cores[1], outfile=warningsFile) #not to overload your computer
     doSNOW::registerDoSNOW(cl)
@@ -512,8 +523,11 @@ Please check if you have very long epochs and extractFrom=\"remaining\". Otherwi
         xmax = xlim[2]
       }
       
-      breaks = seq(min(min(ranCentraList),xmin),
-                   max(max(ranCentraList),xmax),by=(xmax-xmin)/40)
+      # breaks = seq(min(min(ranCentraList),xmin),
+      #              max(max(ranCentraList),xmax),by=(xmax-xmin)/40)
+      #prova 11/05/2024
+      breaks = seq(max(min(ranCentraList),xmin),
+                   min(max(ranCentraList),xmax),length.out=12)
       
       realDen = density(obsEpochSummary,from=xmin,to=xmax)
       maxY = max(realDen$y)
@@ -525,9 +539,10 @@ Please check if you have very long epochs and extractFrom=\"remaining\". Otherwi
       # maxY = max(plotData$counts)
       minY = min(plotData$density)
       # maxY = max()
+      binw = median(diff(plotData$breaks))
       
       plot(-99999,
-           main=paste0(categoryIndex," - ", tipo2,"\nPermutation test on ",nIter," extractions of of ",n, " random epochs each"),
+           main=paste0(category," - ", tipo2,"\nPermutation test on ",nIter," extractions of of ",n, " random epochs each"),
            xlab=paste(epochSummaryFUN, series), ylab = "Density",
            cex.main = 0.9, yaxt="n",
            ylim = c(minY*2,maxY*2),
@@ -539,14 +554,14 @@ Please check if you have very long epochs and extractFrom=\"remaining\". Otherwi
       lines(realDen$x, realDen$y, col = rgb(0.58, 0.69, 1, alpha = 1),lwd=2)
       
       polygon(c(xmin,randDenX,1), c(0,-randDenY,0) , col = rgb(0.2, 0.3, 0.2, alpha = 0.4),border = NA)
-      drawLines  = if(nIter > nLines) sample(nIter,nLines) else nIter
+      drawLines  = if(nIter > nLines) sample(1:nIter, nLines) else 1:nIter
       cat("\rDrawing lines...                ")
       for(i in 1:length(drawLines)){
         k = drawLines[i]
         lines(resList[[k]]$randDen$x,-resList[[k]]$randDen$y,col=rgb(0.1,0.2,0.1,0.15))
       }
-      rect(plotData$breaks[1:40],0,plotData$breaks[2:41],plotData$density,col=0,lwd=3,border = 0)
-      rect(plotData$breaks[1:40],0,plotData$breaks[2:41],plotData$density,col=0,lwd=1,border = 1)
+      rect(plotData$breaks[1:(length(plotData$breaks)-1)],0,plotData$breaks[1:(length(plotData$breaks)-1)]+binw,plotData$density,col=0,lwd=3,border = 0)
+      rect(plotData$breaks[1:(length(plotData$breaks)-1)],0,plotData$breaks[1:(length(plotData$breaks)-1)]+binw,plotData$density,col=0,lwd=1,border = 1)
       abline(h=0,lwd=2,col=0)
       
       maxY = maxY*1.1
@@ -588,10 +603,10 @@ Please check if you have very long epochs and extractFrom=\"remaining\". Otherwi
 #' @export
 print.DyadCatPerm = function (x, ...) {
   pa = attr(x, "parameters")
-  cat0("\r\nAfter ",pa$nIter, " permutations of \"",pa$category, " - ",pa$categoryIndex,
+  cat0("\r\nAfter ",pa$nIter, " permutations of \"",pa$diary, " - ",pa$category,
        "\" categories,\r\nthe probability of superiority of observed ",pa$centralityFUN,"s to chance,",
        "\r\nunder the null hypothesis, of no temporal association between\r\n",
-       pa$series, " and ", pa$category," were:\r\n\r\n")
+       pa$series, " and ", pa$diary," were:\r\n\r\n")
   c0 = names(x)
   c1 = unlist(lapply(x, \(x)x$pvalue))
   c2 = unlist(lapply(x, \(x)x$cohensBest))
@@ -647,7 +662,7 @@ print.DyadCatPerm = function (x, ...) {
 # credibilityMass = 0.89
 # sync=iAlg
 # category = iIM
-# categoryIndex = iCI
+# category = iCI
 # n = length(res[[iName]][[tipo2]]$ranEpochSummary)
 # nLines=200
 # centralityFUN = "median"
@@ -701,7 +716,7 @@ print.DyadCatPerm = function (x, ...) {
 # # par(mfrow=c(1,1),mar=c(5,4,1,1)+0.1,cex=0.9)
 # par(cex=0.9, mar=c(5, 4, 4, 4) + 0.1)
 # plot(-99999,
-#      main=paste0(categoryIndex," - ", tipo2,"\nPermutation test on ",nIter," extractions of of ",n, " random epochs each"),
+#      main=paste0(category," - ", tipo2,"\nPermutation test on ",nIter," extractions of of ",n, " random epochs each"),
 #      xlab=paste(epochSummaryFUN, series), ylab = "Density",
 #      cex.main = 0.9, yaxt="n",
 #      ylim = c(minY*2,maxY*2),
