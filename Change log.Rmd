@@ -6,7 +6,15 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
+## v.1.3.1
+#### 2024/12/17
+  *  renamed Category to Diary. CategoryIndex to category. Diary contains one or more categories, which contain more levels
+  * new functions for Diaries: oneDiary() catSummary()
+  * new utility function: is.color()
+  * timeMaster now accepts fractional time
+  * fixed windowed functions: winInter() byWin() rescaleByWin()
+  * improvements to peakFinder and drawframes
+  * method for diff.rats()
 
 ## v.1.3.0
 #### 2024/01/25

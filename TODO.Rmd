@@ -103,8 +103,6 @@ knitr::opts_chunk$set(echo = TRUE)
   * elimina i commenti e le cose obsolete. Sto segnando con @OBSOLETE le parti da rimuovere e/o spostare in obsolenscence.R
   * controlla gli argomenti missing nelle funzioni parallelizzate. In particolare
     AMICo, e filter
-  * pulisci rats da molti commenti
-  * rinomina Category in Diary. CategoryIndex in category. Poi tutto deve essere coerente: Diary contiene una o più categories, che contengono più levels
 
 ## Performance
   * usa il profiler per trovare bottlenecks: https://support.rstudio.com/hc/en-us/articles/218221837-Profiling-R-code-with-the-RStudio-IDE
