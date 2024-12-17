@@ -157,42 +157,6 @@ rats = function(data, start=0, end, duration, frequency=1, period,
     
   }
   
-  # # if(!missing(data)){
-  # #   l = length(data)
-  # #   if(!missing(frequency)){
-  # #     if(!missing(duration) && duration != l/frequency )
-  # #       stop("Specified duration is not coherent with data and frequency")
-  # #     duration = l/frequency
-  # #     if(!missing(end)) start = end-duration else end = start+duration
-  # #   } else {
-  # #     #we can estimate missing frequency from duration and l
-  # #     #so first get the duration
-  # #     if(!missing(end) ){
-  # #       if(!missing(duration){
-  # #         start = end-duration
-  # #       }
-  # #       if(!missing(duration) && duration != end - start )
-  # #         stop("Specified duration is not coherent with start and end")
-  # #       duration = end - start
-  # #       frequency = l/duration
-  # #     }
-  # #   }
-  # # } else {
-  # #   #data not given, you must infer everything
-  # # }
-  # 
-  # durations = c()
-  # if(!missing(duration)) durations = c(durations,duration)
-  # if(!missing(end)) durations = c(durations, end-start)
-  # if(!missing(data) && length(data)>0 && (!missing(frequency)||!missing(period))){
-  #   durations = c(durations, signif(length(data)/frequency,6))}
-  # if(length(unique(durations))>1)  stop("Specified rats arguments led to incoherent series duration")   
-  # if(length(unique(durations))==0) stop("Insufficient information to build rats") 
-  # duration = unique(durations)
-  # 
-  # if( missing(end)) end = start + duration
-  # if( missing(start) && !missing(end)) start = end - duration
-  
   #finally if you have a good duration and the data you can get frequency
   if(!missing(data) && length(data)>0 && fd){
     frequency =  length(data)/duration
@@ -310,44 +274,6 @@ is.rats = function(x){inherits(x,"rats") && length(x)}
 # end = cate$end[i]
 window.rats = function(x, start, end, duration){
   
-  ##DEBUG
-  # x = lr10$all_CC_1$SC$s1
-  # start = -5
-  # end = 5
-  # a = window(x, start, end)
-  # stop("debug")
-  #####
-  
-  # #DEBUG
-  # x = s[[ii]]$s1
-  # # start = -14.8
-  # # end = 15.2
-  # # > length(add_y_a)
-  # # [1] 148
-  # # > length(y[cut_a:cut_b])
-  # # [1] 152
-  # # tot: 300
-  # #####################
-  # start = -14.6
-  # end = 15.4
-  # # > length(add_y_a)
-  # # [1] 146
-  # # > length(y[cut_a:cut_b])
-  # # [1] 153
-  # # tot: 299
-  # stop("debug")
-  # #####
-  
-  ##TEST
-  # x = rats(1:100, frequency=10)
-  # (a = window(x, start=0, duration = 5))
-  # (a = window(x, start=-5, duration = 10))
-  # stop("test")
-  #' -5
-  #'
-  #######
-  
-  
   #se tutti e tre, devono essere coerenti
   if(!missing(start) && !missing(end) && !missing(duration)){
     if(end-start != duration) stop("Duration must be equal to end - start.")
@@ -426,157 +352,8 @@ window.rats = function(x, start, end, duration){
   
   return(res)
 
-  # OLD SHIT
-  # 
-  # 
-  # 
-  # add_y_a = add_y_b = c()
-  # n_add_pre = trunc(round((start(x)-start)/period(x), digits=10))
-  # if(n_add_pre > 0){
-  #   #need to add stuff in front
-  #   add_x = rev(cumsum(rep(-period(x), n_add_pre))  + start(x))
-  #   add_y_a = rep(NA, n_add_pre)
-  #   #ACTUAL start must be a multiple of period, so rewrite it
-  #   new_start = min(add_x)
-  #   
-  #   start_s = n_add_pre
-  #   cut_a = 1
-  # } else {
-  #   #here instead you need to cut!
-  #   #from the first x value greater or equal than start
-  #   #because we only want samples that are completely covered in the range.
-  #   # Eg:
-  #   #   |--------|
-  #   # *   *   *   *   *   *   *
-  #   # 1   2   3   4   5   6   7
-  #   # only samples 2 and 3 are included
-  #   cut_a = which(x_time >= start)[1]
-  #   #ACTUAL start must be the time of the first sample
-  #   new_start = x_time[cut_a]
-  #   # y = y[which(x_time >= start)[1]:length(y)]
-  # }
-  # #half open interval means that start=00 end=100 is 1:100 and xtime 0:99
-  # #the first sample start=0 end=1
-  # #the last sample  start=99 end=100
-  # #or in general: 
-  # #the last sample start=last_t end=last_t+period
-  # n_add_post = floor(round((end - end(x))/period(x), digits=10))
-  # if(n_add_post>0) {
-  #   #need to add stuff at the end
-  #   add_x = cumsum(rep(period(x), n_add_post))  + end(x)
-  #   add_y_b = rep(NA, n_add_post)
-  #   #ACTUAL end  must be a multiple of period, so rewrite it
-  #   new_end = max(add_x)
-  #   cut_b = length(x)
-  # } else if(n_add_post == 0 && round((end - end(x)), digits=10)>=0 ) {
-  #   #this is the last sample, so we don't have the time value for t+1
-  #   #thus instead use the end value of the series.
-  #   cut_b = rev(which(x_time <= end))[1]
-  #   new_end = end(x)
-  # }  else {
-  #   #the last x value smaller or equal than end
-  #   cut_b = rev(which(x_time <= end))[1]
-  #   #ACTUAL end must be the end time of the last sample+1
-  #   new_end = x_time[cut_b]
-  #   cut_b = cut_b-1 #half open interval means that start=00 end=100 is 1:100 and xtime 0:99
-  # }
-  # if(is.na(cut_a) || is.na(cut_b)){
-  #   y = c(add_y_a,add_y_b)
-  # } else {
-  #   y = c(add_y_a,y[cut_a:cut_b],add_y_b)
-  # }
-  # 
-  # return(
-  #   rats(y, start = new_start, end = new_end, frequency = frequency(x),
-  #        windowed = attr(x, "windowed"), timeUnit = timeUnit(x), unit = unit(x)
-  #   )
-  # )
+  
 }
-
-# ### DEBUG
-# for(i in 1:10){
-#   # j =145 + i
-#   j = 47855 + i
-#   # start = swinz$start_t[j]+runif(1)/10; end = swinz$end_t[j]+runif(1)/10;x = s[[ii]]$s1
-#   start = swinz$start_t[j]; end = swinz$end_t[j];x = s[[ii]]$s1
-# 
-#   start = round(start, digits=10)
-#   end   = round(end, digits=10)
-#   duration = round(duration, digits=10)
-#   x_time = round(x$x, digits = 10)
-#   length(x)
-#   end(x)
-#   add_y_a = add_y_b = c()
-#   n_add_pre = trunc(round((start(x)-start)/period(x), digits=10))
-#   if(n_add_pre > 0){
-#     #need to add stuff in front
-#     add_x = rev(cumsum(rep(-period(x), n_add_pre))  + start(x))
-#     add_y_a = rep(NA, n_add_pre)
-#     #ACTUAL start must be a multiple of period, so rewrite it
-#     new_start = min(add_x)
-# 
-#     start_s = n_add_pre
-#     cut_a = 1
-#   } else if(n_add_pre<=0 && start >= end(x)){
-#     #start is at or after end(x).
-#     cut_a = NA
-#     #ACTUAL start must be in the future, at a multiple of periods
-#     new_start = end(x)+ceiling(round((start - end(x))/period(x), digits = 10))*period(x)
-#     
-#   } else{
-#     #here instead you need to cut!
-#     #from the first x value greater or equal than start
-#     #because we only want samples that are completely covered in the range.
-#     # Eg:
-#     #   |--------|
-#     # *   *   *   *   *   *   *
-#     # 1   2   3   4   5   6   7
-#     # only samples 2 and 3 are included
-#     cut_a = which(x_time >= start)[1]
-#     #ACTUAL start must be the time of the first sample
-#     new_start = x_time[cut_a]
-#     # y = y[which(x_time >= start)[1]:length(y)]
-#   }
-#   #half open interval means that start=00 end=100 is 1:100 and xtime 0:99
-#   #the first sample start=0 end=1
-#   #the last sample  start=99 end=100
-#   #or in general:
-#   #the last sample start=last_t end=last_t+period
-#   n_add_post = floor(round((end - end(x))/period(x), digits=10))
-#   if(n_add_post>0) {
-#     #need to add stuff at the end
-#     add_x = cumsum(rep(period(x), n_add_post))  + end(x)
-#     add_y_b = rep(NA, n_add_post)
-#     #ACTUAL end  must be a multiple of period, so rewrite it
-#     new_end = max(add_x)
-#     cut_b = length(x)
-#   } else if(n_add_post == 0 && round((end - end(x)), digits=10)>=0 ) {
-#     #this is the last sample, so we don't have the time value for t+1
-#     #thus instead use the end value of the series.
-#     cut_b = rev(which(x_time <= end))[1]
-#     new_end = end(x)
-#   } else if(n_add_post<=0 && end <=start(x)){
-#     #end is equal or prior to start(x)
-#     cut_b = NA
-#     new_end = new_start+ceiling(round((end-new_start)/period(x), digits = 10))*period(x)
-#     
-#   } else {
-#     #the last x value smaller or equal than end
-#     cut_b = rev(which(x_time <= end))[1]
-#     #ACTUAL end must be the end time of the last sample+1
-#     new_end = x_time[cut_b]
-#     cut_b = cut_b-1 #half open interval means that start=00 end=100 is 1:100 and xtime 0:99
-#   }
-#   if(is.na(cut_a) || is.na(cut_b)){
-#     y = c(add_y_a,add_y_b)
-#   } else {
-#     y = c(add_y_a,y[cut_a:cut_b],add_y_b)
-#   }
-# 
-# 
-#   cat("\r\n",j,"| start:",start,"| newStart:",new_start,"| end:", end, "| newEnd:",new_end,"| cut_a:",cut_a,"| cut_b:", cut_b, "delta:", length(y),"/",(end-start)*10)
-#   # rev(which(x_time <= 4800.9))[1]
-# }
 
 #' @export
 "window<-.rats" = function(x, start, end, duration, values){
@@ -660,105 +437,6 @@ window.rats = function(x, start, end, duration){
   if(!all.equal(fin_x, res$x)) warning("window.rats encountered logical error 3.")
   
   return(res)
-  
-  
-  # ### OLD SHIT
-  # if(start<0){
-  #   # @TODO
-  #   stop("Assignement to negative start windows is not yet supported")
-  #   start = 0
-  # }
-  # 
-  # start = round(start, digits=10)
-  # end   = round(end, digits=10)
-  # duration = round(duration, digits=10)
-  # x_time = round(x$x, digits = 10)
-  # 
-  # y = x$y
-  # add_y_a = add_y_b = c()
-  # if(start<start(x)){
-  #   #need to add stuff in front
-  #   n_add = trunc(round((start(x)-start)/period(x), digits=10)) #round(...,10) removes float errors.
-  #   add_x = rev(cumsum(rep(-period(x), n_add))  + start(x))
-  #   add_y_a = rep(NA, n_add)
-  #   # y = c(add_y, y)
-  #   #ACTUAL start must be a multiple of period, so rewrite it
-  #   start = min(add_x)
-  #   
-  #   start_s = n_add
-  #   cut_a = 1
-  # } else {
-  #   n_add =0
-  #   #the first x value greater or equal than start
-  #   cut_a = which(x_time >= start)[1]
-  #   #ACTUAL start must be a multiple of period, so rewrite it
-  #   start = start(x)
-  #   # y = y[which(x_time >= start)[1]:length(y)]
-  # }
-  # if(end>end(x)) {
-  #   #need to add stuff at the end
-  #   n_add = trunc(round((end - end(x))/period(x), digits=10))
-  #   add_x = cumsum(rep(period(x), n_add))  + end(x)
-  #   add_y_b = rep(NA, n_add)
-  #   #ACTUAL end  must be a multiple of period, so rewrite it
-  #   end = max(add_x)
-  #   cut_b = length(x) + n_add
-  # }  else {
-  #   #the last x value smaller or equal than end
-  #   cut_b = rev(which(x_time <= end))[1]+ n_add
-  #   end = end(x)
-  # }
-  # y = c(add_y_a,y,add_y_b)
-  # if(length(cut_a:(cut_b-1)) != length(values)) stop("The number of provided values was not equivalent to the specified window")
-  # y[cut_a:(cut_b-1)] = values
-  # 
-  # return(
-  #   rats(y, start = start, end = end, frequency = frequency(x),
-  #        windowed = attr(x, "windowed"), timeUnit = timeUnit(x), unit = unit(x)
-  #   )
-  # )
-  
-
-  
-  # ### --------------------
-  # 
-  # 
-  # 
-  # cut_b = rev(which(x$x <= end))[1]
-  # 
-  # if((cut_b - cut_a)!=length(values)){stop("values must have the same length of (end-start)*frequency ")}
-  # stop("what was I trying to do here?")
-  # x[cut_a:cut_b]
-  # 
-  # 
-  # x2 = window(x, start, end)
-  # x2$y = values
-  # if(start(x)<start(x2))
-  # 
-  # 
-  # return(stop())
-  # # #se tutti e tre, devono essere coerenti
-  # # if(!missing(start) && !missing(end) && !missing(duration)){
-  # #   if(end-start != duration) stop("Duration must equal to end - start.")
-  # # }
-  # # if(!missing(start) && !missing(end)){
-  # #   duration = end - start
-  # # } else if(!missing(start) && !missing(duration)){
-  # #   end = start + duration
-  # # } else if(!missing(end) && !missing(duration)){
-  # #   start = duration - end
-  # # } else stop ("at least two between start, end, and duration must be specified")
-  # # 
-  # # if(start < start(x) | end > end(x)) stop("The window was outside of the rats data boundary")
-  # # 
-  # # cutter = which(time(x) >= start & time(x) < end )
-  # # if(length(cutter)==0) {
-  # #   warning("The window had length zero. No windowing was performed.")
-  # # } else {
-  # #   x[cutter] = values
-  # # }
-  # # 
-  # # x
 }
 
 #' Get rats value at given time
@@ -895,13 +573,6 @@ str.rats = function(x, vals = 5, digits=4, ...){
     if(length(x)>vals) cat("...")
   }
   cat0("\r\n")
-  # 
-  #   
-  #   k = as.data.frame(k)
-  #   colnames(k)=NULL
-  #   print(k)
-  
-  # str(unclass(x),...)
 }
 
 #' Print a rats object
@@ -1056,7 +727,6 @@ c.rats = function(...){
   ## DEBUG
   # l = list(rats(1:10, start=3.5), rats(1:10, start = 20))
 
-  #
   if(length(l)==1) return(l[[1]])
   
   #if there are some non rats, ratsify them
@@ -1250,3 +920,4 @@ quantile.rats = function(x,...){quantile(x$y,...)}
 as.data.frame.rats = function(x,  ...) 
 { as.data.frame(x$y, ...)
 }
+
