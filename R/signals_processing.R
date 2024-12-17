@@ -109,53 +109,58 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
     }
   }
   
-  #trova picchi con sd pi- bassa di tot, sono solo rumore in un segnale essenzialmente piatto
+  #trova picchi con sd più bassa di tot, sono solo rumore in un segnale essenzialmente piatto
   #idee: fisso a IQR(x)/20 ma magari si pu- trovare un valore pi- sensato
   #     -fisso a 0.05uS da onset a picco
-  toDelete=c()
-  for(v in 2:(length(piksam)-1)){
-    if(pv[v]=="p"){
-      search_interval = x[piksam[v-1]:piksam[v+1]]
-      search_interval = search_interval[!is.na(search_interval)]
-      if(length(search_interval) == 0 || (max(search_interval)-search_interval[1])<minPeakAmplitude){#delta dall'onset al picco almeno 0.05uS o tutti NA
-        # if(sd(search_interval)<IQR(x)/20){
-        #se alcuni picchi vanno rimossi perch- sono essenzialmente flat
-        #non ci possono essere 2 valley di seguito, quindi elimina quella col valore pi- alto
-        
-        fakeValley = c(v-1,v+1)[which.max(c(x[piksam[v-1]] ,x[piksam[v+1]]))]
-        #elimina sia il picco 'v' che la fake valley
-        toDelete = c(toDelete, v,fakeValley)
+  if(length(piksam)>2){
+    toDelete=c()
+    for(v in 2:(length(piksam)-1)){
+      if(pv[v]=="p"){
+        search_interval = x[piksam[v-1]:piksam[v+1]]
+        search_interval = search_interval[!is.na(search_interval)]
+        if(length(search_interval) == 0 || (max(search_interval)-search_interval[1])<minPeakAmplitude){#delta dall'onset al picco almeno 0.05uS o tutti NA
+          # if(sd(search_interval)<IQR(x)/20){
+          #se alcuni picchi vanno rimossi perch- sono essenzialmente flat
+          #non ci possono essere 2 valley di seguito, quindi elimina quella col valore pi- alto
+          
+          fakeValley = c(v-1,v+1)[which.max(c(x[piksam[v-1]] ,x[piksam[v+1]]))]
+          #elimina sia il picco 'v' che la fake valley
+          toDelete = c(toDelete, v,fakeValley)
+        }
       }
     }
+    if(length(toDelete)>0){
+      piksam = piksam[-toDelete]
+      pv = pv[-toDelete]
+    }
   }
-  if(length(toDelete)>0){
-    piksam = piksam[-toDelete]
-    pv = pv[-toDelete]
-  }
+  
   
   #risolvi il problema delle valli consevutive v-v-v...
   #this is ultrafast but don't discriminate vs and ps  
   # toDelete = which(pv[-length(pv)] == pv[-1])
-  toDelete=c()
-  for(v in 2:(length(pv))){
-    #se la feature attuale è uguale alla precedente
-    if(pv[v] == pv[v-1]){
-      if(pv[v] == "v" ){
-        #se la feature è valley, tieni solo l'ultima
-        #ovvero elimina quella precedente
-        toDelete = c(toDelete, v-1)
-      } else if(pv[v] == "p"){
-        #se la feature è un picco, tieni il più alto
-        #ovvero elimina il più basso.
-        #se il più basso è v, lowest = 0, se no lowest = 1
-        lowest = which.min(c(x[v], x[v-1]))
-        toDelete = c(toDelete, v-lowest)
+  if(length(pv)>1){
+    toDelete=c()
+    for(v in 2:(length(pv))){
+      #se la feature attuale è uguale alla precedente
+      if(pv[v] == pv[v-1]){
+        if(pv[v] == "v" ){
+          #se la feature è valley, tieni solo l'ultima
+          #ovvero elimina quella precedente
+          toDelete = c(toDelete, v-1)
+        } else if(pv[v] == "p"){
+          #se la feature è un picco, tieni il più alto
+          #ovvero elimina il più basso.
+          #se il più basso è v, lowest = 0, se no lowest = 1
+          lowest = which.min(c(x[v], x[v-1]))
+          toDelete = c(toDelete, v-lowest)
+        }
       }
     }
-  }
-  if(length(toDelete)>0){
-    piksam = piksam[-toDelete]
-    pv = pv[-toDelete]
+    if(length(toDelete)>0){
+      piksam = piksam[-toDelete]
+      pv = pv[-toDelete]
+    }
   }
   
   is = 1:length(piksam)
@@ -177,7 +182,7 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   pikboo[piksam] = T
   piks = timeX[piksam]
   
-  if(length(piksam) == 0) warning("No peaks were found with the current settings!")
+  # if(length(piksam) == 0) warning("No peaks were found with the current settings!")
   
   list("bool" = pikboo,
        "samples" = piksam,
