@@ -24,7 +24,7 @@
 #' sampling per second (Hz)
 #' windowing history: size, inc, flex, windows
 #' PRINCIPLES:
-#' * rats are legion: there is no singular form "rat" as there is no singular "timeserie"
+#' * rats are legion: there is no singular form "rat" as there is no singular "timeserie" # nolint
 #' * rats are tiny: 'rats' is never capitalized.
 #' * rats are social: rats(start=0, end=10, f=1) and rats(start=10, end=20, f=1) do
 #'   not overlap and can be combined to a single series starting at 0 and ending at 20.
@@ -36,6 +36,9 @@
 #'   be represented with NAs.
 #'   
 
+roundFast = function(x) {
+  as.integer(x + sign(x)*0.5)
+}
 
 #' @title ~rats: Rational Time Series
 #' @description rats is the creator for a nimble S3 class of regular time series.
@@ -103,7 +106,7 @@
 #' 
 rats = function(data, start=0, end, duration, frequency=1, period,
                 windowed = list(size=NULL, increment=NULL, flex=NULL, table=NULL),
-                timeUnit="cycle", unit=NULL){
+                timeUnit="cycle", unit=NULL) {
   # print(match.call())
   # ######debug
   # data = 7.6
@@ -220,8 +223,8 @@ rats = function(data, start=0, end, duration, frequency=1, period,
     #' The first value is always going to be == start, and the following ones are
     #' increments of 1 period.
     #' This approach is also 10x times faster!
-    
-    x = start + cumsum(c(0,rep(period, round((end - start)/period-1,digits=10))))
+    nrep = roundFast((end - start)/period-1)
+    x = start + cumsum(c(0,rep(period, times= nrep)))
 
   } else{
     x = numeric()
@@ -358,18 +361,20 @@ window.rats = function(x, start, end, duration){
   } else if(!missing(duration)){
     stop("Duration must always be specified together with start or end.")
   } else {
-    if (missing(start)) start= start(x)
-    if (missing(end))   end  = end(x)
+    #using attr here as a weird hack because if start [argument] is missing
+    #then start [function] is not being called :-0
+    if (missing(start)) start = attr(x,"start")
+    if (missing(end))   end   = attr(x,"end")
     duration = end - start
   }
-  if(length(start(x))>1) stop("ts error. Try restarting the session")
+  if(length(start(x))>1) stop("'rats' were improperly declassed to 'ts'. Try restarting the session. Or contact devs if this repeats.")
   
-  if(round(duration, digits=10) == 0){
+  if(round(duration, digits=10) < round(period(x), digits=10)){
     duration = period(x)
-    end = end+period(x)
+    end = start + period(x)
     warning("zero length duration was coerced to 1 sample")
-    }
-  
+  }
+
   # due to floating point errors even simple operations (e.g. subtraction)
   # with non-integer numbers can lead to unpredictable errors 
   # eg:  1024.1 - 0.1 < 1024  [TRUE!]
@@ -380,23 +385,33 @@ window.rats = function(x, start, end, duration){
   start = round(start, digits=10)
   end   = round(end, digits=10)
   duration = round(duration, digits=10)
-  x_time = round(x$x, digits = 10)
+  x_time = x$x#round(x$x, digits = 10)
   y = x$y
-  
+
   # start parameter can be whatever fractional number
   #Actual start instead must be a discrete number of periods before or after the
   # original signal start.
-  n_delta_pre = trunc(round((start(x)-start)/period(x), digits=10))
+  n_delta_pre = trunc(round((start(x)-start)/period(x), digits=8))
   new_start = start(x) - n_delta_pre*period(x)
   
-  n_delta_post = floor(round((end - end(x))/period(x), digits=10))
+  n_delta_post = floor(round((end - end(x))/period(x), digits=8))
   new_end = end(x) + n_delta_post*period(x)
+  
+  #this should NEVER happen
+  if(new_end - new_start< .Machine$double.eps^0.5){
+    warning ("windowing returned unexpected zero length series. Please contact developers")
+    return(NULL)
+  }
+
   
   #generate the new time scale from new_start to new_end
   #end is non inclusive, so the last x value is new_end-1*period
-  new_x  = new_start + cumsum(c(0,rep(period(x), round((new_end - new_start)/period(x)-1,digits=10))))
+  nrep  = roundFast((new_end - new_start)/period(x)-1)
+  new_x  = new_start + cumsum(c(0,rep(period(x), times = nrep)))
   new_x  = round(new_x, digits = 10)
   new_y  = rep(NA, length(new_x))
+
+  
   #if the original signal is inside the new range, write the old values.
   keep_i = which(x_time %in% new_x)
   if(length(keep_i)>0){
@@ -407,7 +422,7 @@ window.rats = function(x, start, end, duration){
   res = rats(new_y, start = new_start, end = new_end, frequency = frequency(x),
              windowed = attr(x, "windowed"), timeUnit = timeUnit(x), unit = unit(x)
   )
-  if(!all.equal(new_x, res$x)) warning("window.rats encountered logical error 2.")
+  if(!isTRUE(all.equal(new_x, res$x))) warning("window.rats encountered logical error 2.")
   
   return(res)
 
@@ -593,7 +608,7 @@ window.rats = function(x, start, end, duration){
     duration = end - start
   }
   
-  if(round(duration, digits=10) == 0){
+  if(round(duration, digits=10) <period(x)){
     duration = period(x)
     end = end+period(x)
     warning("zero length duration was coerced to 1 sample")
@@ -782,8 +797,13 @@ at_s = function(x, time){
 #' @export
 "[.rats" = function(x,i){
   if(all(is.na(i))) return(NA_real_)
-  if(max(i)>attr(x,"n")) stop("Subset out of bounds")
-  if(min(i)<1) stop("0 or negative subscripts are not supported")
+  if(all(is.logical(i))){
+    #all good
+  } else if(all(is.numeric(i))){
+    if(max(i)>attr(x,"n")) stop("Subset out of bounds")
+    if(min(i)<1) stop("0 or negative subscripts are not supported")
+  } else {stop("Subscripting must be numeric or logical")}
+
   if(length(i)>attr(x,"n")) stop("Subset was longer than the data. Use window.rats for flexible expansion.")
   
   if(length(i)==0) return(numeric(0))

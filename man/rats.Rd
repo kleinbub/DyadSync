@@ -64,43 +64,6 @@ Features:
 }
 }
 \details{
-###############################################################################
-                               _              _                      
-                     _ __ __ _| |_ ___    ___| | __ _ ___ ___ 
-                    | '__/ _` | __/ __|  / __| |/ _` / __/ __|
-           /\//\//\/  | | (_| | |_\__ \ | (__| | (_| \__ \__ \
-          |/\//\//\/|_|  \__,_|\__|___/  \___|_|\__,_|___/___/
-                                                              
-###############################################################################
-            _   _               _   _   _                         _        
-   _ _ __ _| |_(_)___ _ _  __ _| | | |_(_)_ __  ___   ___ ___ _ _(_)___ ___
-  | '_/ _` |  _| / _ \ ' \/ _` | | |  _| | '  \/ -_) (_-</ -_) '_| / -_|_-<
-  |_| \__,_|\__|_\___/_||_\__,_|_|  \__|_|_|_|_\___| /__/\___|_| |_\___/__/
-                                                                           
-###############################################################################
-
-State of the file:
-this is a v0.2 let's say, in which instead of having a $x $y sructure, I am using
-a y and attr(y, 'time') format. this is good because x * 10 is preserved. 
-An ideal time series object to represent pyhisio signals should have the
-following information:
-start_date, 
-start, end, duration (milliseconds)
-sampling per second (Hz)
-windowing history: size, inc, flex, windows
-PRINCIPLES:
-* rats are legion: there is no singular form "rat" as there is no singular "timeserie" # nolint
-* rats are tiny: 'rats' is never capitalized.
-* rats are social: rats(start=0, end=10, f=1) and rats(start=10, end=20, f=1) do
-  not overlap and can be combined to a single series starting at 0 and ending at 20.
-  Time intervals are half-open intervals, including the start value
-  but excluding the end one.
-* rats are familiar: syntax is intuitive for ts() or zoo() users
-* Holes fit in cheese, but not in rats: a rats' length must correspond to the rats'
-  duration multiplied by the frequency. Missing data in rats must
-  be represented with NAs.
-
-
 In the ~rats class, time intervals are defined as half-open intervals
 with start and end and window methods including the start value but not
 the end value
