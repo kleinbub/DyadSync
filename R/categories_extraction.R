@@ -6,6 +6,48 @@
 # a better summarizing metric with this approach could be % of time synchrony is above a given threshold
 
 
+#' Join together all sessions of a given Diary
+#'
+#' @param exp a DyadExperiment object
+#' @param diaryName string. The name of the Diary to be exported
+#'
+#' @return a dataframe containing all sessions of the selected Diary
+#' @export
+#'
+#' @examples
+oneDiary =function(exp, diaryName){
+  if(!is.DyadExperiment(exp)) stop("x must be a DyadExperiment object")
+  if(!diaryName %in% names(exp[[1]])) stop(paste("diaryName must be one of", paste(names(exp[[1]]),collapse = ", ") ))
+  allb = c()
+  for(i in 1:length(exp)){
+    x = exp[[i]][[diaryName]]
+    x$UID = UID(exp[[i]])
+    allb = rbind(allb, x)
+  }
+  return(allb)
+}
+
+
+#' Prints a summary of all epochs
+#' 
+#' @param x a DyadExperiment or DyadSession object.
+#' @param diaryName string. The name of the Diary to be summarized
+#'
+#' @return nothing.
+#' @export
+#'
+#' @examples
+catSummary = function(x, diaryName) {
+  if(is.DyadExperiment(x)){
+    x = oneDiary(x,diaryName)
+  }else if(is.DyadSession(x)){
+    x = x[[diaryName]]
+  } else stop("x must be a DyadExperiment or DyadSession object.")
+  s = summary(x)
+  print(s)
+  return()
+}
+
 
 #' Extract series chunks corresponding to epochs
 #' 
@@ -17,35 +59,37 @@
 #' @param signal  string. The name of a DyadSignal present in x
 #' @param sync If missing, series is searched in the signal (s1, s2, ...). If specified, series is searched within a sync object (PMBdev, CCFBest, ...). 
 #' @param series 
+#' @param diary 
 #' @param category 
-#' @param categoryIndex 
 #' @param artefact.rm 
 #' @param mergeEpochs 
-#' @param shift_start integer in seconds (e.g. -5 shifts all epoch starts by 5 seconds before )
-#' @param shift_end integer in seconds (e.g. 7 shifts all epoch end by 7 seconds later )
+#' @param shift_start numeric. Seconds to shift all start values (e.g. -5 shifts all epoch starts by 5 seconds before )
+#' @param shift_end numeric. Seconds to shift all end values (e.g. 7.5 shifts all epoch end by 7.5 seconds later )
 #' @param summaryFUN 
+#' @param target one of "epoch", "before", "after". Determines whether to extract the actual epochs or only what precedes or follows it.
+#' If it's not set to "epoch", shift_start or shift_end must be specified.
 #' @param ... 
-#'
+#' 
 #' @return
 #' @export
 #'
 #' @examples
-epochSeries = function(x, signal, sync, series, category, categoryIndex,
-                       mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0,
+epochSeries = function(x, signal, sync, series, diary, category,
+                       mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0, target=c("epoch", "before", "after"),
                        summaryFUN="median", ...){
   UseMethod("epochSeries", x)
 }
 
 #' @export
-epochSeries.DyadExperiment = function(x, signal, sync, series, category, categoryIndex,
-                                      mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0,
+epochSeries.DyadExperiment = function(x, signal, sync, series, diary, category,
+                                      mergeEpochs=FALSE, artefact.rm=TRUE, shift_start = 0, shift_end = 0,target=c("epoch", "before", "after"),
                                       summaryFUN="median", ...){
   for(nSession in seq_along(x)){
     session = x[[nSession]]
     prog(nSession, length(x))
     x[[nSession]] = epochSeries(x[[nSession]], signal=signal, sync=sync, series=series,
-                category=category, categoryIndex=categoryIndex, mergeEpochs=mergeEpochs,
-                artefact.rm=artefact.rm, shift_start=shift_start, shift_end=shift_end,
+                diary=diary, category=category, mergeEpochs=mergeEpochs,
+                artefact.rm=artefact.rm, shift_start=shift_start, shift_end=shift_end, target=target,
                 summaryFUN = summaryFUN, ...)
   }
 
@@ -53,36 +97,38 @@ epochSeries.DyadExperiment = function(x, signal, sync, series, category, categor
 }
 
 #' @export
-epochSeries.DyadSession = function(x, signal, sync, series, category, categoryIndex,
-                                   mergeEpochs, artefact.rm, shift_start, shift_end,
+epochSeries.DyadSession = function(x, signal, sync, series, diary, category,
+                                   mergeEpochs, artefact.rm, shift_start, shift_end,target,
                                    summaryFUN, ...){
   # print(match.call())
   # print(missing(sync))
   # if(!missing(sync)) print(str(sync))
-  ##DEBUG
+  #DEBUG
   # rm(list=ls())
   # library(DyadSync)
-  # load("C:/Users/Kleinbub/OneDrive - Università degli Studi di Padova/__Ricerche/2021_biofeedback validation/BIOFEEDBACK LAB/SD_engine_v2.RData")
+  # load("C:/Users/Kleinbub/OneDriveLink/__Ricerche/2021_biofeedback validation/BIOFEEDBACK LAB/SD_engine_v2.RData")
   # x = d2[[1]]
-  # signal="zaki"
-  # sync="CCFBest"
+  # signal="SC"
+  # sync="amico1"
   # series = "sync"
+  # diary="SELF"
   # category="SELF"
-  # categoryIndex="SELF"
   # mergeEpochs = F
   # artefact.rm=T
   # shift_start = 0
   # shift_end = 0
   # summaryFUN = "median"
+  # target ="epoch"
   ###
   summaryFUN = match.fun(summaryFUN)
+  target = match.arg(target, choices = c("epoch", "before", "after"))
   goodSyncs = names(x[[signal]])[sapply(x[[signal]],is.sync)]
   if(missing(sync)){
 
   }else if(! sync %in% names(x[[signal]])){
       stop ('sync was ',sync,' and should be one of: ',paste(goodSyncs,collapse = " "))
   }
-  resName = paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},"_",series)),collapse = "")
+  resName = paste0(c(diary,"_",category,"_",c(if(!missing(sync)){sync},"_",series)),collapse = "")
 
   #select series according to sync and serieskey
   if(!missing(sync)){
@@ -105,28 +151,44 @@ epochSeries.DyadSession = function(x, signal, sync, series, category, categoryIn
 
   }
   # seleziona il dataframe della categoria e crea un oggetto per ciascun livello
-  cate = x[[category]]
-  #applica gli shift
+  cate = x[[diary]]
+  
+  
+  if(target == "before"){
+    #in questo caso l'end della finestra corrisponde allo start
+    #e lo start corrisponde allo start + shift_start che deve essere negativo
+    if(missing(shift_start) || shift_start >= 0) stop("With target='before', shift_start must be a non-zero negative number")
+    if(!missing(shift_end) && shift_end != 0) message("Whit target='before' shift_end should be used with awareness!")
+    cate$end   =  cate$start
+  } else if(target == "after"){
+    #in questo caso lo start della finestra corrisponde all'end
+    #l'end corrisponde alla end + shift_end 
+    if(missing(shift_end) || shift_end <= 0) stop("With target='after', shift_end must be a non-zero positive number")
+    if(!missing(shift_start) && shift_start != 0) message("Whit target='after' shift_start should be used with awareness!")
+    cate$start = cate$end
+  }
+  #applica gli shift in tutti e tre i casi
   cate$start = cate$start + shift_start
   cate$end = cate$end + shift_end
+  cate$delta = cate$end - cate$start #ricalcola dopo le modifiche fatte
   # print(str(cate))
-  if(!is.factor(cate[[categoryIndex]])) stop("categoryIndex must be a factor column in the ",category,"'s epochs table. This are the values:", paste(colnames(cate[which(is.factor(cate))]),collapse = " ") )
+  if(!is.factor(cate[[category]])) stop("category must be a column of type 'factor' in the ",diary,"'s epochs table.\r\nThis are the possible values:\r\n", paste(colnames(cate[sapply(cate,is.factor)]),collapse = ", ") )
   resList = list()
   #istanzia i contenitori vuoti per ciascun livello
-  for(lev in levels(cate[[categoryIndex]])){
-    # lev = levels(cate[[categoryIndex]])[1]
-    # dur = sum((cate[cate[[categoryIndex]]==lev,"end"] - cate[cate[[categoryIndex]]==lev,"start"] )*frequency(xseries))
+  for(lev in levels(cate[[category]])){
+    # lev = levels(cate[[category]])[1]
+    # dur = sum((cate[cate[[category]]==lev,"end"] - cate[cate[[category]]==lev,"start"] )*frequency(xseries))
     if(mergeEpochs)
       resList[[lev]]=numeric()
     else
       resList[[lev]]=list()
   }
-  names(resList) = levels(cate[[categoryIndex]])
+  names(resList) = levels(cate[[category]])
 
   remSeries = xseries
   i=1
   for(i in 1:nrow(cate)){ #for each epoch
-    if(!is.na(cate[[categoryIndex]][i]) && !is.null(cate[[categoryIndex]][i])) {
+    if(!is.na(cate[[category]][i]) && !is.null(cate[[category]][i])) {
       if(cate$start[i]>=end(xseries)[1]){
         warning("In session ", dyadId(x),"-",sessionId(x), ", start of window ",i,": was equal to or beyond the series end.", call.=F)
         # lres[[i]] = NA
@@ -151,16 +213,16 @@ epochSeries.DyadSession = function(x, signal, sync, series, category, categoryIn
         window(remSeries, start = cate$start[i], end = cate$end[i]) <- NA ## broken?
 
 
-        #aggiungi la finestra al vettore di resList corrispondente al livello di categoryIndex
+        #aggiungi la finestra al vettore di resList corrispondente al livello di category
         win = window(xseries, start = cate$start[i], end = cate$end[i])
         if(!is.null(padding)){
           win = c(padding, win)
         }
-        cn = paste0(c(sync, series, categoryIndex),collapse="_")
-        x[[category]][i,cn] = summaryFUN(as.numeric(na.omit(win)), ...)
+        cn = paste0(c(sync, series),collapse="_")
+        x[[diary]][i,cn] = summaryFUN(as.numeric(na.omit(win)), ...)
 
-        resList[[cate[[categoryIndex]][i]]] = c(resList[[cate[[categoryIndex]][i]]], list(win))
-        names(resList[[cate[[categoryIndex]][i]]])[length(resList[[cate[[categoryIndex]][i]]])] = paste0(dyadId(x),sessionId(x),"|",cate$start[i], "-",cate$end[i])
+        resList[[cate[[category]][i]]] = c(resList[[cate[[category]][i]]], list(win))
+        names(resList[[cate[[category]][i]]])[length(resList[[cate[[category]][i]]])] = paste0(dyadId(x),sessionId(x),"|",cate$start[i], "-",cate$end[i])
 
       }
     }
@@ -185,29 +247,30 @@ epochSeries.DyadSession = function(x, signal, sync, series, category, categoryIn
 
 
 #' @title extract epochs in a simple list
+#'
 #' @param experiment 
 #' @param signal 
 #' @param sync 
 #' @param series 
-#' @param category the category used to 
+#' @param diary the Diary 
+#' @param category the Category of the Diary to be extracted
 #' @param by currently unused. In future will be used to split the data by experimental group, participant, or any other relevant condition
-#' @param FUN 
-#' @param ... 
-#'
+#' @param ... currently unused.
+#' 
 #' @description  This function extracts the selected epochs from every session of a "DyadExperiment" object and puts them in
 #'  a simple list. Categories must be created with epochSeries() beforehand.
 #' @export
-extractEpochs = function(experiment, signal, sync, series, category, categoryIndex, by, ...){
+extractEpochs = function(experiment, signal, sync, series, diary, category, by, ...){
   if(!missing("by")) stop("by is not implemented yet.")
   UseMethod("extractEpochs",experiment) 
 }
 
 #' @export
-extractEpochs.DyadExperiment = function(experiment, signal, sync, series, category, categoryIndex, by,   ...){
-  if(missing(category) | missing(categoryIndex) | missing(series)){
-      stop("category, categoryIndex, series, must all be specified")
+extractEpochs.DyadExperiment = function(experiment, signal, sync, series, diary, category, by,   ...){
+  if(missing(diary) | missing(category) | missing(series)){
+      stop("diary, category, series, must all be specified")
   }
-  epochsName = paste0(c(category,"_",categoryIndex,"_",c(if(!missing(sync)){sync},"_",series)),collapse = "")
+  epochsName = paste0(c(diary,"_",category,"_",c(if(!missing(sync)){sync},"_",series)),collapse = "")
 
   #check names
   keepNames = unique(unlist(lapply (experiment, function(session){
