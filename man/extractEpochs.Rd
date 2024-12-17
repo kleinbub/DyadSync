@@ -4,16 +4,7 @@
 \alias{extractEpochs}
 \title{extract epochs in a simple list}
 \usage{
-extractEpochs(
-  experiment,
-  signal,
-  sync,
-  series,
-  category,
-  categoryIndex,
-  by,
-  ...
-)
+extractEpochs(experiment, signal, sync, series, diary, category, by, ...)
 }
 \arguments{
 \item{experiment}{}
@@ -24,13 +15,13 @@ extractEpochs(
 
 \item{series}{}
 
-\item{category}{the category used to}
+\item{diary}{the Diary}
+
+\item{category}{the Category of the Diary to be extracted}
 
 \item{by}{currently unused. In future will be used to split the data by experimental group, participant, or any other relevant condition}
 
-\item{...}{}
-
-\item{FUN}{}
+\item{...}{currently unused.}
 }
 \description{
 This function extracts the selected epochs from every session of a "DyadExperiment" object and puts them in

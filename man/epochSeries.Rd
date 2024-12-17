@@ -9,12 +9,13 @@ epochSeries(
   signal,
   sync,
   series,
+  diary,
   category,
-  categoryIndex,
   mergeEpochs = FALSE,
   artefact.rm = TRUE,
   shift_start = 0,
   shift_end = 0,
+  target = c("epoch", "before", "after"),
   summaryFUN = "median",
   ...
 )
@@ -28,17 +29,20 @@ epochSeries(
 
 \item{series}{}
 
-\item{category}{}
+\item{diary}{}
 
-\item{categoryIndex}{}
+\item{category}{}
 
 \item{mergeEpochs}{}
 
 \item{artefact.rm}{}
 
-\item{shift_start}{integer in seconds (e.g. -5 shifts all epoch starts by 5 seconds before )}
+\item{shift_start}{numeric. Seconds to shift all start values (e.g. -5 shifts all epoch starts by 5 seconds before )}
 
-\item{shift_end}{integer in seconds (e.g. 7 shifts all epoch end by 7 seconds later )}
+\item{shift_end}{numeric. Seconds to shift all end values (e.g. 7.5 shifts all epoch end by 7.5 seconds later )}
+
+\item{target}{one of "epoch", "before", "after". Determines whether to extract the actual epochs or only what precedes or follows it.
+If it's not set to "epoch", shift_start or shift_end must be specified.}
 
 \item{summaryFUN}{}
 

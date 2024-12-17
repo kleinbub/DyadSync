@@ -13,7 +13,7 @@ byWin(
   FUN,
   ...,
   position = c("mid", "first", "last"),
-  cores = "max"
+  cores = 1
 )
 
 wapply(
@@ -24,7 +24,7 @@ wapply(
   FUN,
   ...,
   position = c("mid", "first", "last"),
-  cores = "max"
+  cores = 1
 )
 }
 \arguments{
@@ -44,11 +44,15 @@ of the signal to maximize the coverage of the original series}
 \item{position}{Should the time value of each calculation be positioned as the
 first, middle or last sample of each window?}
 
-\item{cores}{integer or "max". The number of cores to be used for parallelization.
-if set to 1, parallelization is turned off. Very simple tasks can be faster if run
+\item{cores}{integer or logical. The number of cores to be used for parallelization.
+if set to 1 or FALSE, parallelization is turned off. If set to TRUE, cores are automatically selected.
+Please note that most simple tasks can be faster if run
 as single core due to the overhead of scheduling the task and returning the
 result can be greater than the time to execute the task itself, resulting in
 poor performance.}
+}
+\value{
+a rats time series with a $x element pointing to the windowed position of $y elements
 }
 \description{
 Applies a function over moving windows

@@ -2,7 +2,18 @@
 % Please edit documentation in R/generic_utilities.R
 \name{setArg}
 \alias{setArg}
-\title{Set argument/attribute to a list without overwriting existing values}
+\title{#' Window-based rescaling
+#'
+#' This function operates a rescale on a signal based on a rolling window.
+#' It is useful to "auto zoom" a long signal
+#'
+#' @param x a ts or numeric object
+#' @param winSec integer. The window size, in seconds
+#' @param rangeMin lower boundary of rescaling
+#' @param rangeMax upper boundary of rescaling
+#'
+#' @return
+#' @export}
 \usage{
 setArg(arg, value, argList)
 }
@@ -14,6 +25,9 @@ setArg(arg, value, argList)
 \item{argList}{}
 }
 \description{
+
+}
+\details{
 This is most useful when dealing with ... and setting default behaviours that 
 can be overweritten by ...
 }

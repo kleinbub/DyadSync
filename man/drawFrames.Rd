@@ -7,19 +7,22 @@
 drawFrames(
   session,
   signals,
-  sync,
-  WIN,
   inputDir,
   outputDir,
+  inputFilePattern = ".mp4",
   idOrder = c(F, F, T),
   idSep = "_",
-  w,
-  h,
-  frameRate,
+  overwrite = FALSE,
+  sync = NA,
+  WIN = 30,
+  w = 1280,
+  h = 720,
+  frameRate = "auto",
   layout = c(1),
-  col_sync,
-  ffmpeg.query,
-  ffmpeg.path,
+  col_sync = "default",
+  signal_height = 0.3,
+  ffmpeg.query = "default",
+  ffmpeg_bin = "PATH",
   multi.core = TRUE,
   speed = 1,
   keepAudio = TRUE,
@@ -31,11 +34,21 @@ drawFrames(
 
 \item{signals}{}
 
+\item{inputDir}{}
+
+\item{outputDir}{}
+
+\item{inputFilePattern}{}
+
+\item{idOrder}{}
+
+\item{idSep}{}
+
+\item{overwrite}{logical. Should existing files be deleted?}
+
 \item{sync}{}
 
 \item{WIN}{}
-
-\item{outputDir}{}
 
 \item{w}{}
 
@@ -47,10 +60,19 @@ drawFrames(
 
 \item{col_sync}{}
 
-\item{...}{}
+\item{signal_height}{0 to 1. vertical space of each signal, relative to the video frame}
 
-\item{ffmpeg}{override the default ffmpeg instruction. Use {IN} to mark the dynamic
-original video location. Not yet implemented}
+\item{ffmpeg.query}{"default" or a custom FFmpeg}
+
+\item{ffmpeg_bin}{'PATH' if FFmpeg is added to system environment. else full path to FFmpeg's bin directory.}
+
+\item{multi.core}{numeric to specify a number of cores to be used, or logical to enable/disable automatic multi-core computation.}
+
+\item{speed}{numeric}
+
+\item{keepAudio}{logical}
+
+\item{...}{}
 }
 \description{
 to allow for multiple signals, everything must be a list of length n
@@ -66,7 +88,21 @@ Each of these endeavors require:
 - output video file
 THUS it would make sense to have a folder for each session instead of a folder
 for each 'type' of data
-Draws video frames showing dyadic signals
+
+
+Default FFmpeg query:
+ffmpeg -y -thread_queue_size 1024
+-i "inputDir/inputFile.mp4"
+-framerate 25 -i "framesDir/framesFileFormat"
+-r 25 -pix_fmt yuva420p
+-filter_complex "
+   [0:v]scale=2*trunc(iw*sar/2):ih,setsar=1[0v_1];
+   [1:v]format=yuva420p,colorchannelmixer=aa=0.8[ckout];
+   [0v_1][ckout]overlay[resv]; [resv]setpts=1*PTS[resv];
+   [0:a]atempo=1[resa];"
+-map "[resv]" -c:v libx264
+-map "[resa]"
+"outputDir/outputFile.mp4"
 }
 \examples{
 quindi il tempo tra 00:00 e start(signal) va riempito di frame bianchi

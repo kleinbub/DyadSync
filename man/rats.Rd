@@ -89,7 +89,7 @@ start, end, duration (milliseconds)
 sampling per second (Hz)
 windowing history: size, inc, flex, windows
 PRINCIPLES:
-* rats are legion: there is no singular form "rat" as there is no singular "timeserie"
+* rats are legion: there is no singular form "rat" as there is no singular "timeserie" # nolint
 * rats are tiny: 'rats' is never capitalized.
 * rats are social: rats(start=0, end=10, f=1) and rats(start=10, end=20, f=1) do
   not overlap and can be combined to a single series starting at 0 and ending at 20.

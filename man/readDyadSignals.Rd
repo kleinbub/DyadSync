@@ -22,6 +22,7 @@ readDyadSignals(
   namefilt = NA,
   idOrder = c(),
   idSep = "_",
+  cores = TRUE,
   ...
 )
 }
@@ -73,6 +74,8 @@ The strings can be abbreviated.}
 \item{idSep}{character vector (or object which can be coerced to such) containing regular expression(s).
 If idOrder is not NA, this will be used as separator to split the filenameas and identify "id", "session", and "group"
 informations.}
+
+\item{cores}{Either logical or integer. Sets how many cores should be used for the import. Values of 1, 0 or FALSE disable the multi-core code.}
 
 \item{...}{additional options to be passed to read.table (es: skip, header, etc)}
 }
