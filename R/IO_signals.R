@@ -50,6 +50,7 @@
 #' @param SR 
 #' @param timeUnit character. A descriptor of the time unit of the series values.
 #' Defaults to seconds as in "samples per second"
+#' @param cores Either logical or integer. Sets how many cores should be used for the import. Values of 1, 0 or FALSE disable the multi-core code.
 #'
 #' @return
 #' @export
@@ -72,6 +73,7 @@ readDyadSignals = function(
                       namefilt = NA,
                       idOrder= c(), # c("id","session","group","role"), #the order of identifiers in the filenames. role is only used with pairbind = T
                       idSep = "_", #the separator of identifiers in the filename
+                      cores = TRUE, #should multi-core procedures be used?
                       ... #additional options to be passed to read.table (es: skip, header, etc)
                       ){
 ####debug #####
@@ -110,7 +112,7 @@ readDyadSignals = function(
   if(length(s1Col)!=length(s2Col) || length(s1Col)!=length(signalNames)) stop ("s1Col, s2Col, signalNames must have same length")
   
   # imp = genericIO(path,namefilt,idOrder,idSep, pairBind)
-  imp = genericIO(path,namefilt,idOrder,idSep, pairBind, ...)
+  imp = genericIO(path,namefilt,idOrder,idSep, pairBind, cores, ...)
   lf= imp$lf
   sess= imp$sess
   dyadIds = imp$dyadIds

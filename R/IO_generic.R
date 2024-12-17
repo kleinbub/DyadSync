@@ -1,5 +1,7 @@
-genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F, ...){
+genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F,cores, ...){
   # if(missing(pairBind)) pairBind = F
+  if(missing(cores)) cores = TRUE
+  if((is.logical(cores) && !isTRUE(cores)) || identical(cores, 0) || identical(cores, 1)) cores = FALSE
   l = list(...)
   if(!file.exists(path)){stop("Selected file or directory does not exists")}
   patt = "\\.(txt|csv)$"
@@ -102,13 +104,37 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F, ...){
   } else skipRow =rep(0,nFiles)
   
   lf = vector(mode="list",length=length(filenames))
-  for(iFile in seq_along(filenames) ){
-    x = filenames[iFile]
-    prog(iFile,nFiles)
-    r = do.call(data.table::fread, c(list(x, skip=skipRow[iFile], data.table=FALSE), options))
-    lf[[iFile]] = r
+  
+  ##PARELLELIZATION
+  if(cores){
+    if(is.logical(cores))  cores=parallel::detectCores()-1
+    cat(paste0("\r\nPerforming parallelized data import ",
+               " using ",cores," cores.\r\n")) 
+    
+    cl <- parallel::makeCluster(cores[1])
+    doSNOW::registerDoSNOW(cl)
+    `%dopar%` <- foreach::`%dopar%`
+    `%do%` <- foreach::`%do%`
+
+    lf <- foreach::foreach(
+      iFile = seq_along(filenames)) %dopar% { 
+      x = filenames[iFile]
+      prog(iFile,nFiles)
+      do.call(data.table::fread, c(list(x, skip=skipRow[iFile], data.table=FALSE), options))
+      }
+    
+  } else {
+    for(iFile in seq_along(filenames) ){
+      x = filenames[iFile]
+      prog(iFile,nFiles)
+      r = do.call(data.table::fread, c(list(x, skip=skipRow[iFile], data.table=FALSE), options))
+      lf[[iFile]] = r
+    }
   }
   
+  
+
+  # 
   # lf <- mapply(function(x,iFile) {
     # prog(iFile,nFiles); do.call(data.table::fread,c(list(x, skip=skipRow[iFile], data.table=FALSE), options)) },filenames,seq_along(filenames),SIMPLIFY = F )
   if(ncol(lf[[1]])==1 && !pairBind) {print(str(lf[[1]]));stop("Import failed. Check sep?")}
