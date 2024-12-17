@@ -673,7 +673,7 @@ windowed = function(x){UseMethod("windowed",x)}
 #' @export
 windowed.rats = function(x){
   wa = attr(x,"windowed")
-  
+  res = wa
   if(!is.null(wa[[1]])){
     res = wa[[4]]
     attributes(res) = c(attributes(res),
@@ -921,3 +921,17 @@ as.data.frame.rats = function(x,  ...)
 { as.data.frame(x$y, ...)
 }
 
+#' @export
+diff.rats = function(x, loseFrom=c("mid", "head","tail"), ...) {
+  x1 = diff(as.numeric(x), ...)
+  delta = (length(x) - length(x1))*period(x)
+  loseFrom = match.arg(loseFrom, choices = c("mid", "head","tail"))
+  newStart = if(loseFrom=="mid"){ start(x) + delta/2
+  } else if(loseFrom=="tail") { start(x)
+  } else {start(x) + delta}
+  x1 = rats(x1, start=newStart, frequency = frequency(x))
+  attr(x1, "windowed") = attr(x, "windowed")
+  attr(x1, "timeUnit") = attr(x, "timeUnit")
+  attr(x1, "unit") = attr(x, "unit")
+  return(x1)
+}

@@ -51,8 +51,6 @@ cloneAttr = function(from, to){
 #' Title
 #'
 #' @param x 
-
-
 #' @export
 start.DyadSignal <- function (x) {attr(x,"start")}
 #' @export

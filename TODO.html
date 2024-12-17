@@ -297,17 +297,23 @@ overflow-y: auto;
 border: 1px solid #ddd;
 border-radius: 4px;
 }
-.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
-content: "\e259";
+.tabset-dropdown > .nav-tabs > li.active:before {
+content: "";
 font-family: 'Glyphicons Halflings';
 display: inline-block;
 padding: 10px;
 border-right: 1px solid #ddd;
 }
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
-content: "\e258";
-font-family: 'Glyphicons Halflings';
+content: "";
 border: none;
+}
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+content: "";
+font-family: 'Glyphicons Halflings';
+display: inline-block;
+padding: 10px;
+border-right: 1px solid #ddd;
 }
 .tabset-dropdown > .nav-tabs > li.active {
 display: block;
@@ -356,11 +362,11 @@ display: none;
 <div id="ultra-important-knowledge" class="section level1">
 <h1>ULTRA IMPORTANT KNOWLEDGE</h1>
 <ul>
-<li>puoi debuggare gli argomenti missing e le chiamate stampando:
-<strong>print(match.call())</strong></li>
-<li>puoi salvare tutti i parametri con:
-<strong>c(as.list(environment()), list(…))</strong></li>
-<li>marker nel codice:
+<li><p>puoi debuggare gli argomenti missing e le chiamate stampando:
+<strong>print(match.call())</strong></p></li>
+<li><p>puoi salvare tutti i parametri con:
+<strong>c(as.list(environment()), list(…))</strong></p></li>
+<li><p>marker nel codice:</p>
 <ul>
 <li><span class="citation">@TSBUG</span>
 <ul>
@@ -368,27 +374,33 @@ display: none;
 xend</li>
 </ul></li>
 <li><span class="citation">@OBSOLETE</span></li>
+<li><span class="citation">@HACK</span> cose brutte da sistemare quando
+hai tempo</li>
 </ul></li>
+<li><p>per aggiornare i branch di git in RStudio usa:</p>
+<pre><code>git fetch --prune
+git pull --prune</code></pre></li>
 </ul>
 <div id="next-steps-critical-bugs" class="section level2">
 <h2>NEXT STEPS &amp; CRITICAL BUGS</h2>
 <ul>
-<li>amico2 ha dei buchi weight linea 863 prova mean [maybe done]</li>
-<li>interval_sec diventa maxSize e con minSize devono essere
+<li><p>crea algoritmo SCoPhaRSi Skin Conductance Phasic Response
+Similiarity</p></li>
+<li><p>amico2 ha dei buchi weight linea 863 prova mean [maybe
+done]</p></li>
+<li><p>interval_sec diventa maxSize e con minSize devono essere
 implementati anche nella prima parte con i picchi veri. NB cè gia
-maxPeakDuration</li>
-<li>peakfinder trova amp negative</li>
-<li>Alcuni nomi di dyadcategory causano errori come “SD”</li>
-<li>tutto il sistema di permutazioni non permette di analizzare dati per
-i quali non ci siano osservazioni (nrow = 0)</li>
-<li>in ppSync_dev perchè usare la lunghezza del più corto per
-interpolare? Usa già quella finale dell’interpolazione.</li>
-<li>rinomina winSec in WIN e incSec in INC</li>
-<li>ccfBest dovrebbe usare byWin</li>
+maxPeakDuration</p></li>
+<li><p>peakfinder trova amp negative</p></li>
+<li><p>Alcuni nomi di dyadcategory causano errori come “SD”</p></li>
+<li><p>tutto il sistema di permutazioni non permette di analizzare dati
+per i quali non ci siano osservazioni (nrow = 0)</p></li>
+<li><p>in ppSync_dev perchè usare la lunghezza del più corto per
+interpolare? Usa già quella finale dell’interpolazione.</p></li>
+<li><p>rinomina winSec in WIN e incSec in INC</p></li>
+<li><p>rinomina SR o sampRate in frequency</p></li>
+<li><p>ccfBest dovrebbe usare byWin</p></li>
 </ul>
-</div>
-<div id="git" class="section level2">
-<h2>Git</h2>
 </div>
 <div id="amico2" class="section level2">
 <h2>AMICO2</h2>
@@ -403,6 +415,20 @@ interpolare? Usa già quella finale dell’interpolazione.</li>
 <li>recupera tutte le funzioni avanzate sviluppate per VRperGenere</li>
 </ul>
 </div>
+<div id="videoframe" class="section level2">
+<h2>videoFrame</h2>
+<ul>
+<li>il sistema IN TEORIA è robusto con la visualizzazione di 2 segnali,
+ma non è testato</li>
+<li>in particolare non è robusto per la visualizzazione di algoritmi di
+sync diversi da AMICo1</li>
+<li>leggi i video con genericIO</li>
+<li>esporta correttamente in una cartella singola come da
+data_structure.html</li>
+<li>crea cartella per i frame</li>
+<li>trova dimensioni dinamicamente</li>
+</ul>
+</div>
 <div id="mechanics" class="section level2">
 <h2>mechanics</h2>
 <ul>
@@ -413,6 +439,7 @@ finestre specificate da setArtefacts(), ad es settando a NA, o
 smoothando. Metti anche come filtro una possibile label per scriminare
 diversi artefatti. flat, wiggle, motion, etc.</li>
 <li>winInter, and approxbywin dovrebbero usare byWin?</li>
+<li>crea algoritmo per peak-co-occurrence e relative-amplitude</li>
 </ul>
 </div>
 <div id="minor-bugs-various-mishaps" class="section level2">
@@ -426,9 +453,13 @@ c’è una guida per dire come fare meglio?</li>
 <div id="rats-class" class="section level2">
 <h2>rats CLASS</h2>
 <ul>
-<li>togli tutti i round da start ed end [credo ok]</li>
-<li>length(rats(1:60)[61]) #ERROR</li>
-<li>c(rats(1:10, start=3.5), rats(1:10, start = 20)) # ERROR</li>
+<li>implementa summary.rats con tables per rats non numerici</li>
+<li>implementa plot.rats</li>
+<li>print.rats è un po’ frustrante</li>
+<li>rescaleByWin non salva i metadati es. timeUnit</li>
+<li>metti error se period = 1 o frequency = 1</li>
+<li>window.rats con duration == 0 dava errore, ora ho forzato a duration
+= period(x) ma è scorretto</li>
 </ul>
 </div>
 <div id="permutations" class="section level2">
@@ -459,7 +490,7 @@ session o singal applica adeguatamente.</li>
 <div id="graphics" class="section level2">
 <h2>Graphics</h2>
 <ul>
-<li>scrivi funzioni generiche per long plot, e per videoframesync</li>
+<li>scrivi funzioni generiche per long plot</li>
 </ul>
 </div>
 <div id="double-check-cleanup" class="section level2">
@@ -474,6 +505,8 @@ eventuali altri algoritmi di calcolo.</li>
 obsolenscence.R</li>
 <li>controlla gli argomenti missing nelle funzioni parallelizzate. In
 particolare AMICo, e filter</li>
+<li>pulisci rats da molti commenti</li>
+<li>rinomina Category in Diary</li>
 </ul>
 </div>
 <div id="performance" class="section level2">

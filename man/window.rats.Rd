@@ -37,6 +37,4 @@ window(x, start=2, duration=2)
 window(x, start=0.21, end=0.5) = 99 
 
 
--5
-
 }

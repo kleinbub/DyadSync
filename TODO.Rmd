@@ -16,7 +16,12 @@ knitr::opts_chunk$set(echo = TRUE)
       * cerca tss tse ts start end startend sampRate( tsp DyadStream xstart xend
     * @OBSOLETE
     * @HACK cose brutte da sistemare quando hai tempo
-
+  * per aggiornare i branch di git in RStudio usa:
+  
+    ```
+    git fetch --prune
+    git pull --prune
+    ```
 
 ## NEXT STEPS & CRITICAL BUGS
   * crea algoritmo SCoPhaRSi Skin Conductance Phasic Response Similiarity
@@ -26,14 +31,12 @@ knitr::opts_chunk$set(echo = TRUE)
     nella prima parte con i picchi veri. NB cè gia maxPeakDuration
   * peakfinder trova amp negative
   * Alcuni nomi di dyadcategory causano errori come "SD"
-  * tutto il sistema di permutazioni non permette di analizzare dati per i quali non ci siano osservazioni (nrow = 0)
+  * tutto il sistema di permutazioni non permette di analizzare dati per i quali non ci siano osservazioni (nrow = 0) [maybe fixed?]
   * in ppSync_dev perchè usare la lunghezza del più corto per interpolare? Usa già
     quella finale dell'interpolazione.
   * rinomina winSec in WIN e incSec in INC
   * rinomina SR o sampRate in frequency
   * ccfBest dovrebbe usare byWin
-
-## Git
 
 ## AMICO2
   * gli artefatti sono rimossi da sync e lag ma non da xbest.
@@ -45,14 +48,17 @@ knitr::opts_chunk$set(echo = TRUE)
 ## videoFrame
   * il sistema  IN TEORIA è robusto con la visualizzazione di 2 segnali, ma non è testato
   * in particolare non è robusto per la visualizzazione di algoritmi di sync diversi da AMICo1
-  *
+  * leggi i video con genericIO
+  * esporta correttamente in una cartella singola come da data_structure.html
+  * crea cartella per i frame
+  * trova dimensioni dinamicamente
   
 ## mechanics
   * ottimizza ccfBest e omologa l'output di ccfBest e pmBest. In particolar modo 
     ci sia il tempo per le finestre di ccfBest
   * fai una nuova funzione: filterArtefacts() che applica una FUN sulle finestre specificate da setArtefacts(), ad es settando a NA, o smoothando. Metti anche come filtro una possibile label per scriminare diversi artefatti. flat, wiggle, motion, etc.
   * winInter, and  approxbywin dovrebbero usare byWin?
-
+  * crea algoritmo per peak-co-occurrence e relative-amplitude
 
 
 ## minor BUGS & various mishaps
@@ -66,8 +72,7 @@ knitr::opts_chunk$set(echo = TRUE)
   * print.rats è un po' frustrante
   * rescaleByWin non salva i metadati es. timeUnit
   * metti error se period = 1 o frequency = 1
-
-
+  * window.rats con duration == 0 dava errore, ora ho forzato a duration = period(x) ma è scorretto
 
 
 ## Permutations
@@ -81,7 +86,6 @@ knitr::opts_chunk$set(echo = TRUE)
     plot(full_from, t="l")
 
 
-    
 ## Category extraction
   * (forse fatto?) se voglio usare più di un groupIndex, ad es IM_tipo e IM_livello, queste si sovrascrivono in epochStream. Devi sempre indicare signal="SC", sync="PMdev",streamKey = "sync", category="IM",groupIndex="micro". 
   * DyadCategory to stream (category, column) : crea versione interpolata. utile principalmente solo per plottare
@@ -89,7 +93,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ## Graphics 
-  * scrivi funzioni generiche per long plot, e per videoframesync
+  * scrivi funzioni generiche per long plot
 
   
 ## double check & cleanup
@@ -100,14 +104,11 @@ knitr::opts_chunk$set(echo = TRUE)
   * controlla gli argomenti missing nelle funzioni parallelizzate. In particolare
     AMICo, e filter
   * pulisci rats da molti commenti
-
-    
-  
-  
+  * rinomina Category in Diary. CategoryIndex in category. Poi tutto deve essere coerente: Diary contiene una o più categories, che contengono più levels
 
 ## Performance
   * usa il profiler per trovare bottlenecks: https://support.rstudio.com/hc/en-us/articles/218221837-Profiling-R-code-with-the-RStudio-IDE
-   
+
 
 
 ## Backlog
