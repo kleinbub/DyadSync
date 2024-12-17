@@ -188,6 +188,24 @@ lead0 = function(x, width = 2, digits=0){
   formatC(x,width = width, format = "f", digits=digits, flag = "0")
 }
 
+
+#' Checks if valid color representation
+#'
+#' @param x a vector of characters
+#'
+#' @return a vector of named logicals
+#' @export
+#'
+#' @examples
+is.color <- function(x) {
+  if(!is.character(x)) stop("only characters can be parsed as colors")
+  vapply(x, function(X) {
+    tryCatch(is.matrix(col2rgb(X)), 
+             error = function(e) FALSE)
+  }, logical(1))
+}
+
+
 #' rangeRescale
 #' this function rescales a numeric vector to a new range through linear interpolation
 #' @param x 
@@ -306,7 +324,15 @@ timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseS
   {
     ## NB questa è la linea classica, funzionantissima, tranne nel caso di un data.frame di una riga.
     SIMPLIFY = if(is.data.frame(baseTime)) FALSE else TRUE
-    sapply(baseTime,timeMaster,out,add,baseSep,USE.NAMES = F)
+    if(digits=="auto"){
+      temp = sapply(baseTime, timeMaster, "sec", add, baseSep, digits, USE.NAMES = F)
+      temp = as.character(temp)
+      temp = temp[grepl("\\.",temp)]
+      temp2 = sapply(temp, strsplit,  "\\.")
+      temp2 = sapply(temp2, \(x){nchar(x[2])})
+      digits = max(temp2)
+    }
+    sapply(baseTime, timeMaster, out, add, baseSep, digits, USE.NAMES = F, simplify = SIMPLIFY)
     
     ## Questo è il nuovo approccio. Potrebbe sfasciare tutto
     # res = baseTime
@@ -375,13 +401,21 @@ timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseS
     } else if(out %in% c("min", "hour")){
       if (x<0) { x = abs(x); negative = T} else negative =F
       mins = floor(x/60)
-      secs = (x-mins*60)
+      secs = as.integer(x-mins*60)
+      fraction = trunc(round(x-mins*60 - secs, realDigits)*10^realDigits)
+      if(realDigits == 0) {
+        fraction = ""
+      } else if(fraction == 0) {
+        fraction = paste0(".",rep(0,realDigits))
+      } else {
+        fraction = paste0(".",lead0(fraction, w = realDigits))
+      }
       hours = trunc(mins/60)
       mins_h = mins - hours*60
       if(out == "min")
-        return(paste0(ifelse(negative,"-",""), lead0(mins, w=2, d=0),":", lead0(secs, w=2, d=realDigits)))
+        return(paste0(ifelse(negative,"-",""), lead0(mins, w=2, d=0),":", lead0(secs, w=2),fraction))
       else if (out =="hour"){
-        return(paste0(ifelse(negative,"-",""),lead0(hours, w=2, d=0),":",lead0(mins_h, w=2, d=0),":", lead0(secs, w=2, d=realDigits)))
+        return(paste0(ifelse(negative,"-",""),lead0(hours, w=2, d=0),":",lead0(mins_h, w=2, d=0),":", lead0(secs, w=2), fraction))
       }
     } else stop("timeMaster failed in a weird way!")
   }
@@ -607,31 +641,23 @@ winInter = function(windowsList, winSec, incSec, SR){
 #' first, middle or last sample of each window? 
 #' @param FUN The function to be executed
 #' @param ... Additional parameters to be passed to FUN
-#' @param cores integer or "max". The number of cores to be used for parallelization.
-#' if set to 1, parallelization is turned off. Very simple tasks can be faster if run
+#' @param cores integer or logical. The number of cores to be used for parallelization.
+#' if set to 1 or FALSE, parallelization is turned off. If set to TRUE, cores are automatically selected.
+#' Please note that most simple tasks can be faster if run
 #' as single core due to the overhead of scheduling the task and returning the
 #' result can be greater than the time to execute the task itself, resulting in
 #' poor performance.
 #'
-#' @return 
+#' @return a rats time series with a $x element pointing to the windowed position of $y elements
 #' @export
 #'
 #' @examples
 byWin = function(x, WIN, INC, flex = TRUE, FUN, ..., 
-                 position = c("mid", "first", "last"), cores = "max"){
-  # DEBUG
-  # stop("debug byWin")
-  # x = lr10$all_CC_1$SC$s1
-  # WIN = 300
-  # INC= 0.1
-  # FUN = "myRes"
-  # flex=T
-  # position = "mid"
-  # l = list(newMin = 0.5, newMax = 0.8)
-  # cores = 1
-  #######
-  x = as.rats(x)
-  tu = if(is.rats(x)) timeUnit(x) else "unit of time"
+                 position = c("mid", "first", "last"), cores = 1){
+  
+  xnum = as.numeric(x)
+  is_rats = is.rats(x)
+  tu = if(is_rats) timeUnit(x) else "unit of time"
   SR = frequency(x)
   win = WIN*SR
   win2 = round(win/2)
@@ -639,14 +665,25 @@ byWin = function(x, WIN, INC, flex = TRUE, FUN, ...,
   position = match.arg(position)
   winz  = nwin(x, WIN, INC, SR, return = "all", flex = flex)
   n_win = nrow(winz)
+  w_sta_s = winz$start_s
+  w_end_s = winz$end_s
   pos = switch (position,
-    mid = winz$mid_s,
-    start = winz$start_s,
-    end = winz$end_s
+                mid = winz$mid_s,
+                start = winz$start_s,
+                end = winz$end_s
   )
   l=list()
   l = list(...)
   
+  steps = round(seq(0,n_win, length.out=21))
+  step=0
+  
+  # cat("\033[38;5;214mTaxi Yellow")
+  if(isTRUE(cores)) {
+    cores = max(1,parallel::detectCores()-1) 
+  } else if(is.numeric(cores)) {
+    cores = min(cores, parallel::detectCores()) 
+  } else cores = 1
   if(cores == 1){
     cat(paste0("\r\nApplying ",
                deparse(substitute(FUN))," by ",WIN," ",tu, " windows, ",INC," ",tu," increments, in single core mode.\r\n")) #verified!
@@ -654,67 +691,61 @@ byWin = function(x, WIN, INC, flex = TRUE, FUN, ...,
     resList = vector(mode = "list", length = n_win)
 
     for(k in 1:n_win){
-      ab = winz$start_s[k]:winz$end_s[k]
-      resList[[k]] = do.call(FUN, c(list(x[ab]), l))
+      if(k%in%steps) {step = step+1; cat(paste0("\r\033[38;5;214m| Working |",paste0(rep("§",times=step),collapse = ""),paste0(rep(" ",20-step),collapse = ""), "| UwU" ))}
+      resList[[k]] = do.call(FUN, c(list(xnum[w_sta_s[k]:w_end_s[k]]), l))
     }
+    cat("\r\033[0m", paste(rep(" ", 50), collapse = ""), "\r")
+
     
   } else{
     ####### SETUP PARALLELIZATION
-    # progresbar
+    
+    # progressbar
     pb <- progress::progress_bar$new(
-      format = "Calculation::percent [:bar] :elapsed | ETA: :eta",
+      format = "Computing :total windows [:bar] :elapsed | ETA: :eta",
       total = n_win,    #number of iterations
-      width = 60, 
+      width = 60,
       show_after=0 #show immediately
     )
-    
+    # allowing progress bar to be used in foreach
     progress_letter <- rep(LETTERS[1:10], 10)  # token reported in progress bar
-    
-    # allowing progress bar to be used in foreach -----------------------------
     progress <- function(n){
       pb$tick(tokens = list(letter = progress_letter[n]))
-    } 
-    
+    }
     opts <- list(progress = progress)
     
     
-    #parallelization
+    #parallelization ----------------------------------------------------------
     warningsFile = "MyWarnings"
     if (file.exists(warningsFile)) {
       unlink(warningsFile)
     }
-    if(cores == "max")  cores=parallel::detectCores()-1
     
-    # cat(paste0("\r\nPerforming parallelized computation of ",
-    #            deparse(substitute(FUN)), " using ",cores," cores.\r\n")) 
     cat(paste0("\r\nApplying ",
                deparse(substitute(FUN))," by ",WIN," ",tu, " windows, ",INC," ",tu," increments, and using ",cores," cores.\r\n")) #verified!
     FUN = match.fun(FUN)
-    cl <- parallel::makeCluster(cores[1], outfile=warningsFile) #not to overload your computer
+    cl <- parallel::makeCluster(cores[1], outfile=warningsFile)
     doSNOW::registerDoSNOW(cl)
     `%dopar%` <- foreach::`%dopar%`
-    `%do%` <- foreach::`%do%`
     pb$tick(0)
     resList <- foreach::foreach(
       k = 1:n_win,
-      .options.snow = opts, .errorhandling='pass'
+      .options.snow = opts,
+      .errorhandling='pass'
     ) %dopar% {
       ################# START OF THE PARALLEL JOB
-      ab = winz$start_s[k]:winz$end_s[k]
-      res = do.call(FUN, c(list(x[ab]), l))
-      # res = FUN(x[ab], ...)
-      
+      do.call(FUN, c(list(xnum[w_sta_s[k]:w_end_s[k]]), l))
       ################# END OF THE PARALLEL JOB
     }
     parallel::stopCluster(cl) 
   }
+  
   newTS = unlist(resList)
-  
-  
-  res = rats(newTS, start = start(x)+round(pos[1]/SR), frequency = 1/INC, windowed = list(WIN, INC, flex = flex, winz))
-  
+  res = rats(newTS, start = start(as.rats(x))+round(pos[1]/SR), frequency = 1/INC, windowed = list(WIN, INC, flex = flex, winz))
   return(res)
 }
+
+
 #' @rdname byWin
 wapply <- byWin
 
@@ -778,16 +809,57 @@ rescaleByWin = function(x, WIN, newMin, newMax, cores=1){
     if(length(x)<3) stop ("poinRescale need longer objects")
     mid = round(length(x)/2)+1
     if(mid<2){ stop("bad mid point in pointrescale")}
-    if(!is.numeric(x)) stop("in pointrescale x must be numeric")
-    x = as.numeric(x) #strip classesand attributes
-    ran = range(x)
-    xx = x[mid]
-    return((xx - ran[1])/(ran[2]- ran[1]))
+    a = min(x,na.rm=T)
+    b = max(x,na.rm=T)
+    return((x[mid] - a)/(b- a))
     # return((newMax-newMin)/(ran[2]-ran[1]) * (xx - ran[2]) + newMax)
   }
   res = byWin(x, WIN=WIN, INC=1/frequency(x),flex = TRUE, FUN=pointRescale, cores=cores)
   res = res * (newMax-newMin) + newMin
+  return(res)
 }
+
+#' #' Window-based rescaling
+#' #'
+#' #' This function operates a rescale on a signal based on a rolling window.
+#' #' It is useful to "auto zoom" a long signal
+#' #'
+#' #' @param x a ts or numeric object
+#' #' @param winSec integer. The window size, in seconds
+#' #' @param rangeMin lower boundary of rescaling
+#' #' @param rangeMax upper boundary of rescaling
+#' #'
+#' #' @return
+#' #' @export
+#' 
+#' rescaleByWinOld = function(x, winSec, #inc=T,
+#'                         rangeMin, rangeMax){
+#'   win = winSec*frequency(x)
+#'   win2 = trunc(win/2)
+#'   len = length(x)
+#'   # if (inc) inc = 1 else inc = win
+#'   # n_win = ceiling((len-win+1)/inc)
+#'   
+#'   x2 = x
+#'   
+#'   for(i in seq_along(x2)){
+#'     
+#'     a = max(1,i-win2)
+#'     b = min(i+win2, len)
+#'     if(i<=win2) pos = i else pos = win2
+#'     
+#'     x2[i] = rangeRescale(x[a:b], rangeMin, rangeMax)[pos]
+#'   }
+#   #
+#   #
+#   # for(i in 1:n_win-1) {
+#   #   a = (i*inc +1)
+#   #   b= (i*inc +win)
+#   #
+#   #   x2[a:b] = rangeRescale(x[a:b], rangeMin, rangeMax)
+#   # }
+#   x2
+# }
 
 
 #' Set argument/attribute to a list without overwriting existing values
