@@ -26,10 +26,10 @@ readCategories = function(path,
                           ... #additional options to be passed to read.table
 ){
   # debug
-  # path = "C:/Users/Kleinbub/OneDrive - Università degli Studi di Padova/__Ricerche/2021_biofeedback validation/BIOFEEDBACK LAB/trucchia_self_disclosure/data/csv"
+  # path = "data/csv"
   # namefilt = ""
   # catName = "SELF"
-  # codingCol=c(3:6)
+  # codingCol=c(4:6,8)
   # removeSec = 0
   # startCol =1
   # endCol = 2
@@ -72,7 +72,7 @@ readCategories = function(path,
   }  else if(length(removeSec)!=length(lf)) stop("removeSec must be defined for every file (n=",length(lf),")")
 
   cat("File name","\t","seconds removed\r\n")
-  #debug: iFile = 3; file = lf[[iFile]]
+  #debug: iFile = 1; file = lf[[iFile]]
   listCat = Map(function(file,iFile){
     cat(shortNames[iFile],"\t",removeSec[iFile],"\r\n")
     # file = as.data.frame(file)
@@ -80,7 +80,8 @@ readCategories = function(path,
     if(nrow(file)>0){
         file[file==""] = NA
         file = file[rowSums(is.na(file)) != ncol(file),]
-        file = file[,colSums(is.na(file)) != nrow(file) | seq_along(file) %in% codingCol]
+        # file = file[,colSums(is.na(file)) != nrow(file) | seq_along(file) %in% codingCol]
+        file = file[,seq_along(file)<=max(c(max(codingCol),startCol,endCol))]
         file[is.na(file)] = "NA" #use character NA to keep smooth subsequent analyses
         #convert shitty time formats to seconds
       
