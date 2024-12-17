@@ -365,9 +365,9 @@ ppSync_dev = function(signal, xbest, minSizeSec, outputName) {
   if(nrow(xbest)<10) warning("peakMatch found less than 10 peaks")
   d = signal$s1
   d2  = signal$s2
-  lagSec = attr(signal[[outputName]], "lagSec")
+  # lagSec = attr(signal[[outputName]], "lagSec")
   SR = frequency(signal)
-  ransamp = lagSec * SR
+  # ransamp = lagSec * SR
   # xbest = signal[[outputName]]$xBest
   xbest$sync = rep(NA,nrow(xbest))
   
@@ -526,6 +526,7 @@ ppSync_dev = function(signal, xbest, minSizeSec, outputName) {
               unit="seconds")
   # applica gli artefatti
   for(i in seq_len(nrow(signal$artefacts)) ){ 
+    # print(i)
     window(sync, signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
     window(lags, signal$artefacts[i,"start"], signal$artefacts[i,"end"] ) <- NA
   }
