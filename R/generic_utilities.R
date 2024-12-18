@@ -309,7 +309,7 @@ unequalCbind = function(...) {
 #' @param out the output format "auto", "hour" for hh:mm:ss, "min" for "mm:ss"
 #' @param add a time to be added (or subtracted if negative) from basetime. In any format accepted by timeMaster
 #' @param baseSep the separator dividing hh mm ss
-#' @param digits the number of digits of the fractional part of seconds
+#' @param digits either 'auto' or an integer representing the number of digits of the fractional part of seconds
 #'
 #' @return
 #' @export
@@ -323,37 +323,20 @@ timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseS
   if(length(baseTime)>1)
   {
     ## NB questa è la linea classica, funzionantissima, tranne nel caso di un data.frame di una riga.
+    if(is.data.frame(baseTime)) stop ("dataframe input for timemaster is buggy")
     SIMPLIFY = if(is.data.frame(baseTime)) FALSE else TRUE
     if(digits=="auto"){
       temp = sapply(baseTime, timeMaster, "sec", add, baseSep, digits, USE.NAMES = F)
       temp = as.character(temp)
       temp = temp[grepl("\\.",temp)]
+      if(length(temp)>0) {
       temp2 = sapply(temp, strsplit,  "\\.")
       temp2 = sapply(temp2, \(x){nchar(x[2])})
       digits = max(temp2)
+      } else digits = 0
     }
     sapply(baseTime, timeMaster, out, add, baseSep, digits, USE.NAMES = F, simplify = SIMPLIFY)
     
-    ## Questo è il nuovo approccio. Potrebbe sfasciare tutto
-    # res = baseTime
-    # for(i in seq_along(baseTime)){
-    #   res[[i]] <- timeMaster(baseTime[[i]],out,add,baseSep)  
-    #   print
-    # }
-    # res
-    
-    ## oppure
-    # if(is.list(baseTime)) res = vector("list", length(baseTime)) 
-    # else res = numeric(length(baseTime))
-    # for(i in seq_along(baseTime)){
-    #   res[[i]] <- timeMaster(baseTime[[i]],out,add,baseSep) 
-    #   # cat("\r\n",str(res))
-    # }
-    # names(res) = names(baseTime)
-    # # class(res) = class(baseTime)
-    # res
-    # 
-    ## elimina fino a qui in caso.
     
   } else {
     #da qui baseTime è contenente un tempo singolo, non un vettore
@@ -405,9 +388,11 @@ timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseS
       fraction = trunc(round(x-mins*60 - secs, realDigits)*10^realDigits)
       if(realDigits == 0) {
         fraction = ""
-      } else if(fraction == 0) {
-        fraction = paste0(".",rep(0,realDigits))
-      } else {
+      } 
+      # else if(fraction == 0) {
+      #   fraction = paste0(".",paste0(rep(0,realDigits), collapse = ""))
+      # } 
+      else {
         fraction = paste0(".",lead0(fraction, w = realDigits))
       }
       hours = trunc(mins/60)
