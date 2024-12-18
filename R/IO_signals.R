@@ -131,7 +131,7 @@ readDyadSignals = function(
   len <- lapply(lf, function(x) length(x[[1]]))
   #check if some file are shorter than 50% of the mean length and remove them 
   removeFile = unlist(lapply(seq_along(len), function(i){if(len[[i]] / mean(unlist(len)) <0.5) {
-      warning("File ",i,': ',shortNames[i]," is shorter (",timeMaster(round(len[[i]]/SR),out="m"),
+      warning("File ",i,': ',shortNames[i]," is shorter (",timeMaster(len[[i]]/SR,out="m"),
               "s) than the 50% of the mean length", call. = F);return(i)}
     } ))
   # if(length(removeFile)>0){
@@ -244,7 +244,7 @@ readDyadSignals = function(
     "dyad" = unlist(dyadIds),
     "session" = unlist(sess),
     "group" = unlist(group),
-    "start" = timeMaster(round(start),out="min"),
+    "start" = timeMaster(start, out="min"),
     "duration" = timeMaster(floor(unlist(len)/SR), out="min"),
     #"max length" = timeMaster(end, out="min"),
     # "Filename" = unlist(shortNames),
