@@ -15,6 +15,8 @@ knitr::opts_chunk$set(echo = TRUE)
   * fixed windowed functions: winInter() byWin() rescaleByWin()
   * improvements to peakFinder and drawframes
   * method for diff.rats()
+  * crucial bugfix: peakfinder amplitudes were wrong
+
 
 ## v.1.3.0
 #### 2024/01/25

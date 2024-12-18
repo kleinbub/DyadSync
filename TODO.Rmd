@@ -29,7 +29,6 @@ knitr::opts_chunk$set(echo = TRUE)
   * amico2 ha dei buchi weight linea 863 prova mean [maybe done]
   * interval_sec diventa maxSize e con minSize devono essere implementati anche
     nella prima parte con i picchi veri. NB cè gia maxPeakDuration
-  * peakfinder trova amp negative
   * Alcuni nomi di dyadcategory causano errori come "SD"
   * tutto il sistema di permutazioni non permette di analizzare dati per i quali non ci siano osservazioni (nrow = 0) [maybe fixed?]
   * in ppSync_dev perchè usare la lunghezza del più corto per interpolare? Usa già

@@ -165,13 +165,18 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   
   is = 1:length(piksam)
   
+  
+  amps = diff(x[piksam])
+  amps = c(NA, amps)
+
   #tieni solo picchi e valli, se vuoi!
   if(mode=="peaks") {
+    amps = amps[pv=="p"]
     piksam = piksam[which(pv=="p")]
     is = is[which(pv=="p")]
     pv = pv[which(pv=="p")]
-    
   } else if(mode == "valleys"){
+    amps = amps[pv=="v"]
     piksam = piksam[which(pv=="v")]
     is = is[which(pv=="v")]
     pv = pv[which(pv=="v")]
@@ -189,7 +194,7 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
        "time" = piks,
        "class" = pv,
        "y" = x[piksam],
-       "amp" = c(NA,diff(x[piksam])),
+       "amp" = amps,
        "index" = is
   )
   
