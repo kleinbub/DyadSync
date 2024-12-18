@@ -266,9 +266,9 @@ readDyadSignals = function(
     signalList = lapply(seq_along(s1Col), function(i) {
       DyadSignal(name=signalNames[i],
                  s1=rats(session[,s1Col[i]],frequency=SR,
-                         start=start[iSession], timeUnit=timeUnit, unit=unit),
+                         start=start[iSession], timeUnit=timeUnit, unit=unit[i]),
                  s2=rats(session[,s2Col[i]],frequency=SR,
-                         start=start[iSession], timeUnit=timeUnit, unit=unit),
+                         start=start[iSession], timeUnit=timeUnit, unit=unit[i]),
                  SR = SR, s1Name = s1Name, s2Name = s2Name,
                  sessionId=sess[[iSession]],
                  dyadId=dyadIds[[iSession]],
