@@ -25,7 +25,7 @@ timeMaster(
 
 \item{baseSep}{the separator dividing hh mm ss}
 
-\item{digits}{the number of digits of the fractional part of seconds}
+\item{digits}{either 'auto' or an integer representing the number of digits of the fractional part of seconds}
 }
 \description{
 timeMaster

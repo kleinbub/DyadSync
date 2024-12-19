@@ -92,7 +92,7 @@ basicPlot.DyadExperiment =function(x, signal, ...){
 basicPlot.DyadSignal = function(x, ...) {
   print("plot.DyadSignal")
   par(mfrow=c(2,1), mar=c(0,2.5,2.5,0), cex = 0.8)
-  plot((x$s1),xaxt="n" ,ylab="uS", ...)
+  plot((x$s1),xaxt="n" ,ylab=unit(x$s1), ...)
   par(mar=c(3.5,2.5,0,0))
   plot(time(x$s2),x$s2,col="red",xaxt="n",t="l",xlab="", cex.main = 0.001, ...)
   tSteps = round(time(x$s2)[seq(1, length(time(x$s2)),by=frequency(x)*60 )])

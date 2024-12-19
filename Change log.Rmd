@@ -14,8 +14,11 @@ knitr::opts_chunk$set(echo = TRUE)
   * timeMaster now accepts fractional time
   * fixed windowed functions: winInter() byWin() rescaleByWin()
   * improvements to peakFinder and drawframes
-  * method for diff.rats()
+  * Implemented the method for diff.rats()
   * crucial bugfix: peakfinder amplitudes were wrong
+  * restructured peakFinder filtering procedure, including a FIR filter, 
+    and changed arguments.
+  * FINALLY! a seemingly reliable PPG2beats() function!!!
 
 
 ## v.1.3.0

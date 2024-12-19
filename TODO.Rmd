@@ -42,7 +42,7 @@ knitr::opts_chunk$set(echo = TRUE)
   * amico 2 causa permutation tests tutte negative :-O
    
 ## physiology
-  * recupera tutte le funzioni avanzate sviluppate per VRperGenere
+  * EDA artifacts (iniziato in per VRperGenere)
   
 ## videoFrame
   * il sistema  IN TEORIA è robusto con la visualizzazione di 2 segnali, ma non è testato
@@ -113,7 +113,6 @@ knitr::opts_chunk$set(echo = TRUE)
   * errori (rari) in PMBest (su diadi random): 
     * In cor(rs1, rs2, use = "c") : la deviazione standard è zero
     * In s2p\$bool + s2v\$bool :  longer object length is not a multiple of shorter object length
-  * tempo in millesimi e/o frazioni di secondo in timemaster
 
 
 
