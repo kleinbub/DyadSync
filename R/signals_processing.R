@@ -1,7 +1,10 @@
 #' Finds peaks and throughs features in a time series
 #'
 #' @param x a rats, ts, or a numeric vector.
-#' @param sgol_p smoothing filter order. If NA, the filtering is disabled.
+#' @param sgolay_args a named list of arguments to be passed to \link[signal]{sgolay}) Savitzky-Golay smoothing filter.
+#' 'p' and 'n' must be present, representing the filter order and length (this must be an odd value). If empty, the filtering is disabled.
+#' @param FIR_args a named list of arguments to be passed to \link[DyadSignal]{FIR}) filtering function.
+#' 'cut' and 'type' must be present, representing . If empty, the filtering is disabled.
 #' @param sgol_n smoothing filter length (must be odd).
 #' @param mode should the function return only 'peaks', 'valleys', or 'both'?
 #' @param correctionRangeSeconds the half range in which the real maximum/minimum
@@ -10,6 +13,8 @@
 #' signal.  0.5 is good for skin conductance.
 #' @param minPeakAmplitude the minimum delta from valley to peak for detection.
 #' Skin conductance traditionally uses 0.05uS, or 0.03uS
+#' @param sgol_p OBSOLETE parameter: smoothing filter order of the sgolay filter.
+#' @param sgol_n  OBSOLETE parameter: smoothing filter length (must be odd).
 #' @details The function has a relatively simple yet robust implementation:
 #' after a Sgolay smoothing, the first derivative's sign changes are detected.
 #' Then, the actual minima or maxima is looked for in a given range.
@@ -22,7 +27,7 @@
 #'    value corresponding to a match
 #'    }
 #'   \item{samples}{the position of features relatively to x's index}
-#'   \item{time}{temporal coordinates of the features (if x has a frequency attribute)}
+#'   \item{x}{temporal coordinates of the features (if x has a frequency attribute)}
 #'   \item{type}{a character vector defining for each "samples" value if its a 'p' peak or a 'v' valley (trough)}
 #'   \item{y}{The value of x correspoding to the detected features}
 #'   \item{amp}{the positive (v->p) and negative (p->v) amplitudes of the detected features}
@@ -33,46 +38,69 @@
 #'   
 #' }
 #' @export
-peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both"),
-                      correctionRangeSeconds, minPeakAmplitude){
+peakFinder = function(x, mode=c("peaks","valleys","both"),  sgolay_args=list(), FIR_args = list(),
+                      correctionRangeSeconds = 0, minPeakAmplitude = 0, sgol_p, sgol_n){
   ####debug
   # stop("debug")
   # x = d1
-  # sgol_p = 2
-  # sgol_n = 25
+  # sgolay_args = list( p = 2, n = 25)
   # mode="both"
   # correctionRangeSeconds = 0.5
   # minPeakAmplitude = 0.05
+  # FIR_args = list(type = "low", cut=3.16)
   ##
   which.minmax = function(x, pv){if(pv=="p") which.max(x) else if(pv=="v") which.min(x)}
   
-  if(missing(sgol_p)) stop("in peakfinder missing sgol_p")
-  if(missing(sgol_n)) stop("in peakfinder missing sgol_n")
-  if(missing(correctionRangeSeconds)) stop("in peakfinder missing correctionRangeSeconds")
-  if(missing(minPeakAmplitude)) stop("in peakfinder missing minPeakAmplitude")
+  # @OBSOLETE #######################
+  if(!missing(sgol_p) || !missing(sgol_n)){
+    warning("the use of the sgol_p and sgol_n parameters is deprecated")
+    if(length(sgolay_args)==0){
+      sgolay_args = list("p" = sgol_p, "n"=sgol_n)
+    }
+  } else {
+    sgol_p = sgol_n = NULL
+  }#################################
+  
+  # if(missing(correctionRangeSeconds)) stop("in peakfinder missing correctionRangeSeconds")
+  # if(missing(minPeakAmplitude)) stop("in peakfinder missing minPeakAmplitude")
   
   SR = frequency(x)
   timeX = time(x)
+
+  #FILTERING PROCEDURES
+  smooth_x = x
+  
+  if(length(FIR_args) > 0){
+    if(! all(c("cut","type") %in% names(FIR_args))) stop("FIR_args must be empty or contain both 'cut' and 'type' elements")
+    smooth_x = do.call(DyadSync::FIR, c(list(smooth_x),  FIR_args))
+  }  
+  
+  #wipe attributes. These were useful for FIR but mess up further stuff
   attributes(x) = NULL
-  if(is.na(sgol_p)||is.na(sgol_n)){
-    smooth_x = x
-  } else {
-    smooth_x = signal::sgolayfilt(x,  p =sgol_p, n = sgol_n, m=0)
+  attributes(smooth_x) = NULL
+
+  if(length(sgolay_args > 0)){
+    if(! all(c("n","p") %in% names(sgolay_args))) stop("sgolay_args must be empty or contain both 'n' and 'p' elements")
+    if(length(x)< sgolay_args[["n"]]*2){
+      warning("Signal too short to apply Savitzky-Golay filter ")
+      smooth_x = x
+    } else smooth_x = do.call(signal::sgolayfilt, c(list(smooth_x),  sgolay_args))
   }
+  
   fdderiv1  = diff(smooth_x)
   
   mode = match.arg(mode)
-  pik = sign(embed(fdderiv1,2)) #embed appaia al segnale il segnale laggato di 1 samp
-  s = pik[,2] - pik[,1] #that's where the magic happens
+  pik = sign(embed(fdderiv1, 2)) #embed appaia al segnale il segnale laggato di 1 samp
+  s = pik[, 2] - pik[, 1] #that's where the magic happens
   s[is.na(s)] = 0
   
   #always both
-  pikboo = c(FALSE,abs(s) ==  2, FALSE)
+  pikboo = c(FALSE, abs(s) ==  2, FALSE)
   piksam = which(pikboo) 
   s = s[abs(s)== 2]
   pv = s
-  pv[s>0] = "p"
-  pv[s<0] = "v"
+  pv[s > 0] = "p"
+  pv[s < 0] = "v"
   #correzione manuale: cerca il valore pi- alto nei dintorni del cambio di derivata
   
   
@@ -80,8 +108,6 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   # any(diff(piksam)<= 0)
   correctionRangeSamp = correctionRangeSeconds*SR
   for(v in seq_along(piksam)){
-    
-    
     #individua il range con 0.5s prima e dopo la valle della derivata (esclusi gli estremi inzio e fine ts)
     prevv = if(v==1) 1 else piksam[v-1] +1
     nextv = if(v==length(piksam)) length(x) else piksam[v+1] -1
@@ -189,13 +215,15 @@ peakFinder = function(x, sgol_p = 2, sgol_n = 25, mode=c("peaks","valleys","both
   
   # if(length(piksam) == 0) warning("No peaks were found with the current settings!")
   
-  list("bool" = pikboo,
-       "samples" = piksam,
-       "time" = piks,
-       "class" = pv,
-       "y" = x[piksam],
-       "amp" = amps,
-       "index" = is
+  list(
+    "x" = piks,
+    "y" = x[piksam],
+    "bool" = pikboo,
+    "samples" = piksam,
+    "time" = piks, #@OBSOLETE
+    "class" = pv,
+    "amp" = amps,
+    "index" = is
   )
   
 }

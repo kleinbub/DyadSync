@@ -6,21 +6,25 @@
 \usage{
 peakFinder(
   x,
-  sgol_p = 2,
-  sgol_n = 25,
   mode = c("peaks", "valleys", "both"),
-  correctionRangeSeconds,
-  minPeakAmplitude
+  sgolay_args = list(),
+  FIR_args = list(),
+  correctionRangeSeconds = 0,
+  minPeakAmplitude = 0,
+  sgol_p,
+  sgol_n
 )
 }
 \arguments{
 \item{x}{a rats, ts, or a numeric vector.}
 
-\item{sgol_p}{smoothing filter order. If NA, the filtering is disabled.}
-
-\item{sgol_n}{smoothing filter length (must be odd).}
-
 \item{mode}{should the function return only 'peaks', 'valleys', or 'both'?}
+
+\item{sgolay_args}{a named list of arguments to be passed to \link[signal]{sgolay}) Savitzky-Golay smoothing filter.
+'p' and 'n' must be present, representing the filter order and length (this must be an odd value). If empty, the filtering is disabled.}
+
+\item{FIR_args}{a named list of arguments to be passed to \link[DyadSignal]{FIR}) filtering function.
+'cut' and 'type' must be present, representing . If empty, the filtering is disabled.}
 
 \item{correctionRangeSeconds}{the half range in which the real maximum/minimum
 value should be searched, in seconds.
@@ -29,6 +33,10 @@ signal.  0.5 is good for skin conductance.}
 
 \item{minPeakAmplitude}{the minimum delta from valley to peak for detection.
 Skin conductance traditionally uses 0.05uS, or 0.03uS}
+
+\item{sgol_p}{OBSOLETE parameter: smoothing filter order of the sgolay filter.}
+
+\item{sgol_n}{OBSOLETE parameter: smoothing filter length (must be odd).}
 }
 \value{
 a list of:
@@ -37,7 +45,7 @@ a list of:
    value corresponding to a match
    }
   \item{samples}{the position of features relatively to x's index}
-  \item{time}{temporal coordinates of the features (if x has a frequency attribute)}
+  \item{x}{temporal coordinates of the features (if x has a frequency attribute)}
   \item{type}{a character vector defining for each "samples" value if its a 'p' peak or a 'v' valley (trough)}
   \item{y}{The value of x correspoding to the detected features}
   \item{amp}{the positive (v->p) and negative (p->v) amplitudes of the detected features}
