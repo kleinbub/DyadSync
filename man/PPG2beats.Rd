@@ -12,7 +12,8 @@ PPG2beats(
   FIR_args = list(type = "low", cut = 3, NAsub = 0),
   correctionRangeSeconds = 1/1.5,
   minPeakAmplitude = 0.01,
-  plotName = NULL
+  plotName = NULL,
+  ...
 )
 }
 \arguments{

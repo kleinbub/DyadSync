@@ -375,24 +375,27 @@ hai tempo</li>
 <pre><code>git fetch --prune
 git pull --prune</code></pre></li>
 </ul>
-<div id="next-steps-critical-bugs" class="section level2">
-<h2>NEXT STEPS &amp; CRITICAL BUGS</h2>
+<div id="next-steps" class="section level2">
+<h2>NEXT STEPS</h2>
 <ul>
-<li><p>crea algoritmo SCoPhaRSi Skin Conductance Phasic Response
-Similiarity</p></li>
-<li><p>amico2 ha dei buchi weight linea 863 prova mean [maybe
-done]</p></li>
-<li><p>interval_sec diventa maxSize e con minSize devono essere
+<li></li>
+<li>crea algoritmo SCoPhaRSi Skin Conductance Phasic Response
+Similiarity</li>
+<li>interval_sec diventa maxSize e con minSize devono essere
 implementati anche nella prima parte con i picchi veri. NB cè gia
-maxPeakDuration</p></li>
-<li><p>Alcuni nomi di dyadcategory causano errori come “SD”</p></li>
-<li><p>tutto il sistema di permutazioni non permette di analizzare dati
-per i quali non ci siano osservazioni (nrow = 0) [maybe fixed?]</p></li>
-<li><p>in ppSync_dev perchè usare la lunghezza del più corto per
-interpolare? Usa già quella finale dell’interpolazione.</p></li>
-<li><p>rinomina winSec in WIN e incSec in INC</p></li>
-<li><p>rinomina SR o sampRate in frequency</p></li>
-<li><p>ccfBest dovrebbe usare byWin</p></li>
+maxPeakDuration</li>
+<li>in ppSync_dev perchè usare la lunghezza del più corto per
+interpolare? Usa già quella finale dell’interpolazione.</li>
+<li>ccfBest dovrebbe usare byWin</li>
+</ul>
+</div>
+<div id="critical-bugs" class="section level2">
+<h2>CRITICAL BUGS</h2>
+<ul>
+<li>amico2 ha dei buchi weight linea 863 prova mean [maybe done]</li>
+<li>Alcuni nomi di dyadcategory causano errori come “SD”</li>
+<li>tutto il sistema di permutazioni non permette di analizzare dati per
+i quali non ci siano osservazioni (nrow = 0) [maybe fixed?]</li>
 </ul>
 </div>
 <div id="amico2" class="section level2">
@@ -446,6 +449,15 @@ c’è una guida per dire come fare meglio?</li>
 <div id="rats-class" class="section level2">
 <h2>rats CLASS</h2>
 <ul>
+<li>rats dovrebbe poter rappresentare anche serie irregolari. Quindi
+arbitrari appaiamenti di valori x e y. Crea costruttore alternativo
+rats(x = , y = ). PROBLEMI:
+<ul>
+<li>che sampling rate? Cosa succede alle funzioni che si basano su
+frequency.rats()?</li>
+<li>window.rats, c.rats, e varie funzioni ‘&lt;-’ ricostruiscono x o si
+basano su quello esistente?</li>
+</ul></li>
 <li>implementa summary.rats con tables per rats non numerici</li>
 <li>implementa plot.rats</li>
 <li>print.rats è un po’ frustrante</li>
@@ -498,6 +510,8 @@ eventuali altri algoritmi di calcolo.</li>
 obsolenscence.R</li>
 <li>controlla gli argomenti missing nelle funzioni parallelizzate. In
 particolare AMICo, e filter</li>
+<li>rinomina winSec in WIN e incSec in INC</li>
+<li>rinomina SR o sampRate in frequency</li>
 </ul>
 </div>
 <div id="performance" class="section level2">

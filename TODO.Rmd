@@ -23,19 +23,21 @@ knitr::opts_chunk$set(echo = TRUE)
     git pull --prune
     ```
 
-## NEXT STEPS & CRITICAL BUGS
+## NEXT STEPS 
+  *
   * crea algoritmo SCoPhaRSi Skin Conductance Phasic Response Similiarity
-    
-  * amico2 ha dei buchi weight linea 863 prova mean [maybe done]
   * interval_sec diventa maxSize e con minSize devono essere implementati anche
     nella prima parte con i picchi veri. NB cè gia maxPeakDuration
-  * Alcuni nomi di dyadcategory causano errori come "SD"
-  * tutto il sistema di permutazioni non permette di analizzare dati per i quali non ci siano osservazioni (nrow = 0) [maybe fixed?]
   * in ppSync_dev perchè usare la lunghezza del più corto per interpolare? Usa già
     quella finale dell'interpolazione.
-  * rinomina winSec in WIN e incSec in INC
-  * rinomina SR o sampRate in frequency
   * ccfBest dovrebbe usare byWin
+  
+## CRITICAL BUGS
+  * amico2 ha dei buchi weight linea 863 prova mean [maybe done]
+  * Alcuni nomi di dyadcategory causano errori come "SD"
+  * tutto il sistema di permutazioni non permette di analizzare dati per i quali non ci siano osservazioni (nrow = 0) [maybe fixed?]
+
+
 
 ## AMICO2
   * gli artefatti sono rimossi da sync e lag ma non da xbest.
@@ -66,6 +68,11 @@ knitr::opts_chunk$set(echo = TRUE)
    Forse in R internals c'è una guida per dire come fare meglio?
 
 ## rats CLASS 
+  * rats dovrebbe poter rappresentare anche serie irregolari. Quindi arbitrari
+    appaiamenti di valori x e y. Crea costruttore alternativo rats(x = , y = ).
+    PROBLEMI:
+    * che sampling rate? Cosa succede alle funzioni che si basano su frequency.rats()?
+    * window.rats, c.rats, e varie funzioni '<-' ricostruiscono x o si basano su quello esistente?
   * implementa summary.rats con tables per rats non numerici
   * implementa plot.rats
   * print.rats è un po' frustrante
@@ -102,6 +109,8 @@ knitr::opts_chunk$set(echo = TRUE)
   * elimina i commenti e le cose obsolete. Sto segnando con @OBSOLETE le parti da rimuovere e/o spostare in obsolenscence.R
   * controlla gli argomenti missing nelle funzioni parallelizzate. In particolare
     AMICo, e filter
+  * rinomina winSec in WIN e incSec in INC
+  * rinomina SR o sampRate in frequency
 
 ## Performance
   * usa il profiler per trovare bottlenecks: https://support.rstudio.com/hc/en-us/articles/218221837-Profiling-R-code-with-the-RStudio-IDE

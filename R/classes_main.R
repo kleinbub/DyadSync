@@ -227,6 +227,7 @@ is.DyadCategory = function(x) inherits(x,"DyadCategory") && length(x)
 ##   -end
 ##   -duration
 ##   -class: list DyadSession
+#' @export
 DyadSignal = function(name="some signal",s1=NULL,s2=NULL,SR=NULL,
                       s1Name, s2Name,sessionId,dyadId,groupId){
   if(!is.rats(s1) || !is.rats(s2)) stop("both s1 and s2 must be rats")
@@ -251,6 +252,7 @@ DyadSignal = function(name="some signal",s1=NULL,s2=NULL,SR=NULL,
   class(x) = append(class(x),"DyadSignal")
   return(x)
 } 
+
 #' @export
 is.DyadSignal = function(x) inherits(x,"DyadSignal") && length(x)
 
