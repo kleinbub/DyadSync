@@ -255,8 +255,8 @@ AMICo = function(experiment, signal, lagSec=6, #@OBSOLETE 2022 pmBest diventa AM
     
     
     ### peaks-valleys detection ########
-    pv1 = peakFinder(d1, sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakAmplitude)
-    pv2 = peakFinder(d2, sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakAmplitude)
+    pv1 = peakFinder(d1, sgolay_args=list(p=sgol_p, n=sgol_n), mode = "b", correctionRangeSeconds=correctionRangeSeconds, minPeakAmplitude=minPeakAmplitude)
+    pv2 = peakFinder(d2, sgolay_args=list(p=sgol_p, n=sgol_n), mode = "b", correctionRangeSeconds=correctionRangeSeconds, minPeakAmplitude=minPeakAmplitude)
     
     
     # ai=355

@@ -169,8 +169,8 @@ peakMatch = function(signal,lagSec, sgol_p = 2, sgol_n = 25, weightMalus = 30,
     s1b = legacyPeakFinder(d,  sgol_p, sgol_n, mode = "b", correctionRangeSeconds)
     s2b = legacyPeakFinder(d2, sgol_p, sgol_n, mode = "b", correctionRangeSeconds)
   } else if(algorithm=="v1.1"){
-    s1b = peakFinder(d,  sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakAmplitude)
-    s2b = peakFinder(d2, sgol_p, sgol_n, mode = "b", correctionRangeSeconds, minPeakAmplitude)
+    s1b = peakFinder(d,  sgolay_args=list(p=sgol_p, n=sgol_n), mode = "b", correctionRangeSeconds = correctionRangeSeconds, minPeakAmplitude=minPeakAmplitude)
+    s2b = peakFinder(d2, sgolay_args=list(p=sgol_p, n=sgol_n), mode = "b", correctionRangeSeconds = correctionRangeSeconds, minPeakAmplitude=minPeakAmplitude)
   }
   
   #full matrix with all matches values
