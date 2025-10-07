@@ -788,22 +788,41 @@ wapply <- byWin
 #' @param cores 
 #'
 #' @export
-rescaleByWin = function(x, WIN, newMin, newMax, cores=1){
-  pointRescale = function(x){
+# rescaleByWin = function(x, WIN, newMin, newMax, cores=1){
+#   pointRescale = function(x){
+#     #x è un vettore, ma a me interessa solo la posizione centrale
+#     if(length(x)<3) stop ("poinRescale need longer objects")
+#     mid = round(length(x)/2)+1
+#     if(mid<2){ stop("bad mid point in pointrescale")}
+#     a = min(x,na.rm=T)
+#     b = max(x,na.rm=T)
+#     return((x[mid] - a)/(b- a+1))
+#     # return((newMax-newMin)/(ran[2]-ran[1]) * (xx - ran[2]) + newMax)
+#   }
+#   res = byWin(x, WIN=WIN, INC=1/frequency(x),flex = TRUE, FUN=pointRescale, cores=cores)
+#   res = res * (newMax-newMin) + newMin
+#   return(res)
+# }
+rescaleByWin = function(x, WIN, newMin, newMax, cores=1, subtract=c("min","average","mean")){
+  subtract = match.arg(subtract)
+  pointRescale = function(x,subtract){
     #x è un vettore, ma a me interessa solo la posizione centrale
-    if(length(x)<3) stop ("poinRescale need longer objects")
+    if(length(x)<3) stop ("poinRescale needs length >= 3")
     mid = round(length(x)/2)+1
     if(mid<2){ stop("bad mid point in pointrescale")}
-    a = min(x,na.rm=T)
-    b = max(x,na.rm=T)
-    return((x[mid] - a)/(b- a))
+    xx=x[!is.na(x)]
+    if (length(xx) == 0) return(NA_real_)
+    a = min(xx)
+    b = max(xx)
+    m = sum(xx)/length(xx)
+    return((x[mid] - ifelse(subtract=="min",a,m))/(b - a))
     # return((newMax-newMin)/(ran[2]-ran[1]) * (xx - ran[2]) + newMax)
   }
-  res = byWin(x, WIN=WIN, INC=1/frequency(x),flex = TRUE, FUN=pointRescale, cores=cores)
-  res = res * (newMax-newMin) + newMin
+  res = byWin(x, WIN=WIN, INC=1/frequency(x),flex = TRUE, FUN=pointRescale, subtract=subtract,cores=cores)
+  # res = res * (newMax-newMin) + newMin
+  res = rangeRescale(res,newMin, newMax)
   return(res)
 }
-
 #' #' Window-based rescaling
 #' #'
 #' #' This function operates a rescale on a signal based on a rolling window.
