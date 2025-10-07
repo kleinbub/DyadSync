@@ -38,18 +38,19 @@ readCategories = function(path,
   # idSep = "_"
   #############
   
-  # path ="R/manuTest"
-  # #"..\\Minutaggi_CC\\minutaggi_Emanuele_exchange_CC"",
-  # catName = "PIRS"
+  # path ="..."
+  # catName = "EFOS"
+  # codingCol=5:10
   # removeSec = 0
-  # startCol =1; endCol = 2; sep = ";"; codingCol = 3:4;
-  # idOrder = c("x", "session", "id");
-  # #idOrder = c("x"; "session"; "id"; "x");
+  # startCol =1
+  # endCol = 2
+  # sep = ";"
+  # idOrder = c("x","id")
   # idSep = "_"
-  # 
+  # cores = 1
   
   
-  l = list(...) # l = list(sep=";")
+  l = list(...) # l = list(sep=";", cores=1)
   l = c(list(path,namefilt,idOrder,idSep),l)
   l$stringsAsFactors = FALSE
   # l$as.is = TRUE
@@ -72,7 +73,7 @@ readCategories = function(path,
   }  else if(length(removeSec)!=length(lf)) stop("removeSec must be defined for every file (n=",length(lf),")")
 
   cat("File name","\t","seconds removed\r\n")
-  #debug: iFile = 1; file = lf[[iFile]]
+  #debug: iFile = 2; file = lf[[iFile]]
   listCat = Map(function(file,iFile){
     cat(shortNames[iFile],"\t",removeSec[iFile],"\r\n")
     # file = as.data.frame(file)
@@ -122,7 +123,15 @@ readCategories = function(path,
       #trim leading and ending whitespaces
       for(i in 1:ncol(file)){
         if(is.character(file[[i]])){
-          file[[i]] = gsub("^\\s+|\\s+$", "",  file[[i]])
+          tryCatch(
+            {
+              file[[i]] <- gsub("^\\s+|\\s+$", "", file[[i]])
+            },
+            error = function(e) {
+              message("Error while cleaning ", shortNames[i],". \r\nPossible unicode problems?\r\n", e$message)
+            }
+          )
+          
         }
       }
         res = data.frame("start"=file[[startCol]], "end" =file[[endCol]], "delta"=deltaSec)
