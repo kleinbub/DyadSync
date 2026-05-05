@@ -6,7 +6,14 @@
 when you have a value for each window (even overlapping ones) and you
 want to transform the values to a time series with the original sampling rate}
 \usage{
-rescaleByWin(x, WIN, newMin, newMax, cores = 1)
+rescaleByWin(
+  x,
+  WIN,
+  newMin,
+  newMax,
+  cores = 1,
+  subtract = c("min", "average", "mean")
+)
 }
 \arguments{
 \item{x}{numeric representation of a time-series. Ideally a rats object.}

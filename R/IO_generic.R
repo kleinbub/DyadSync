@@ -90,7 +90,6 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F,cores, ...){
       warning("Session numbers are not in sequential order, this usually indicates an error. Please check the file names:\r\n",paste0("\r\n",shortNames,"\t",nCheck),call. = F)
   }
   
-  
   ndyads = ifelse(pairBind, length(filenames)/2,length(filenames))
   nFiles = length(filenames)
   cat("\r\nReading",ndyads,"dyads\r\n")
@@ -132,11 +131,6 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F,cores, ...){
     }
   }
   
-  
-
-  # 
-  # lf <- mapply(function(x,iFile) {
-    # prog(iFile,nFiles); do.call(data.table::fread,c(list(x, skip=skipRow[iFile], data.table=FALSE), options)) },filenames,seq_along(filenames),SIMPLIFY = F )
   if(ncol(lf[[1]])==1 && !pairBind) {print(str(lf[[1]]));stop("Import failed. Check sep?")}
   return(list("lf"=lf,
               "sess"=sess,

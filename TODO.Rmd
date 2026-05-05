@@ -31,12 +31,13 @@ knitr::opts_chunk$set(echo = TRUE)
   * in ppSync_dev perchè usare la lunghezza del più corto per interpolare? Usa già
     quella finale dell'interpolazione.
   * ccfBest dovrebbe usare byWin
-  
+  * byWin e applicazioni come rescaleByWin sarebbe meglio fossero implementate in C.
+    vedi RcppRoll, zoo:rollapply, data.table::frollapply()
+    
 ## CRITICAL BUGS
   * amico2 ha dei buchi weight linea 863 prova mean [maybe done]
   * Alcuni nomi di dyadcategory causano errori come "SD"
   * tutto il sistema di permutazioni non permette di analizzare dati per i quali non ci siano osservazioni (nrow = 0) [maybe fixed?]
-
 
 
 ## AMICO2
@@ -68,7 +69,7 @@ knitr::opts_chunk$set(echo = TRUE)
    Forse in R internals c'è una guida per dire come fare meglio?
 
 ## rats CLASS 
-  * rats dovrebbe poter rappresentare anche serie irregolari. Quindi arbitrari
+  * rats dovrebbe poter rappresentare anche serie irregolari tipo zoo. Quindi arbitrari
     appaiamenti di valori x e y. Crea costruttore alternativo rats(x = , y = ).
     PROBLEMI:
     * che sampling rate? Cosa succede alle funzioni che si basano su frequency.rats()?

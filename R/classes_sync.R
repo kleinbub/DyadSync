@@ -8,7 +8,7 @@
 #'
 #' @examples
 is.sync = function(x){
-  (inherits(x,"CCFBest")||inherits(x,"PMBest") )&& length(x)
+  (inherits(x,"CCFBest")||inherits(x,"PMBest")||inherits(x,"amico1") )&& length(x)
 }
 
 CCFBest = function(sync, lag, ccf_matrix, lagSec, winSec, incSec, accelSec, weight_type, MAwin, MAinc,slopes)

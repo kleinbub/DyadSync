@@ -202,13 +202,18 @@ epochSeries.DyadSession = function(x, signal, sync, series, diary, category,
                      timeUnit=timeUnit(xseries), unit=unit(xseries))
           cate$start[i] = start(xseries)
         } else padding = NULL
+        
+        
 
         #if end goes beyond the xseries duration...
         if(cate$end[i] > end(xseries)[1] ){
           message("In session ", dyadId(x),"-",sessionId(x), ", end of window ",i,": was reduced to the series end.\n")
           cate$end[i]= end(xseries)[1]
         }
-
+        #it could be that these changes fuck up, if cate timings and xseries are on completely different time scales
+        if(cate$start[i] > cate$end[i]) stop("the end of the marker: ",i," was before the beginning of the series:
+                                             ",cate$start[i] ," > ", cate$end[i])
+        
         # rimuovi la finestra dallo series di segnale residuo remSeries:
         window(remSeries, start = cate$start[i], end = cate$end[i]) <- NA ## broken?
 

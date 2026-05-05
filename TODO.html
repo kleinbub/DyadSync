@@ -387,6 +387,9 @@ maxPeakDuration</li>
 <li>in ppSync_dev perchè usare la lunghezza del più corto per
 interpolare? Usa già quella finale dell’interpolazione.</li>
 <li>ccfBest dovrebbe usare byWin</li>
+<li>byWin e applicazioni come rescaleByWin sarebbe meglio fossero
+implementate in C. vedi RcppRoll, zoo:rollapply,
+data.table::frollapply()</li>
 </ul>
 </div>
 <div id="critical-bugs" class="section level2">
@@ -449,9 +452,9 @@ c’è una guida per dire come fare meglio?</li>
 <div id="rats-class" class="section level2">
 <h2>rats CLASS</h2>
 <ul>
-<li>rats dovrebbe poter rappresentare anche serie irregolari. Quindi
-arbitrari appaiamenti di valori x e y. Crea costruttore alternativo
-rats(x = , y = ). PROBLEMI:
+<li>rats dovrebbe poter rappresentare anche serie irregolari tipo zoo.
+Quindi arbitrari appaiamenti di valori x e y. Crea costruttore
+alternativo rats(x = , y = ). PROBLEMI:
 <ul>
 <li>che sampling rate? Cosa succede alle funzioni che si basano su
 frequency.rats()?</li>
