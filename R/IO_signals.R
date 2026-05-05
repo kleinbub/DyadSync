@@ -19,38 +19,57 @@
 #' Title
 #'
 #' @param path 
-#' @param signalNames a vector of string defining the name of the signals (same order as s1Col, s2Col)
-#' @param start an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the first observation of each file.
-#' Note that by default time series will be set with start = 0, which is different from the default value of \code{\link[stats]{ts}}.
-#' @param end an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the last observation of each file.
+#' @param signalNames a vector of string defining the name of the signals (same
+#' order as s1Col, s2Col)
+#' @param start an optional vector of integers, or strings in mm:ss format which
+#' specify the time (in seconds) of the first observation of each file.
+#' Note that by default time series will be set with start = 0, which is different
+#' from the default value of \code{\link[stats]{ts}}.
+#' @param end an optional vector of integers, or strings in mm:ss format which
+#' specify the time (in seconds) of the last observation of each file.
 #' If the data is longer or shorter, remove tail
-#'  or pads with zeroes. Useful to cut signals when a session is over or to equalize lengths. The default value,
+#'  or pads with zeroes. Useful to cut signals when a session is over or to equalize
+#'  lengths. The default value,
 #'  FALSE, keeps the original length of the signal
-#' @param duration an optional vector of integers, or strings in mm:ss format which specify the time (in seconds) of the duration of each file.
-#' If the data is longer or shorter, remove tail or pads with zeroes. Only one between end or duration should be specified.
-#' @param pairBind if true, every two consequent files in path get matched to a single DyadSession, useful if the data of participant
-#'                 1 and 2 are stored in separate files.
-#' @param winTerpolate a list containing two numeric values, winSec and incSec. If the data to be read has been generated through a moving
-#'                     window filter, it can be reversed to the given SR by setting the size (in seconds) of the window and its increment.
+#' @param duration an optional vector of integers, or strings in mm:ss format which
+#' specify the time (in seconds) of the duration of each file.
+#' If the data is longer or shorter, remove tail or pads with zeroes. Only one between
+#' end or duration should be specified.
+#' @param pairBind if true, every two consequent files in path get matched to a
+#' single DyadSession, useful if the data of participant 1 and 2 are stored in
+#' separate files. (This feature was implemented a long time ago and might not work)
+#' @param winTerpolate a list containing two numeric values, winSec and incSec.
+#' If the data to be read has been generated through a moving
+#'                     window filter, it can be reversed to the given SR by setting
+#'                     the size (in seconds) of the window and its increment.
 #' @param namefilt a string used to select only specific files in a given path
-#' @param idOrder either NA or a character vector. idOrder is used to interpret the filenames to correctly identify and label the cases. 
-#'   If NA, no attempt to identify cases will be done. The character vector may contain one or more of the following strings in any given order: "id" (unique identifier of a dyad),
-#'   "session" (session number if the same dyad has multiple sessions),"group" (if the data must be devided across groups or experimental conditions),
-#'   "role" (if pairBind = TRUE, to assign the role of different files), or "x" (a placeholder to skip irrelevant information in filenames)
+#' @param idOrder either NA or a character vector. idOrder is used to interpret
+#' the filenames to correctly identify and label the cases. 
+#'   If NA, no attempt to identify cases will be done. The character vector may
+#'   contain one or more of the following strings in any given order: "id" (unique
+#'   identifier of a dyad),
+#'   "session" (session number if the same dyad has multiple sessions),"group"
+#'   (if the data must be devided across groups or experimental conditions),
+#'   "role" (if pairBind = TRUE, to assign the role of different files), or "x"
+#'   (a placeholder to skip irrelevant information in filenames)
 #'   The strings can be abbreviated.
-#' @param idSep character vector (or object which can be coerced to such) containing regular expression(s).
-#'   If idOrder is not NA, this will be used as separator to split the filenameas and identify "id", "session", and "group"
+#' @param idSep character vector (or object which can be coerced to such) containing
+#' regular expression(s).
+#'   If idOrder is not NA, this will be used as separator to split the filenames
+#'   and identify "id", "session", and "group"
 #'   informations.
-#' @param ... additional options to be passed to read.table (es: skip, header, etc)
-#' @param s1Col 
-#' @param s2Col 
-#' @param s1Name 
-#' @param s2Name 
-#' @param unit character. A descriptor of the unit of measurement of the series values.
-#' @param SR 
+#' @param ... additional options to be passed to \code{\link[data.table]{fread}} (es: skip, header, etc)
+#' @param s1Col one or multiple numeric values identifying the position of the columns of each signal for s1
+#' @param s2Col one or multiple numeric values identifying the position of the columns of each signal for s2 
+#' @param s1Name character. How should s1 be called? e.g. "patient", "john", "left"...
+#' @param s2Name character. How should s2 be called? e.g. "therapist", "mary", "right"...
+#' @param unit character. A descriptor of the unit of measurement of the series
+#' values. E.g. uS, millivolts, dB... 
+#' @param SR numeric. sampling rate at which the data is acquired
 #' @param timeUnit character. A descriptor of the time unit of the series values.
-#' Defaults to seconds as in "samples per second"
-#' @param cores Either logical or integer. Sets how many cores should be used for the import. Values of 1, 0 or FALSE disable the multi-core code.
+#' Defaults to "seconds" as in "samples per second"
+#' @param cores Either logical or integer. Sets how many cores should be used for
+#' the import. Values of 1, 0 or FALSE disable the multi-core code.
 #'
 #' @return
 #' @export
@@ -171,16 +190,17 @@ readDyadSignals = function(
   #check if any file has only NA's
   removeFile = unlist(lapply(seq_along(lf), function(i){
     if(any(apply(lf[[i]][c(s1Col, s2Col)], 2, function(k) all(is.na(k)) ))) {
-      warning("In dyad ",dyadIds[[i]],' - session ',sess[[i]],", at least one column was all NA's. The whole session was removed", call. = F)
+      warning("In dyad ",dyadIds[[i]],' - session ',sess[[i]],", at least one column was all NA's.", call. = F)
       return(i)
     }
 
   } ))
-  if(length(removeFile)>0){
-    lf[removeFile] = len[removeFile] = dyadIds[removeFile] = group[removeFile] = sess[removeFile] = NULL
-    filenames =filenames[-removeFile]; shortNames = shortNames[-removeFile]
-    
-  }
+  # at least one column was all NA's. The whole session was removed"
+  # if(length(removeFile)>0){
+  #   lf[removeFile] = len[removeFile] = dyadIds[removeFile] = group[removeFile] = sess[removeFile] = NULL
+  #   filenames =filenames[-removeFile]; shortNames = shortNames[-removeFile]
+  #   
+  # }
   
   
   if(!is.null(winTerpolate$winSec) & !is.null(winTerpolate$incSec)){
