@@ -8,7 +8,8 @@
 #' will be converted to factors, searching across all files for possible levels.
 #' @param catName character. The name of the category
 #' @param namefilt character. A name or part of name, to filter among all files in path.
-#' @param removeSec numeric or numeric vector. number of seconds to be subtracted from the 
+#' @param timeShift numeric or numeric vector. number of seconds to be added from all the start/end timings. Negative numbers are subtracted.
+#' @param removeSec obsolete. use timeShift instead
 #' @param idOrder 
 #' @param idSep 
 #' @param ... 
@@ -19,8 +20,9 @@
 #'
 #' @examples
 readCategories = function(path,
-                          startCol, endCol,codingCol, catName, namefilt = NA, 
-                          removeSec = 0, 
+                          startCol, endCol,codingCol, catName, namefilt = NA,
+                          timeShift = 0,
+                          removeSec = timeShift, #@OBSOLETE
                           idOrder= c("id","session","group"), #the order of identifiers in the filenames
                           idSep = "_", #the separator of identifiers in the filename
                           ... #additional options to be passed to read.table
@@ -68,14 +70,16 @@ readCategories = function(path,
   ndyads = imp$ndyads
   nFiles = imp$nFiles
   
-  if(length(removeSec)==1) {message("removeSec = ",removeSec," was used for all files")
-    removeSec = rep(removeSec, length(lf))
-  }  else if(length(removeSec)!=length(lf)) stop("removeSec must be defined for every file (n=",length(lf),")")
+  if(missing(timeShift) && !missing(removeSec)) {timeShift = -removeSec} #@OBSOLETE
+  
+  if(length(timeShift)==1) {message("timeShift = ",timeShift," was used for all files")
+    removeSec = rep(timeShift, length(lf))
+  }  else if(length(timeShift)!=length(lf)) stop("timeShift must be defined for every file (n=",length(lf),")")
 
   cat("File name","\t","seconds removed\r\n")
   #debug: iFile = 2; file = lf[[iFile]]
   listCat = Map(function(file,iFile){
-    cat(shortNames[iFile],"\t",removeSec[iFile],"\r\n")
+    cat(shortNames[iFile],"\t",timeShift[iFile],"\r\n")
     # file = as.data.frame(file)
     #remove na shit
     if(nrow(file)>0){
@@ -88,16 +92,16 @@ readCategories = function(path,
       
         for(i in 1:length(file[[startCol]])) {
           result = tryCatch({
-            a = timeMaster(file[[startCol]][i],out = "sec",add = -removeSec[iFile])
-            b = timeMaster(file[[endCol]][i],out = "sec",add = -removeSec[iFile])
+            a = timeMaster(file[[startCol]][i],out = "sec",add = timeShift[iFile])
+            b = timeMaster(file[[endCol]][i],out = "sec",add = timeShift[iFile])
             if(b-a <0 )
               cat("--negative duration spotted at line:",i,"\r\n")
             if(a<0 )
-              cat("--negative start time (after removeSec) spotted at line:",i,"\r\n")
+              cat("--negative start time (after timeShift) spotted at line:",i,"\r\n")
             if(b<0 )
-              cat("--negative end time (after removeSec) spotted at line:",i,"\r\n")
+              cat("--negative end time (after timeShift) spotted at line:",i,"\r\n")
             if(i>1){ #check if start is after the previous end. Epochs should NOT overlap
-              if(a<timeMaster(file[[endCol]][i-1],out = "sec",add = -removeSec[iFile]))
+              if(a<timeMaster(file[[endCol]][i-1],out = "sec",add = timeShift[iFile]))
                 cat("--overlapping epochs spotted at line:",i,"\r\n")
             }
             
@@ -106,16 +110,16 @@ readCategories = function(path,
           }, finally = {
           })
         }
-        file[[startCol]] = timeMaster(file[[startCol]],out = "sec",add = -removeSec[iFile])
-        file[[endCol]]   = timeMaster(file[[endCol]],out="sec",add = -removeSec[iFile])
+        file[[startCol]] = timeMaster(file[[startCol]],out = "sec",add = timeShift[iFile])
+        file[[endCol]]   = timeMaster(file[[endCol]],out="sec",add = timeShift[iFile])
         
         if(any(is.na(file[[startCol]]))) stop("NA was found in startCol on line ", which(is.na(file[[startCol]])))
         if(any(is.na(file[[endCol]])))   stop("NA was found in startCol on line ", which(is.na(file[[endCol]])))
         
         deltaSec = file[[endCol]] - file[[startCol]]
         deltaSec[deltaSec==0] =1
-        # if(any(file[[endCol]]<0))   stop("After removeSec negative times were found in 'end' column in file "  ,shortNames[iFile])
-        # if(any(file[[startCol]]<0)) stop("After removeSec negative times were found in 'start' column in file ",shortNames[iFile])
+        # if(any(file[[endCol]]<0))   stop("After timeShift negative times were found in 'end' column in file "  ,shortNames[iFile])
+        # if(any(file[[startCol]]<0)) stop("After timeShift negative times were found in 'start' column in file ",shortNames[iFile])
         
         #if(length(deltaSec[deltaSec<0])>0) warning("negative durations spotted in file ",shortNames[iFile],"\r\n",which(deltaSec[deltaSec<0],arr.ind = T))
       
