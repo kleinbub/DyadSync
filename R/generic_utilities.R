@@ -318,7 +318,6 @@ unequalCbind = function(...) {
 timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseSep = "[:,;,\\,',\",\\-]", digits=c("auto")){
   #baseTime and add can either be  integers of seconds or a time string in the format h:m:s, m:s, or s, with or without leading zeroes
   #output forces the sum to be reported either as string h:m:s or m:s or as a integer of seconds. auto keeps the 'baseTime' format.
-  if(is.na(baseTime)){return(NA)}
   out = match.arg(out)
 
   if(length(baseTime)>1)
@@ -342,6 +341,7 @@ timeMaster = function(baseTime, out=c("auto", "hour", "min","sec"), add=0, baseS
   } else {
     #da qui baseTime è contenente un tempo singolo, non un vettore
     if(baseSep == ".") stop("The dot symbol . is reserved for fractional times.")
+    if(is.na(baseTime)){return(NA)}
 
     if(is.character(baseTime)){
       #è negativo?
