@@ -11,7 +11,8 @@ readCategories(
   codingCol,
   catName,
   namefilt = NA,
-  removeSec = 0,
+  timeShift = 0,
+  removeSec = timeShift,
   idOrder = c("id", "session", "group"),
   idSep = "_",
   ...
@@ -32,7 +33,9 @@ will be converted to factors, searching across all files for possible levels.}
 
 \item{namefilt}{character. A name or part of name, to filter among all files in path.}
 
-\item{removeSec}{numeric or numeric vector. number of seconds to be subtracted from the}
+\item{timeShift}{numeric or numeric vector. number of seconds to be added from all the start/end timings. Negative numbers are subtracted.}
+
+\item{removeSec}{obsolete. use timeShift instead}
 
 \item{idOrder}{}
 
