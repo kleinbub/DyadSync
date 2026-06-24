@@ -52,6 +52,7 @@ signalFilter.DyadExperiment = function (x, FUN, newAttributes=NULL, signals="all
              deparse(substitute(FUN)), " using ",cores," cores.\r\n")) 
   
   cl <- parallel::makeCluster(cores[1]) #not to overload your computer
+  on.exit(parallel::stopCluster(cl), add = TRUE)
   doSNOW::registerDoSNOW(cl)
   `%dopar%` <- foreach::`%dopar%`
   `%do%` <- foreach::`%do%`
@@ -78,7 +79,6 @@ signalFilter.DyadExperiment = function (x, FUN, newAttributes=NULL, signals="all
   # },x,seq_along(x))
   experiment2 = cloneAttr(x,experiment2)
   
-  parallel::stopCluster(cl)
   cat("\r\nDone ;)\r\n")
   
   return(experiment2)

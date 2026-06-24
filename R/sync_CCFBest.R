@@ -80,6 +80,7 @@ ccfBest.DyadExperiment = function(experiment, signal="all", lagSec,winSec,incSec
              s1Name(experiment[[1]]),"\r\n"))
   cl <- parallel::makeCluster(cores[1], outfile=warningsFile) #not to overload your computer
   doSNOW::registerDoSNOW(cl)
+  on.exit(parallel::stopCluster(cl), add = TRUE)
   `%dopar%` <- foreach::`%dopar%`
   `%do%` <- foreach::`%do%`
   pb$tick(0)
@@ -93,7 +94,7 @@ ccfBest.DyadExperiment = function(experiment, signal="all", lagSec,winSec,incSec
     experiment[[iSession]]
     
   }
-  parallel::stopCluster(cl) 
+  #parallel::stopCluster(cl) 
   cat("\r\nDone ;)\r\n")
   
   #restore session names and attributes

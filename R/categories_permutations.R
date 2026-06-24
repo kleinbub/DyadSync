@@ -285,6 +285,7 @@ categoryPerm = function(x,
     } else cores = 1
     cat(paste0("\r\nPerforming parallelized permutations of '",tipo2,"' categories using ",cores," cores.\r\n")) #verified!
     cl <- parallel::makeCluster(cores[1], outfile=warningsFile) #not to overload your computer
+    on.exit(parallel::stopCluster(cl), add = TRUE)
     doSNOW::registerDoSNOW(cl)
     `%dopar%` <- foreach::`%dopar%`
     `%do%` <- foreach::`%do%`
@@ -393,8 +394,7 @@ Please check if you have very long epochs and extractFrom=\"remaining\". Otherwi
       ))
       
     }
-    parallel::stopCluster(cl) 
-    
+
     #Check for issues
     for(i in 1:nIter){
       if(!is.null(resList[[i]][["message"]])){

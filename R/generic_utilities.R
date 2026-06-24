@@ -711,6 +711,7 @@ byWin = function(x, WIN, INC, flex = TRUE, FUN, ...,
                deparse(substitute(FUN))," by ",WIN," ",tu, " windows, ",INC," ",tu," increments, and using ",cores," cores.\r\n")) #verified!
     FUN = match.fun(FUN)
     cl <- parallel::makeCluster(cores[1], outfile=warningsFile)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
     doSNOW::registerDoSNOW(cl)
     `%dopar%` <- foreach::`%dopar%`
     pb$tick(0)
@@ -723,7 +724,7 @@ byWin = function(x, WIN, INC, flex = TRUE, FUN, ...,
       do.call(FUN, c(list(xnum[w_sta_s[k]:w_end_s[k]]), l))
       ################# END OF THE PARALLEL JOB
     }
-    parallel::stopCluster(cl) 
+    #parallel::stopCluster(cl) 
   }
   
   newTS = unlist(resList)

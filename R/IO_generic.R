@@ -111,6 +111,7 @@ genericIO <- function (path,namefilt,idOrder,idSep, pairBind=F,cores, ...){
                " using ",cores," cores.\r\n")) 
     
     cl <- parallel::makeCluster(cores[1])
+    on.exit(parallel::stopCluster(cl), add = TRUE)
     doSNOW::registerDoSNOW(cl)
     `%dopar%` <- foreach::`%dopar%`
     `%do%` <- foreach::`%do%`

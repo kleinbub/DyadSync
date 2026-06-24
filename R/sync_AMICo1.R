@@ -72,6 +72,7 @@ AMICo1 = function(experiment, signal,
   cat(paste0("\r\nHigh Sync at positive lags implies that the ",s2Name(experiment[[1]]),
              " follows the ", s1Name(experiment[[1]]),"\r\n")) #verified!
   cl <- parallel::makeCluster(cores[1], outfile=warningsFile) #not to overload your computer
+  on.exit(parallel::stopCluster(cl), add = TRUE)
   doSNOW::registerDoSNOW(cl)
   `%dopar%` <- foreach::`%dopar%`
   `%do%` <- foreach::`%do%`
@@ -109,7 +110,7 @@ AMICo1 = function(experiment, signal,
     experiment[[iSession]][[signal]][[outputName]] = synchro
     return(experiment[[iSession]])
   }
-  parallel::stopCluster(cl) 
+  #parallel::stopCluster(cl) 
   
   #restore session names and attributes
   for(iSession in 1:nSessions){

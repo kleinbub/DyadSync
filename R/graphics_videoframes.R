@@ -311,6 +311,7 @@ drawFrames = function(session, signals,
     
     #initialize
     cl <- parallel::makeCluster(cores) #not to overload your computer
+    on.exit(parallel::stopCluster(cl), add = TRUE)
     doSNOW::registerDoSNOW(cl)
     `%dopar%` <- foreach::`%dopar%`
     `%do%` <- foreach::`%do%`
@@ -419,7 +420,8 @@ drawFrames = function(session, signals,
       dev.off()
       
     }
-    parallel::stopCluster(cl); graphics.off();beepr::beep()
+    #parallel::stopCluster(cl);
+    graphics.off();beepr::beep()
     
   }
   
