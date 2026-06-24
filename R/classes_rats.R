@@ -575,71 +575,71 @@ str.rats = function(x, vals = 5, digits=4, ...){
   cat0("\r\n")
 }
 
-#' Print a rats object
-#' 
-#' @param x 
-#' @param vals numeric. How many values should be printed?
-#' @param digits numeric. How many digits should be used to approximate values
-#'
-#' @export
-print.rats = function(x, vals=20, digits= 4){
-  cat0("~~rats time series ")
-  cat0("[1:",length(x$y),"] ")
-  if(length(attr(x,"start")) >0 && !is.na(attr(x,"start")))
-    cat0("from ",attr(x,"start"), " to ",attr(x,"end"))
-  else cat0("of length 0")
-  if(attr(x,"frequency") >=1){
-    cat0(" | ",attr(x,"frequency")," samples/",attr(x, "timeUnit"))
-  } else {
-    if(attr(x,"period") == 1)
-      cat0(" | 1 sample every ", attr(x, "timeUnit"))
-    else
-      cat0(" | 1 sample every ",attr(x,"period")," ", attr(x, "timeUnit"),"s")
-    
-  }
-  if(!is.null(attr(x,"windowed")[[1]])){
-    winprint = attr(x,"windowed")[1:3]
-    cat0(" | windowed: ",paste(winprint,collapse=" "))
-  }
-  cat0(".")
-  if(is.numeric(vals) && length(time(x)) > vals){
-    #number of shown values must be even and greater than 2
-    if(vals < 2) vals = 2
-    if(vals %% 2 != 0) vals = vals - 1
-    
-    #print the first half of the values
-    timeDecimals = -log(attr(x,"period"),10)
-    toprint = 1:(vals/2)
-    k1 = rbind("values"=x[toprint]$y,"time"=round(time(x)[toprint], digits))
-    if(is.numeric(k1)) k1[1,] = as.character(round(k1[1,], digits))
-    k1[2,] = signif(as.numeric(k1[2,]), )
-    
-    toprint = (length(time(x))-vals/2+1):length(time(x))
-    k2 = rbind("values"=x[toprint],"time"=round(time(x)[toprint], digits))
-    if(is.numeric(k2)) k2[1,] = as.character(round(k2[1,], digits))
-    
-    hid = length(time(x)) - vals
-    if(hid>1000)hid = paste0(floor(hid/1000),"K")
-    k = cbind(k1,paste0("\U2026[",hid," more]\U2026"),k2)
-    
-  } else {
-    #print them all
-    if(length(time(x))==0){
-      toprint = numeric()
-      k = rbind("values"="numeric(0)","time"="numeric(0)")
-      
-    } else {
-      toprint = 1:length(time(x))
-      valz = x[toprint]
-      if(is.numeric(valz)) valz = round(valz, digits)
-      k = rbind("values"=valz,"time"=round(time(x)[toprint],digits))
-    }
-    
-  }
-  k = as.data.frame(k)
-  colnames(k)=NULL
-  print(k)
-}
+#' #' Print a rats object
+#' #' 
+#' #' @param x 
+#' #' @param vals numeric. How many values should be printed?
+#' #' @param digits numeric. How many digits should be used to approximate values
+#' #'
+#' #' @export
+#' print.rats = function(x, vals=20, digits= 4){
+#'   cat0("~~rats time series ")
+#'   cat0("[1:",length(x$y),"] ")
+#'   if(length(attr(x,"start")) >0 && !is.na(attr(x,"start")))
+#'     cat0("from ",attr(x,"start"), " to ",attr(x,"end"))
+#'   else cat0("of length 0")
+#'   if(attr(x,"frequency") >=1){
+#'     cat0(" | ",attr(x,"frequency")," samples/",attr(x, "timeUnit"))
+#'   } else {
+#'     if(attr(x,"period") == 1)
+#'       cat0(" | 1 sample every ", attr(x, "timeUnit"))
+#'     else
+#'       cat0(" | 1 sample every ",attr(x,"period")," ", attr(x, "timeUnit"),"s")
+#'     
+#'   }
+#'   if(!is.null(attr(x,"windowed")[[1]])){
+#'     winprint = attr(x,"windowed")[1:3]
+#'     cat0(" | windowed: ",paste(winprint,collapse=" "))
+#'   }
+#'   cat0(".")
+#'   if(is.numeric(vals) && length(time(x)) > vals){
+#'     #number of shown values must be even and greater than 2
+#'     if(vals < 2) vals = 2
+#'     if(vals %% 2 != 0) vals = vals - 1
+#'     
+#'     #print the first half of the values
+#'     timeDecimals = -log(attr(x,"period"),10)
+#'     toprint = 1:(vals/2)
+#'     k1 = rbind("values"=x[toprint]$y,"time"=round(time(x)[toprint], digits))
+#'     if(is.numeric(k1)) k1[1,] = as.character(round(k1[1,], digits))
+#'     k1[2,] = signif(as.numeric(k1[2,]), )
+#'     
+#'     toprint = (length(time(x))-vals/2+1):length(time(x))
+#'     k2 = rbind("values"=x[toprint],"time"=round(time(x)[toprint], digits))
+#'     if(is.numeric(k2)) k2[1,] = as.character(round(k2[1,], digits))
+#'     
+#'     hid = length(time(x)) - vals
+#'     if(hid>1000)hid = paste0(floor(hid/1000),"K")
+#'     k = cbind(k1,paste0("\U2026[",hid," more]\U2026"),k2)
+#'     
+#'   } else {
+#'     #print them all
+#'     if(length(time(x))==0){
+#'       toprint = numeric()
+#'       k = rbind("values"="numeric(0)","time"="numeric(0)")
+#'       
+#'     } else {
+#'       toprint = 1:length(time(x))
+#'       valz = x[toprint]
+#'       if(is.numeric(valz)) valz = round(valz, digits)
+#'       k = rbind("values"=valz,"time"=round(time(x)[toprint],digits))
+#'     }
+#'     
+#'   }
+#'   k = as.data.frame(k)
+#'   colnames(k)=NULL
+#'   print(k)
+#' }
 
 
 #' @export
