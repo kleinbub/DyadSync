@@ -125,12 +125,38 @@ readDyadSignals = function(
   # idOrder = c("s","x","x","x","id")
   # unit = "uS"
   # timeUnit = "seconds"
+  ##### test 2026
+  # startx = read.table(file.path("data/giannaangela@hotmail.com","timings_final.csv"), header = T)
+  # startx = startx[-6,]
+  # path ="data/giannaangela@hotmail.com/syncsense/interpolated";
+  # skip=0; sep=";"; header=T; #maxSeconds=2500;
+  # s1Col=c(4); s2Col=c(5);
+  # s1Name = "Client";  s2Name = "Therapist";
+  # signalNames = c("SC");#end = c("66:00"; "60:00");
+  # start = startx$ther_start;
+  # end = startx$ther_end;
+  # #duration = "20:00";
+  # cores=FALSE;
+  # SR=50; namefilt = "";idOrder = c("x","id", "session", "x", "group");
+  # idSep = "_";unit="uS"
+  # pairBind = FALSE
+  # nameFilt = "BFT"
+  # prog = function(i,n,step=50){
+  #   progStep = c(1,round((n/step)*2:(step-1)),n)
+  #   progStep[progStep==0] = 1
+  #   s = sum(i == progStep)
+  #   if(s) {
+  #     if(i==1) cat0(rep('.',50),"|100%\r\n")
+  #     cat0(rep('.',s))}
+  #   if(i==n) cat0("|Done ;)\r\n")
+  #   
+  # }
 ######
   if(!missing(end) && !missing(duration)) stop("only one between end and duration must be specified")
   if(missing(start)) start = 0
   if(length(s1Col)!=length(s2Col) || length(s1Col)!=length(signalNames)) stop ("s1Col, s2Col, signalNames must have same length")
   
-  # imp = genericIO(path,namefilt,idOrder,idSep, pairBind)
+  # imp = genericIO(path,namefilt,idOrder,idSep, pairBind, cores)
   imp = genericIO(path,namefilt,idOrder,idSep, pairBind, cores, ...)
   lf= imp$lf
   sess= imp$sess
@@ -217,43 +243,60 @@ readDyadSignals = function(
     message("start = ",start," was used for all ",ndyads," dyads")
     start=rep(start,ndyads)
   } else if(length(start) != ndyads){
-    stop("start must be a single value or be provided for each ",ndyads ,"file. Only ",length(start)," values provided:\r\n",start)
+    stop("start must be a single value or be provided for each ",ndyads ,"file. ",length(start)," values were provided instead:\r\n",paste(start," "))
   }
   
   #end checks
   if(!missing(end)){ #if end is NOT missing
     end = timeMaster(end,out="sec")
+    if(length(end) == 1 && ndyads>1) {
+      end=rep(end,ndyads)
+      message("end was used for all ",ndyads," dyads")
+    } else if(length(end) !=ndyads) stop("end must be provided for each file",length(end) ,"!=",ndyads)
+    
     duration = end - start
-  }  
-
-  #if duration is NOT missing, or was set through 'end' procede to trim files 
-  if(!missing(duration) || !missing(end)){ 
+  } else if(!missing(duration)){
+    
     duration = timeMaster(duration, out="sec")
-    cat("\r\nTrimming files (samples)\r\n")
     
     if(length(duration) == 1 && ndyads>1) {
       duration=rep(duration,ndyads)
       message("duration was used for all ",ndyads," dyads")
     } else if(length(duration) !=ndyads) stop("end/duration must be provided for each file",length(duration) ,"!=",ndyads)
     
+    end = start + duration
+  }
+  else {
+    end = unlist(len)/SR + start
+    duration = end - start
+  } 
+
+  #if duration is NOT missing, or was set through 'end' procede to trim files 
+  if(!missing(duration) || !missing(end)){ 
+    cat("\r\nTrimming files (samples)\r\n")
+    
+
     #check if any duration is NA and replace it with the actual file duration
     for(i in seq_along(lf)){
-      if(is.na(duration[i])) duration[i] = nrow(lf[[i]])
+      if(is.na(duration[i])) {print("\r\nNA duration detected");duration[i] = nrow(lf[[i]])}
     }
 
     
-    print(data.frame("file"=shortNames, "original"=sapply(lf,nrow),"destination"=duration*SR,"NAs added"=sapply(seq_along(lf), function(i){
-      if(nrow(lf[[i]])<duration[i]*SR) "*" else "-"
+    print(data.frame("file"=shortNames, "original"=sapply(lf,nrow),
+                     "destination"=duration*SR,
+                     "NAs added"=sapply(seq_along(lf), function(i){
+                          if(nrow(lf[[i]])<round(duration[i]*SR,8)) "*" else "-"
     })),row.names = F)
     
     #check if some file are  shorter than duration and add NAs
     lf <- lapply(seq_along(lf), function(i){
-      if(nrow(lf[[i]])<duration[i]*SR){
+      if(nrow(lf[[i]])<round(duration[i]*SR,8)){
         lf[[i]][(nrow(lf[[i]])+1):(duration[i]*SR),] = NA
       }
       return(lf[[i]]) })
-    #resize file according to settings
-    lf <- lapply(seq_along(lf),function(i){lf[[i]][1:(duration[i]*SR) ,]})
+    
+    ##resize file according to settings
+    lf <- lapply(seq_along(lf),function(i){lf[[i]] [1:(duration[i]*SR) ,]})
   }
   ndyads = length(lf)
   
@@ -281,9 +324,9 @@ readDyadSignals = function(
   #Populates the objects
   sessions = vector(mode="list",length=length(lf))
   iSession = 1
-  for(iSession in 1:length(lf)){
+  for(iSession in 1:length(lf)){ #for each iSession session
     session = lf[[iSession]]
-    signalList = lapply(seq_along(s1Col), function(i) {
+    signalList = lapply(seq_along(s1Col), function(i) { #for each column
       DyadSignal(name=signalNames[i],
                  s1=rats(session[,s1Col[i]],frequency=SR,
                          start=start[iSession], timeUnit=timeUnit, unit=unit[i]),
